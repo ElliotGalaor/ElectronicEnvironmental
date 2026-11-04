@@ -1,0 +1,103 @@
+# Vérificateur RoHS 2 / RoHS 3 / REACH pour BOM
+
+Outil qui analyse une nomenclature électronique (BOM) et détermine, ligne par ligne puis pour la carte entière,
+la conformité à **RoHS 2** (2011/65/UE), **RoHS 3** (UE 2015/863) et **REACH** (CE 1907/2006),
+à partir d'une base de données serveur des composants.
+
+## Démarrage
+
+```bash
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python cli.py seed          # charge 26 composants de démonstration
+.venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:8000/docs).
+
+> ⚠ Les données de démonstration (`data/seed_components.csv`) servent uniquement à tester l'outil.
+> Remplacez-les par vos propres données issues des déclarations fabricants.
+
+## Fonctionnement
+
+1. **Lecture de la BOM** : CSV/TXT (séparateur `;` `,` tab détecté, UTF-8 ou Windows-1252) ou Excel `.xlsx`.
+   La ligne d'en-tête et les colonnes sont détectées automatiquement (noms français et anglais :
+   *Manufacturer Part Number*, *Référence fabricant*, *MPN*, *Fabricant*, *Repères*, *Qté*, *DNP*…).
+   La colonne « Reference » de KiCad est reconnue comme repère si elle contient des `R1, C2…`.
+   Les colonnes peuvent être corrigées dans l'interface (bouton « Colonnes… »).
+2. **Rapprochement avec la base**, par ordre de fiabilité :
+   | Correspondance | Règle | Statut retenu |
+   |---|---|---|
+   | Exacte | même référence + même fabricant (alias gérés : TI, ST, ON Semi…) | statut de la base |
+   | Référence seule | même référence, pas de fabricant dans la BOM | statut de la base |
+   | Approchante | identique hors ponctuation (`LM358-DR` = `LM358DR`) | statut de la base |
+   | Autre fabricant / Partielle (suffixe d'emballage) / Ambiguë | | **À vérifier** |
+   | Introuvable | + suggestions de références proches | **À vérifier** |
+3. **Verdict** par norme : *Non conforme* si une ligne l'est, sinon *À vérifier* s'il manque une information,
+   sinon *Conforme* (en signalant les exemptions RoHS et les SVHC REACH > 0,1 %).
+   Les composants non montés (DNP) sont exclus.
+   RoHS 3 incluant RoHS 2 (+ 4 phtalates), un composant RoHS 3 conforme est déduit conforme RoHS 2 si ce statut manque.
+
+## Statuts en base
+
+| Champ | Valeurs |
+|---|---|
+| `rohs2`, `rohs3` | `conforme`, `exemption`, `non_conforme`, `inconnu` |
+| `reach` | `conforme` (pas de SVHC > 0,1 %), `svhc` (SVHC > 0,1 % : obligation d'info art. 33 / SCIP), `non_conforme`, `inconnu` |
+
+À l'import, les valeurs `Oui/Yes/Compliant/OK` et `Non/No/Not compliant` sont aussi acceptées.
+Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_list`, `source`, `last_checked`.
+
+## Alimenter la base
+
+- **Interface web** : onglet « Base de composants » (ajout, modification, import CSV/XLSX, export).
+  Depuis un rapport, le bouton « + Ajouter à la base » pré-remplit une référence introuvable.
+- **Import en masse** : un CSV/XLSX avec les colonnes ci-dessus (première ligne = en-têtes). Clé d'unicité :
+  référence + fabricant (mise à jour si existe déjà).
+  ```bash
+  .venv\Scripts\python cli.py import ma_base.xlsx
+  ```
+
+## Ligne de commande
+
+```bash
+.venv\Scripts\python cli.py analyze exemples\bom_exemple.csv -o rapport.xlsx
+.venv\Scripts\python cli.py analyze bom.csv --server http://serveur:8000      # via le serveur distant
+.venv\Scripts\python cli.py analyze bom.csv --mapping "{\"mpn\": \"Part Number\"}"
+```
+Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en intégration continue).
+
+## API REST
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| POST | `/api/analyze?format=json\|xlsx\|csv` | analyse d'une BOM (`file`, `mapping` optionnel) |
+| GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
+| GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
+| POST | `/api/components/import` | import en masse |
+| GET | `/api/components/export` | export CSV de la base |
+| GET | `/api/stats` | statistiques |
+
+## Déploiement serveur
+
+- `RRC_DB_PATH` : chemin de la base SQLite (défaut `data/components.db`).
+- `RRC_ADMIN_TOKEN` : si défini, toute modification de la base exige l'en-tête `X-Admin-Token`
+  (saisi dans l'interface, onglet Base). La consultation et l'analyse restent libres.
+
+## Tests
+
+```bash
+.venv\Scripts\python -m pytest -q tests
+```
+
+## Structure
+
+```
+app/db.py         base SQLite, normalisation des références et fabricants
+app/tables.py     lecture CSV/XLSX, détection de l'en-tête et des colonnes
+app/analyzer.py   rapprochement et calcul des verdicts
+app/reports.py    exports Excel / CSV
+app/importer.py   import en masse de la base
+app/main.py       API FastAPI + interface web (app/static)
+cli.py            ligne de commande
+```

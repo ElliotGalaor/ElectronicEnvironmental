@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérificateur RoHS / REACH</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">♻</span>
+    <div>
+      <h1>Vérificateur RoHS / REACH</h1>
+      <p class="sub">Conformité environnementale d'une nomenclature (BOM)</p>
+    </div>
+  </div>
+  <div class="dbinfo" id="dbinfo">Base : …</div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="analyse" role="tab">Analyse de BOM</button>
+  <button class="tab" data-tab="base" role="tab">Base de composants</button>
+</nav>
+
+<main>
+  <!-- ============================== ANALYSE ============================== -->
+  <section id="tab-analyse" class="panel active">
+    <label id="drop" class="drop">
+      <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm" hidden>
+      <div class="drop-icon" aria-hidden="true">⬆</div>
+      <strong>Déposez votre BOM ici</strong> ou cliquez pour choisir un fichier
+      <span class="hint">CSV, TXT ou Excel (.xlsx) — colonnes détectées automatiquement (référence fabricant, fabricant, repères, quantité…)</span>
+    </label>
+
+    <div id="error" class="alert error" hidden></div>
+
+    <div id="result" hidden>
+      <div class="fileline">
+        <div><strong id="fname"></strong> <span class="muted" id="fmeta"></span></div>
+        <div class="actions">
+          <button class="btn" id="btnMapping">Colonnes…</button>
+          <button class="btn" data-export="csv">Export CSV</button>
+          <button class="btn primary" data-export="xlsx">Export Excel</button>
+        </div>
+      </div>
+
+      <div id="mapping" class="card mapping" hidden>
+        <p class="muted">Colonnes utilisées (ligne d'en-tête <span id="hdrRow"></span>). Corrigez si besoin puis relancez.</p>
+        <div class="mapgrid" id="mapgrid"></div>
+        <button class="btn primary" id="btnRerun">Relancer l'analyse</button>
+      </div>
+
+      <div class="cards" id="cards"></div>
+
+      <div class="counts" id="counts"></div>
+
+      <div class="toolbar">
+        <div class="filters" id="filters">
+          <button class="chip active" data-filter="all">Toutes</button>
+          <button class="chip" data-filter="issues">Problèmes</button>
+          <button class="chip" data-filter="ko">Non conformes</button>
+          <button class="chip" data-filter="check">À vérifier</button>
+          <button class="chip" data-filter="svhc">SVHC / exemptions</button>
+        </div>
+        <input type="search" id="lineSearch" placeholder="Filtrer (référence, repère…)">
+      </div>
+
+      <div class="tablewrap">
+        <table class="grid" id="lines">
+          <thead><tr>
+            <th>Ligne</th><th>Repères</th><th>Qté</th><th>Référence BOM</th><th>Fabricant</th>
+            <th>Correspondance</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Remarques</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="disclaimer">Les statuts proviennent de la base serveur. Vérifiez les déclarations des fabricants (certificats RoHS, déclarations REACH/SVHC) avant toute attestation de conformité.</p>
+    </div>
+  </section>
+
+  <!-- ============================== BASE ============================== -->
+  <section id="tab-base" class="panel">
+    <div class="toolbar">
+      <div class="left">
+        <input type="search" id="q" placeholder="Rechercher une référence, un fabricant, une description…">
+        <label class="check"><input type="checkbox" id="onlyIssues"> Problèmes uniquement</label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnImport">Importer CSV/XLSX</button>
+        <input type="file" id="importFile" accept=".csv,.txt,.xlsx" hidden>
+        <a class="btn" href="/api/components/export">Exporter</a>
+        <button class="btn primary" id="btnAdd">+ Ajouter</button>
+      </div>
+    </div>
+    <div id="adminBox" class="card admin" hidden>
+      <label>Jeton administrateur (requis pour modifier la base)
+        <input type="password" id="adminToken" autocomplete="off">
+      </label>
+    </div>
+    <div id="importMsg" class="alert" hidden></div>
+    <div class="tablewrap">
+      <table class="grid" id="comps">
+        <thead><tr>
+          <th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th>
+          <th>Exemptions / SVHC</th><th>Vérifié le</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button class="btn" id="prev">‹ Précédent</button>
+      <span id="pageInfo" class="muted"></span>
+      <button class="btn" id="next">Suivant ›</button>
+    </div>
+  </section>
+</main>
+
+<!-- ============================== MODALE COMPOSANT ============================== -->
+<dialog id="dlg">
+  <form id="compForm" method="dialog">
+    <h2 id="dlgTitle">Composant</h2>
+    <div class="formgrid">
+      <label>Référence fabricant *<input name="mpn" required></label>
+      <label>Fabricant<input name="manufacturer"></label>
+      <label class="wide">Description<input name="description"></label>
+      <label>RoHS 2 (2011/65/UE)
+        <select name="rohs2">
+          <option value="conforme">Conforme</option><option value="exemption">Conforme avec exemption</option>
+          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+        </select></label>
+      <label>RoHS 3 (UE 2015/863)
+        <select name="rohs3">
+          <option value="conforme">Conforme</option><option value="exemption">Conforme avec exemption</option>
+          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+        </select></label>
+      <label>REACH (CE 1907/2006)
+        <select name="reach">
+          <option value="conforme">Conforme (pas de SVHC &gt; 0,1 %)</option><option value="svhc">Contient SVHC &gt; 0,1 %</option>
+          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+        </select></label>
+      <label>Exemptions RoHS<input name="rohs_exemptions" placeholder="ex. 7(c)-I, 6(c)"></label>
+      <label class="wide">SVHC présentes<input name="svhc_list" placeholder="ex. Plomb (CAS 7439-92-1)"></label>
+      <label>Source<input name="source" placeholder="Déclaration fabricant, URL…"></label>
+      <label>Vérifié le<input name="last_checked" type="date"></label>
+    </div>
+    <div id="dlgError" class="alert error" hidden></div>
+    <div class="dlgactions">
+      <button type="button" class="btn danger" id="btnDelete">Supprimer</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="btnCancel">Annuler</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
