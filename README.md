@@ -52,6 +52,30 @@ Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_l
 
 - **Interface web** : onglet « Base de composants » (ajout, modification, import CSV/XLSX, export).
   Depuis un rapport, le bouton « + Ajouter à la base » pré-remplit une référence introuvable.
+- **Ajout manuel** : bouton « + Ajouter », puis saisie des champs.
+- **Ajout depuis une datasheet PDF** : bouton « Depuis une datasheet PDF », ou dépôt du PDF dans la fiche.
+  Les champs sont pré-remplis (et surlignés), avec les extraits de la datasheet et le numéro de page
+  qui justifient chaque valeur. **Rien n'est enregistré sans relecture** : on corrige puis on clique sur « Enregistrer ».
+  Si le composant existe déjà, la fiche existante est proposée.
+
+### Extraction des datasheets
+
+Deux méthodes, choisies automatiquement :
+
+| Méthode | Quand | Ce qu'elle fait |
+|---|---|---|
+| **Règles automatiques** (par défaut) | toujours disponible, hors ligne | lit le texte du PDF : fabricant (site web, copyright), référence (fréquence, page 1, tableau de commande, nom du fichier), description (titre), mentions RoHS / 2011/65 / 2015/863 / exemptions / REACH / SVHC |
+| **IA (Claude)** | si `ANTHROPIC_API_KEY` est défini sur le serveur | envoie le PDF au modèle, qui lit aussi les tableaux et les PDF scannés ; les champs manquants sont complétés par les règles ; repli automatique sur les règles en cas d'erreur |
+
+Règles de prudence appliquées dans les deux cas :
+- « Pb-free », « green » ou « lead-free » seuls ne suffisent pas pour conclure à la conformité RoHS.
+- RoHS 3 n'est marqué conforme que si la datasheet cite (UE) 2015/863, RoHS 3 ou les 10 substances ;
+  une simple mention « RoHS » ne vaut que pour RoHS 2.
+- Beaucoup de datasheets ne donnent pas la conformité : les statuts restent alors « inconnu ».
+  La déclaration de conformité du fabricant reste la source de référence.
+
+Variables : `ANTHROPIC_API_KEY` (active l'IA), `RRC_AI=off` (désactive l'IA), `RRC_AI_MODEL`
+(modèle, défaut `claude-opus-5-5`). Avec l'IA, le PDF est envoyé à l'API Anthropic.
 - **Import en masse** : un CSV/XLSX avec les colonnes ci-dessus (première ligne = en-têtes). Clé d'unicité :
   référence + fabricant (mise à jour si existe déjà).
   ```bash
@@ -75,6 +99,7 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
 | GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
 | POST | `/api/components/import` | import en masse |
+| POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
 | GET | `/api/components/export` | export CSV de la base |
 | GET | `/api/stats` | statistiques |
 
@@ -98,6 +123,8 @@ app/tables.py     lecture CSV/XLSX, détection de l'en-tête et des colonnes
 app/analyzer.py   rapprochement et calcul des verdicts
 app/reports.py    exports Excel / CSV
 app/importer.py   import en masse de la base
+app/datasheet.py  extraction des datasheets PDF par règles
+app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```

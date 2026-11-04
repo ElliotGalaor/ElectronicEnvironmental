@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(ROOT))
 os.environ["RRC_DB_PATH"] = str(Path(tempfile.mkdtemp()) / "test.db")
 
@@ -132,3 +133,101 @@ def test_deduction_rohs2_depuis_rohs3():
     rep = analyze_text("MPN,Manufacturer\nINFER-1,Acme\n")
     line = rep["lines"][0]
     assert line["rohs2"] == "conforme" and line["rohs2_inferred"]
+
+
+# ---------------------------------------------------------------- datasheets PDF
+
+from pdfgen import make_pdf  # noqa: E402
+
+from app import datasheet_ai  # noqa: E402
+
+TI_PDF = make_pdf(
+    [
+        ["LM358B, LM2904B", "Industry-Standard Dual Operational Amplifiers", "1 Features", "- Supply 3 V to 36 V", "www.ti.com"],
+        [
+            "Orderable Device  Status  Package  Eco Plan",
+            "LM358BIDR  ACTIVE  SOIC  RoHS & Green",
+            "LM358BIPWR  ACTIVE  TSSOP  RoHS & Green",
+            "RoHS: compliant with the current EU RoHS requirements for all 10 RoHS",
+            "substances. REACH: no SVHC above 0.1% by weight.",
+            "Copyright (c) 2023, Texas Instruments Incorporated",
+        ],
+    ],
+    title="LM358B Dual Operational Amplifiers datasheet",
+)
+YAGEO_PDF = make_pdf([[
+    "Chip Resistor Surface Mount RC Series 0603", "Example: RC0603FR-0710KL",
+    "- RoHS compliant with exemption 7(c)-I",
+    "- Contains lead (CAS 7439-92-1), an SVHC under REACH, above 0.1% w/w", "www.yageo.com",
+]])
+
+
+def extract_pdf(data: bytes, name: str, **params):
+    return client.post("/api/datasheet/extract", files={"file": (name, data, "application/pdf")}, params=params)
+
+
+def test_datasheet_ti(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    r = extract_pdf(TI_PDF, "lm358b.pdf")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    f = d["fields"]
+    assert d["method"] == "heuristique"
+    assert f["mpn"] == "LM358B" and f["manufacturer"] == "Texas Instruments"
+    assert "Operational Amplifiers" in f["description"]
+    assert (f["rohs2"], f["rohs3"], f["reach"]) == ("conforme", "conforme", "conforme")
+    assert "LM358BIDR" in [c["value"] for c in d["candidates"]["mpn"]]
+    assert d["evidence"]["rohs3"]
+
+
+def test_datasheet_exemption_et_svhc(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    f = extract_pdf(YAGEO_PDF, "RC0603FR-0710KL.pdf").json()
+    assert f["existing_id"]  # déjà dans la base de démonstration
+    f = f["fields"]
+    assert f["mpn"] == "RC0603FR-0710KL" and f["manufacturer"] == "Yageo"
+    assert f["rohs2"] == "exemption" and f["rohs_exemptions"] == "7(c)-I"
+    assert f["rohs3"] == "inconnu"  # 2015/863 non mentionnée
+    assert f["reach"] == "svhc" and "7439-92-1" in f["svhc_list"]
+
+
+def test_datasheet_sans_conformite(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    d = extract_pdf(make_pdf([["AW-2000X Precision Sensor Module", "RoHS-friendly packaging: Pb-free"]]), "s.pdf").json()
+    assert d["fields"]["rohs2"] == "inconnu"
+    assert any("sans plomb" in n for n in d["notes"])
+
+
+def test_datasheet_fichier_invalide():
+    assert extract_pdf(b"pas un pdf", "x.pdf").status_code == 422
+
+
+def test_datasheet_ia_indisponible(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    assert extract_pdf(TI_PDF, "lm358b.pdf", method="ia").status_code == 400
+
+
+def test_datasheet_ia_complete_par_heuristique(monkeypatch):
+    def fake(data, name):
+        return {
+            "method": "ia", "model": "test",
+            "fields": {"mpn": "LM358BIDR", "manufacturer": "", "description": "Double ampli-op", "rohs2": "conforme",
+                       "rohs3": "conforme", "reach": "inconnu", "rohs_exemptions": "", "svhc_list": "", "source": "x"},
+            "candidates": {"mpn": [{"value": "LM358BIDR"}], "manufacturer": []},
+            "evidence": {}, "notes": [], "warnings": [],
+        }
+    monkeypatch.setattr(datasheet_ai, "available", lambda: True)
+    monkeypatch.setattr(datasheet_ai, "extract", fake)
+    d = extract_pdf(TI_PDF, "lm358b.pdf").json()
+    assert d["method"] == "ia"
+    assert d["fields"]["mpn"] == "LM358BIDR"
+    assert d["fields"]["manufacturer"] == "Texas Instruments"  # complété par l'heuristique
+
+
+def test_datasheet_ia_en_erreur_repli(monkeypatch):
+    def boom(data, name):
+        raise datasheet_ai.AIExtractionError("quota")
+    monkeypatch.setattr(datasheet_ai, "available", lambda: True)
+    monkeypatch.setattr(datasheet_ai, "extract", boom)
+    d = extract_pdf(TI_PDF, "lm358b.pdf").json()
+    assert d["method"] == "heuristique" and any("quota" in w for w in d["warnings"])

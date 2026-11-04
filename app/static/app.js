@@ -48,6 +48,10 @@ async function loadStats() {
   try {
     const s = await (await api("/api/stats")).json();
     state.adminRequired = s.admin_required;
+    state.aiAvailable = s.ai_available;
+    $("#pdfMethodHint").textContent = s.ai_available
+      ? "Analyse par IA (Claude) activée sur le serveur."
+      : "Analyse par règles (aucune clé API Claude configurée sur le serveur).";
     $("#dbinfo").textContent = `Base : ${s.total} composant${s.total > 1 ? "s" : ""}`;
     $("#adminBox").hidden = !s.admin_required;
   } catch { $("#dbinfo").textContent = "Base : serveur injoignable"; }
@@ -213,12 +217,83 @@ let editingId = null;
 
 function openDialog(comp, preset = {}) {
   editingId = comp ? comp.id : null;
-  const data = comp || { rohs2: "inconnu", rohs3: "inconnu", reach: "inconnu", last_checked: new Date().toISOString().slice(0, 10), ...preset };
+  const data = comp || { rohs2: "inconnu", rohs3: "inconnu", reach: "inconnu", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
   $("#dlgTitle").textContent = comp ? "Modifier le composant" : "Nouveau composant";
   $("#btnDelete").hidden = !comp;
   $("#dlgError").hidden = true;
+  $("#pdfStatus").hidden = true;
+  $("#mpnList").innerHTML = $("#mfrList").innerHTML = "";
+  $$(".formgrid .filled").forEach((l) => l.classList.remove("filled"));
   dlg.showModal();
+}
+
+/* ------------------------------------------------------------------ datasheet PDF */
+const FIELD_LABELS = {
+  mpn: "Référence", manufacturer: "Fabricant", description: "Description", rohs2: "RoHS 2", rohs3: "RoHS 3",
+  reach: "REACH", rohs_exemptions: "Exemptions", svhc_list: "SVHC",
+};
+const pdfDrop = $("#pdfDrop");
+["dragenter", "dragover"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.add("over"); }));
+["dragleave", "drop"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.remove("over"); }));
+pdfDrop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) extractPdf(ev.dataTransfer.files[0]); });
+$("#pdfFile").addEventListener("change", (ev) => { if (ev.target.files[0]) extractPdf(ev.target.files[0]); ev.target.value = ""; });
+$("#btnFromPdf").addEventListener("click", () => { openDialog(null); $("#pdfFile").click(); });
+
+async function extractPdf(file) {
+  const box = $("#pdfStatus");
+  box.hidden = false;
+  box.innerHTML = `<div class="head">Analyse de ${esc(file.name)}…</div>`;
+  pdfDrop.classList.add("busy");
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const r = await (await api("/api/datasheet/extract", { method: "POST", body: fd })).json();
+    applyExtraction(r, file.name);
+  } catch (e) {
+    box.innerHTML = `<div class="head warn">Analyse impossible : ${esc(e.message)}</div>`;
+  } finally {
+    pdfDrop.classList.remove("busy");
+  }
+}
+
+function applyExtraction(r, fname) {
+  const f = r.fields;
+  $$(".formgrid .filled").forEach((l) => l.classList.remove("filled"));
+  for (const el of form.elements) {
+    if (!el.name || !(el.name in f)) continue;
+    const v = f[el.name];
+    // Ne remplace un champ que si la datasheet apporte une valeur (un statut "inconnu" n'écrase rien)
+    if (v && !(el.tagName === "SELECT" && v === "inconnu" && el.value !== "inconnu")) {
+      el.value = v;
+      if (v !== "inconnu") el.closest("label").classList.add("filled");
+    }
+  }
+  form.elements.last_checked.value = new Date().toLocaleDateString("sv-SE");
+  $("#mpnList").innerHTML = (r.candidates.mpn || []).map((c) => `<option value="${esc(c.value)}">`).join("");
+  $("#mfrList").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
+
+  const method = r.method === "ia" ? `IA (${esc(r.model || "Claude")})` : "règles automatiques";
+  const others = (r.candidates.mpn || []).slice(1, 6).map((c) => esc(c.value));
+  const ev = Object.entries(r.evidence || {}).filter(([, list]) => list && list.length).map(([k, list]) =>
+    `<div class="ev"><b>${FIELD_LABELS[k] || k}</b> : ${list.map((e) => `<q>${esc(e.text)}</q>${e.page ? ` (p. ${e.page})` : ""}`).join(" · ")}</div>`).join("");
+  const items = [
+    ...r.warnings.map((w) => `<li class="warn">${esc(w)}</li>`),
+    ...r.notes.map((n) => `<li>${esc(n)}</li>`),
+    others.length ? `<li>Autres références trouvées : ${others.join(", ")} (liste proposée dans le champ Référence)</li>` : "",
+  ].join("");
+  $("#pdfStatus").innerHTML =
+    `<div class="head">${esc(fname)} analysé par ${method} — ${r.pages} page${r.pages > 1 ? "s" : ""}. Champs proposés surlignés.</div>` +
+    (r.existing_id && !editingId ? `<div class="warn">Ce composant existe déjà en base. <button type="button" class="btn small" id="openExisting">Ouvrir la fiche existante</button></div>` : "") +
+    (items ? `<ul>${items}</ul>` : "") +
+    (ev ? `<details><summary>Extraits de la datasheet utilisés</summary>${ev}</details>` : "");
+  const btn = $("#openExisting");
+  if (btn) btn.addEventListener("click", async () => {
+    const comp = await (await api("/api/components/" + r.existing_id)).json();
+    openDialog(comp);
+    // Réapplique la proposition sur la fiche existante pour comparaison
+    applyExtraction({ ...r, existing_id: null }, fname);
+  });
 }
 $("#btnCancel").addEventListener("click", () => dlg.close());
 
