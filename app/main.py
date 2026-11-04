@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db
+from . import datasheet, datasheet_ai, db
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
@@ -23,6 +23,7 @@ from .tables import TableError, parse_bom
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 Mo
+MAX_DATASHEET = 30 * 1024 * 1024  # 30 Mo
 ADMIN_TOKEN = os.environ.get("RRC_ADMIN_TOKEN", "")
 
 app = FastAPI(
@@ -170,9 +171,65 @@ async def import_components(file: UploadFile = File(...), conn=Depends(get_conn)
         raise HTTPException(422, str(exc))
 
 
+# ---------------------------------------------------------------- Datasheet PDF
+
+@app.post(
+    "/api/datasheet/extract",
+    summary="Extraire les informations d'un composant depuis sa datasheet PDF (proposition à relire)",
+    dependencies=[Depends(require_admin)],
+)
+def extract_datasheet(
+    file: UploadFile = File(...),
+    method: Literal["auto", "heuristique", "ia"] = Query(default="auto", description="auto : IA si une clé API est configurée, sinon heuristique"),
+    conn=Depends(get_conn),
+):
+    data = file.file.read(MAX_DATASHEET + 1)
+    if len(data) > MAX_DATASHEET:
+        raise HTTPException(413, "PDF trop volumineux (max 30 Mo)")
+    if not data:
+        raise HTTPException(400, "Fichier vide")
+    name = file.filename or "datasheet.pdf"
+
+    try:
+        heur = datasheet.extract(data, name)
+    except datasheet.DatasheetError as exc:
+        raise HTTPException(422, str(exc))
+
+    use_ai = method == "ia" or (method == "auto" and datasheet_ai.available())
+    if method == "ia" and not datasheet_ai.available():
+        raise HTTPException(400, "Extraction IA indisponible : aucune clé ANTHROPIC_API_KEY configurée sur le serveur")
+    result = heur
+    if use_ai:
+        try:
+            result = datasheet_ai.extract(data, name)
+            # Complète les champs vides par l'heuristique
+            for key, val in heur["fields"].items():
+                if not result["fields"].get(key) and val:
+                    result["fields"][key] = val
+            if not result["candidates"]["manufacturer"]:
+                result["candidates"]["manufacturer"] = heur["candidates"]["manufacturer"]
+            result["pages"] = heur["pages"]
+        except datasheet_ai.AIExtractionError as exc:
+            heur["warnings"].append(f"Extraction IA impossible ({exc}) : résultat heuristique affiché")
+
+    # Le composant existe-t-il déjà ?
+    f = result["fields"]
+    existing = None
+    if f.get("mpn"):
+        row = conn.execute(
+            "SELECT id FROM components WHERE mpn_norm = ? AND manufacturer_norm = ?",
+            (db.normalize_mpn(f["mpn"]), db.normalize_manufacturer(f.get("manufacturer", ""))),
+        ).fetchone()
+        existing = row["id"] if row else None
+    result["existing_id"] = existing
+    result["ai_available"] = datasheet_ai.available()
+    result.pop("manufacturer_norm", None)
+    return result
+
+
 @app.get("/api/stats")
 def get_stats(conn=Depends(get_conn)):
-    return db.stats(conn) | {"admin_required": bool(ADMIN_TOKEN)}
+    return db.stats(conn) | {"admin_required": bool(ADMIN_TOKEN), "ai_available": datasheet_ai.available()}
 
 
 # ---------------------------------------------------------------- Interface web

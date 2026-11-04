@@ -90,6 +90,7 @@
         <button class="btn" id="btnImport">Importer CSV/XLSX</button>
         <input type="file" id="importFile" accept=".csv,.txt,.xlsx" hidden>
         <a class="btn" href="/api/components/export">Exporter</a>
+        <button class="btn" id="btnFromPdf">Depuis une datasheet PDF</button>
         <button class="btn primary" id="btnAdd">+ Ajouter</button>
       </div>
     </div>
@@ -120,9 +121,18 @@
 <dialog id="dlg">
   <form id="compForm" method="dialog">
     <h2 id="dlgTitle">Composant</h2>
+    <label id="pdfDrop" class="drop pdfdrop">
+      <input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden>
+      <strong>Pré-remplir depuis une datasheet PDF</strong>
+      <span class="hint">Déposez le PDF ici ou cliquez. Les champs sont proposés : relisez-les avant d'enregistrer.</span>
+      <span class="hint" id="pdfMethodHint"></span>
+    </label>
+    <div id="pdfStatus" class="pdfstatus" hidden></div>
     <div class="formgrid">
-      <label>Référence fabricant *<input name="mpn" required></label>
-      <label>Fabricant<input name="manufacturer"></label>
+      <label>Référence fabricant *<input name="mpn" required list="mpnList" autocomplete="off"></label>
+      <datalist id="mpnList"></datalist>
+      <label>Fabricant<input name="manufacturer" list="mfrList" autocomplete="off"></label>
+      <datalist id="mfrList"></datalist>
       <label class="wide">Description<input name="description"></label>
       <label>RoHS 2 (2011/65/UE)
         <select name="rohs2">
