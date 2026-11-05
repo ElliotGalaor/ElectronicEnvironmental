@@ -14,12 +14,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .db import ValidationError, normalize_country, normalize_eccn
+
 MODEL = os.environ.get("RRC_AI_MODEL", "claude-opus-5-5")
 MAX_PDF_BYTES = 30 * 1024 * 1024  # limite de requête de l'API : 32 Mo
 
 
 class Evidence(BaseModel):
-    field: Literal["mpn", "manufacturer", "description", "rohs2", "rohs3", "reach", "rohs_exemptions", "svhc_list"]
+    field: Literal["mpn", "manufacturer", "description", "rohs2", "rohs3", "reach", "rohs_exemptions", "svhc_list", "eccn", "country_of_origin"]
     page: int = Field(description="Numéro de page (1 = première page)")
     quote: str = Field(description="Citation exacte, courte, tirée du document")
 
@@ -34,6 +36,8 @@ class DatasheetInfo(BaseModel):
     reach: Literal["conforme", "svhc", "non_conforme", "inconnu"]
     rohs_exemptions: str = Field(description="Codes d'exemption RoHS cités, ex. « 7(c)-I », sinon chaîne vide")
     svhc_list: str = Field(description="SVHC présentes > 0,1 % citées, sinon chaîne vide")
+    eccn: str = Field(description="ECCN cité dans le document (ex. EAR99, 5A992.c), sinon chaîne vide")
+    country_of_origin: str = Field(description="Pays d'origine cité, code ISO 3166-1 alpha-2 (ex. CN, MY), sinon chaîne vide")
     evidence: list[Evidence]
     notes: list[str] = Field(description="Remarques en français utiles au vérificateur (ambiguïtés, limites)")
 
@@ -49,6 +53,7 @@ contraire ; sinon "inconnu". « Pb-free » ou « green » seuls ne suffisent pas
 mentionne explicitement 2015/863, RoHS 3 ou les 10 substances / phtalates ; sinon "inconnu".
 - reach (règlement 1907/2006) : "conforme" si le document indique l'absence de SVHC > 0,1 % ou la \
 conformité REACH ; "svhc" s'il déclare une SVHC > 0,1 % ; "non_conforme" s'il l'indique ; sinon "inconnu".
+- eccn et country_of_origin : uniquement s'ils sont écrits dans le document (ECCN, Export Control Classification Number, Country of Origin, Made in…) ; sinon chaîne vide. Ne déduis jamais un ECCN.
 - Pour chaque statut autre que "inconnu", et pour la référence et le fabricant, donne une citation \
 exacte et la page dans evidence.
 - Si la datasheet couvre une famille de références, mets la référence la plus pertinente dans mpn \
@@ -63,6 +68,14 @@ def available() -> bool:
 
 class AIExtractionError(RuntimeError):
     pass
+
+
+def _safe(normalize, value: str) -> str:
+    """Normalise une valeur renvoyée par l'IA ; une valeur non reconnue est ignorée."""
+    try:
+        return normalize(value)
+    except ValidationError:
+        return ""
 
 
 def extract(data: bytes, filename: str = "") -> dict:
@@ -131,6 +144,8 @@ def extract(data: bytes, filename: str = "") -> dict:
             "reach": info.reach,
             "rohs_exemptions": info.rohs_exemptions.strip(),
             "svhc_list": info.svhc_list.strip(),
+            "eccn": _safe(normalize_eccn, info.eccn),
+            "country_of_origin": _safe(normalize_country, info.country_of_origin),
             "source": f"Datasheet {filename} (extraction IA)".strip(),
         },
         "candidates": {

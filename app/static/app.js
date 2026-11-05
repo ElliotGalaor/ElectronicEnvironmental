@@ -20,6 +20,9 @@ const MATCH = {
 const ROLES = { mpn: "Référence fabricant *", manufacturer: "Fabricant", designator: "Repères", quantity: "Quantité", description: "Description", value: "Valeur", dnp: "Non monté (DNP)" };
 const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", "Directive (UE) 2015/863"], ["reach", "REACH", "Règlement (CE) 1907/2006"]];
 
+let COUNTRIES = {};
+const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${esc(code)}</span>` : "";
+const eccnCell = (e) => !e ? "" : e === "EAR99" ? `<span class="mono">EAR99</span>` : `<span class="badge b-eccn" title="Soumis au contrôle export">${esc(e)}</span>`;
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 
 const state = { file: null, report: null, filter: "all", overrides: {}, page: 0, pageSize: 50, adminRequired: false };
@@ -125,7 +128,9 @@ function renderReport() {
       <div class="verdict">${VERDICT[S[k].verdict]}</div><div class="detail">${detail(S[k].counts)}</div></div>`).join("");
 
   $("#counts").innerHTML = `<span><b>${S.found}</b> trouvées en base</span><span><b>${S.uncertain}</b> correspondances incertaines</span>
-    <span><b>${S.not_found}</b> introuvables</span><span><b>${S.dnp}</b> non montées</span>`;
+    <span><b>${S.not_found}</b> introuvables</span><span><b>${S.dnp}</b> non montées</span>` +
+    (S.export ? `<span>Export : <b>${S.export.eccn_controlled}</b> ECCN contrôlé${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> ECCN inconnu${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
+      `<span>Origines : ${Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`).join(", ") || "—"}${S.export.country_unknown ? `, <b>${S.export.country_unknown}</b> inconnue${S.export.country_unknown > 1 ? "s" : ""}` : ""}</span>` : "");
   renderLines();
 }
 
@@ -143,6 +148,7 @@ function lineVisible(l) {
   if (f === "ko" && !st.includes("non_conforme")) return false;
   if (f === "check" && !st.includes("a_verifier")) return false;
   if (f === "svhc" && !st.some((s) => ["svhc", "exemption"].includes(s))) return false;
+  if (f === "eccn" && !(l.component && l.component.eccn && l.component.eccn !== "EAR99")) return false;
   const q = $("#lineSearch").value.trim().toLowerCase();
   if (q && ![l.bom_mpn, l.designator, l.bom_manufacturer, l.bom_description].join(" ").toLowerCase().includes(q)) return false;
   return true;
@@ -165,8 +171,9 @@ function renderLines() {
       <td>${l.line}</td><td class="mono">${esc(l.designator)}</td><td>${esc(l.quantity)}</td>
       <td class="mono">${esc(l.bom_mpn)}</td><td>${esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
+      <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}</td></tr>`;
-  }).join("") || `<tr><td colspan="10" class="muted">Aucune ligne pour ce filtre.</td></tr>`;
+  }).join("") || `<tr><td colspan="11" class="muted">Aucune ligne pour ce filtre.</td></tr>`;
 }
 
 $("#lines").addEventListener("click", (ev) => {
@@ -198,10 +205,11 @@ async function loadComponents() {
       <td class="mono">${esc(c.mpn)}</td><td>${esc(c.manufacturer)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
       <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${esc(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
+      <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
       <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
-      || `<tr><td colspan="9" class="muted">Aucun composant.</td></tr>`;
+      || `<tr><td colspan="11" class="muted">Aucun composant.</td></tr>`;
   } catch (e) {
-    $("#comps tbody").innerHTML = `<tr><td colspan="9">Erreur : ${esc(e.message)}</td></tr>`;
+    $("#comps tbody").innerHTML = `<tr><td colspan="11">Erreur : ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -231,7 +239,7 @@ function openDialog(comp, preset = {}) {
 /* ------------------------------------------------------------------ datasheet PDF */
 const FIELD_LABELS = {
   mpn: "Référence", manufacturer: "Fabricant", description: "Description", rohs2: "RoHS 2", rohs3: "RoHS 3",
-  reach: "REACH", rohs_exemptions: "Exemptions", svhc_list: "SVHC",
+  reach: "REACH", rohs_exemptions: "Exemptions", svhc_list: "SVHC", eccn: "ECCN", country_of_origin: "Pays d'origine",
 };
 const pdfDrop = $("#pdfDrop");
 ["dragenter", "dragover"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.add("over"); }));
@@ -317,6 +325,10 @@ $("#btnDelete").addEventListener("click", async () => {
 
 function afterDbChange() {
   loadStats();
+api("/api/countries").then((r) => r.json()).then((c) => {
+  COUNTRIES = c;
+  $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");
+}).catch(() => {});
   if ($("#tab-base").classList.contains("active")) loadComponents();
   if (state.report) runAnalysis(); // relance l'analyse avec la base à jour
 }

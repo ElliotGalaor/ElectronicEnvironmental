@@ -46,7 +46,23 @@ Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:800
 | `reach` | `conforme` (pas de SVHC > 0,1 %), `svhc` (SVHC > 0,1 % : obligation d'info art. 33 / SCIP), `non_conforme`, `inconnu` |
 
 À l'import, les valeurs `Oui/Yes/Compliant/OK` et `Non/No/Not compliant` sont aussi acceptées.
-Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_list`, `source`, `last_checked`.
+Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_list`, `eccn`,
+`country_of_origin`, `source`, `last_checked`.
+
+### Export et douane
+
+| Champ | Contenu | Exemples |
+|---|---|---|
+| `eccn` | Export Control Classification Number (EAR américain / liste UE des biens à double usage). Vide = inconnu | `EAR99`, `5A992.c`, `3A991.a.1` |
+| `country_of_origin` | Pays d'origine, stocké en code ISO 3166-1 alpha-2. Vide = inconnu | `CN`, `MY`, `DE` |
+
+- L'ECCN est normalisé (`5a992.C` devient `5A992.c`) et refusé s'il n'a pas un format valide.
+- Le pays peut être saisi en code ISO ou en toutes lettres, en français ou en anglais (« Malaisie », « Germany ») ;
+  il est enregistré sous forme de code.
+- Dans l'analyse de BOM : colonne « ECCN / Origine », filtre « ECCN contrôlé », remarque sur chaque ligne
+  dont l'ECCN n'est pas EAR99, et synthèse (ECCN contrôlés, inconnus, répartition des pays d'origine),
+  reprise dans l'export Excel.
+- Les bases créées avant cette version reçoivent automatiquement les deux nouvelles colonnes (vides) au démarrage.
 
 ## Alimenter la base
 
@@ -64,7 +80,7 @@ Deux méthodes, choisies automatiquement :
 
 | Méthode | Quand | Ce qu'elle fait |
 |---|---|---|
-| **Règles automatiques** (par défaut) | toujours disponible, hors ligne | lit le texte du PDF : fabricant (site web, copyright), référence (fréquence, page 1, tableau de commande, nom du fichier), description (titre), mentions RoHS / 2011/65 / 2015/863 / exemptions / REACH / SVHC |
+| **Règles automatiques** (par défaut) | toujours disponible, hors ligne | lit le texte du PDF : fabricant (site web, copyright), référence (fréquence, page 1, tableau de commande, nom du fichier), description (titre), mentions RoHS / 2011/65 / 2015/863 / exemptions / REACH / SVHC, ECCN et pays d'origine (« ECCN: EAR99 », « Country of Origin: Malaysia », « Made in Japan ») |
 | **IA (Claude)** | si `ANTHROPIC_API_KEY` est défini sur le serveur | envoie le PDF au modèle, qui lit aussi les tableaux et les PDF scannés ; les champs manquants sont complétés par les règles ; repli automatique sur les règles en cas d'erreur |
 
 Règles de prudence appliquées dans les deux cas :
@@ -101,6 +117,7 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | POST | `/api/components/import` | import en masse |
 | POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
 | GET | `/api/components/export` | export CSV de la base |
+| GET | `/api/countries` | codes pays reconnus et leur nom |
 | GET | `/api/stats` | statistiques |
 
 ## Déploiement serveur

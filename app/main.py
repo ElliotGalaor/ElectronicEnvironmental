@@ -57,6 +57,8 @@ class ComponentIn(BaseModel):
     reach: str = "inconnu"
     rohs_exemptions: str = ""
     svhc_list: str = ""
+    eccn: str = ""
+    country_of_origin: str = ""
     source: str = ""
     last_checked: str = ""
 
@@ -225,6 +227,11 @@ def extract_datasheet(
     result["ai_available"] = datasheet_ai.available()
     result.pop("manufacturer_norm", None)
     return result
+
+
+@app.get("/api/countries", summary="Codes pays ISO reconnus et leur nom")
+def get_countries():
+    return db.COUNTRIES
 
 
 @app.get("/api/stats")

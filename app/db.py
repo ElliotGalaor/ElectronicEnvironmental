@@ -14,6 +14,11 @@ REACH :
   - "svhc"          : contient une ou plusieurs SVHC > 0,1 % (obligation d'info art. 33)
   - "non_conforme"  : substance restreinte (annexe XVII) ou non conformité déclarée
   - "inconnu"       : pas d'information
+
+Export / douane :
+  - eccn              : Export Control Classification Number (EAR américain / liste UE des biens à
+                        double usage), ex. "EAR99", "5A992.c", "3A991.a.1" ; vide = inconnu
+  - country_of_origin : pays d'origine, code ISO 3166-1 alpha-2 (ex. "CN", "MY", "DE") ; vide = inconnu
 """
 
 from __future__ import annotations
@@ -41,6 +46,8 @@ FIELDS = (
     "reach",
     "rohs_exemptions",
     "svhc_list",
+    "eccn",
+    "country_of_origin",
     "source",
     "last_checked",
 )
@@ -59,6 +66,8 @@ CREATE TABLE IF NOT EXISTS components (
     reach             TEXT NOT NULL DEFAULT 'inconnu',
     rohs_exemptions   TEXT NOT NULL DEFAULT '',
     svhc_list         TEXT NOT NULL DEFAULT '',
+    eccn              TEXT NOT NULL DEFAULT '',
+    country_of_origin TEXT NOT NULL DEFAULT '',
     source            TEXT NOT NULL DEFAULT '',
     last_checked      TEXT NOT NULL DEFAULT '',
     updated_at        TEXT NOT NULL,
@@ -146,12 +155,98 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+# Colonnes ajoutées après la première version : ajoutées aux bases existantes à l'ouverture.
+_ADDED_COLUMNS = {
+    "eccn": "TEXT NOT NULL DEFAULT ''",
+    "country_of_origin": "TEXT NOT NULL DEFAULT ''",
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(components)")}
+    for col, decl in _ADDED_COLUMNS.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE components ADD COLUMN {col} {decl}")
+    conn.commit()
+
+
+# ------------------------------------------------------------------ ECCN et pays d'origine
+
+_ECCN_RE = re.compile(r"^(\d)([A-E])(\d{3})((?:\.[A-Z0-9]+)*)$", re.I)
+
+
+def normalize_eccn(value: str | None) -> str:
+    """Normalise un ECCN : "5a992.C" -> "5A992.c", "ear 99" -> "EAR99". Vide = inconnu."""
+    v = re.sub(r"\s+", "", (value or "")).strip().rstrip(".")
+    if v.lower() in ("", "?", "na", "n/a", "inconnu", "unknown", "tbd", "nc"):
+        return ""
+    if v.upper() == "EAR99":
+        return "EAR99"
+    m = _ECCN_RE.match(v)
+    if not m:
+        raise ValidationError(f"ECCN invalide : {value!r} (attendu : EAR99 ou un code comme 5A992.c, 3A001.a.1)")
+    return f"{m.group(1)}{m.group(2).upper()}{m.group(3)}{m.group(4).lower()}"
+
+
+def eccn_is_controlled(eccn: str) -> bool:
+    """Vrai pour un ECCN de la liste de contrôle (tout sauf EAR99 et vide)."""
+    return bool(eccn) and eccn != "EAR99"
+
+
+# Code ISO -> nom français, puis alias (anglais, variantes) -> code
+COUNTRIES = {
+    "AT": "Autriche", "AU": "Australie", "BE": "Belgique", "BG": "Bulgarie", "BR": "Brésil", "CA": "Canada",
+    "CH": "Suisse", "CN": "Chine", "CR": "Costa Rica", "CZ": "Tchéquie", "DE": "Allemagne", "DK": "Danemark",
+    "EE": "Estonie", "ES": "Espagne", "FI": "Finlande", "FR": "France", "GB": "Royaume-Uni", "GR": "Grèce",
+    "HK": "Hong Kong", "HU": "Hongrie", "ID": "Indonésie", "IE": "Irlande", "IL": "Israël", "IN": "Inde",
+    "IT": "Italie", "JP": "Japon", "KR": "Corée du Sud", "LT": "Lituanie", "LU": "Luxembourg", "LV": "Lettonie",
+    "MA": "Maroc", "MT": "Malte", "MX": "Mexique", "MY": "Malaisie", "NL": "Pays-Bas", "NO": "Norvège",
+    "PH": "Philippines", "PL": "Pologne", "PT": "Portugal", "RO": "Roumanie", "RS": "Serbie", "RU": "Russie",
+    "SE": "Suède", "SG": "Singapour", "SI": "Slovénie", "SK": "Slovaquie", "TH": "Thaïlande", "TN": "Tunisie",
+    "TR": "Turquie", "TW": "Taïwan", "UA": "Ukraine", "US": "États-Unis", "VN": "Viêt Nam", "ZA": "Afrique du Sud",
+}
+_COUNTRY_ALIASES = {
+    "austria": "AT", "australia": "AU", "belgium": "BE", "bulgaria": "BG", "brazil": "BR", "switzerland": "CH",
+    "china": "CN", "prc": "CN", "people s republic of china": "CN", "czech republic": "CZ", "czechia": "CZ",
+    "republique tcheque": "CZ", "germany": "DE", "denmark": "DK", "estonia": "EE", "spain": "ES", "finland": "FI",
+    "united kingdom": "GB", "uk": "GB", "great britain": "GB", "england": "GB", "greece": "GR", "hungary": "HU",
+    "indonesia": "ID", "ireland": "IE", "israel": "IL", "india": "IN", "italy": "IT", "japan": "JP",
+    "korea": "KR", "south korea": "KR", "republic of korea": "KR", "coree": "KR", "lithuania": "LT", "latvia": "LV",
+    "morocco": "MA", "mexico": "MX", "malaysia": "MY", "netherlands": "NL", "the netherlands": "NL",
+    "holland": "NL", "norway": "NO", "philippines": "PH", "poland": "PL", "romania": "RO", "serbia": "RS",
+    "russia": "RU", "russian federation": "RU", "sweden": "SE", "singapore": "SG", "slovenia": "SI",
+    "slovakia": "SK", "thailand": "TH", "tunisia": "TN", "turkey": "TR", "turkiye": "TR", "taiwan": "TW",
+    "republic of china": "TW", "chinese taipei": "TW", "ukraine": "UA", "usa": "US", "united states": "US",
+    "united states of america": "US", "etats unis": "US", "vietnam": "VN", "viet nam": "VN", "south africa": "ZA",
+    "uk great britain": "GB",
+}
+_COUNTRY_LOOKUP = {**{norm: code for code, name in COUNTRIES.items() for norm in [re.sub(r"[^a-z]+", " ", strip_accents(name).lower()).strip()]}, **_COUNTRY_ALIASES}
+
+
+def normalize_country(value: str | None) -> str:
+    """Ramène un pays (code ISO, nom français ou anglais) à son code ISO 3166-1 alpha-2. Vide = inconnu."""
+    v = (value or "").strip()
+    if v.lower() in ("", "?", "na", "n/a", "inconnu", "unknown", "tbd", "nc"):
+        return ""
+    if re.fullmatch(r"[A-Za-z]{2}", v):
+        return v.upper()
+    key = re.sub(r"[^a-z]+", " ", strip_accents(v).lower()).strip()
+    if key in _COUNTRY_LOOKUP:
+        return _COUNTRY_LOOKUP[key]
+    raise ValidationError(f"Pays d'origine non reconnu : {value!r} (utilisez le code ISO à 2 lettres, ex. CN, MY, DE)")
+
+
+def country_name(code: str) -> str:
+    return COUNTRIES.get(code, code)
+
+
 def connect(path: Path | str | None = None) -> sqlite3.Connection:
     p = Path(path or DB_PATH)
     p.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(p, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
 
 
@@ -196,6 +291,8 @@ def prepare(data: dict) -> dict:
     rec["rohs2"] = clean_status(rec["rohs2"], ROHS_STATUSES, "rohs2")
     rec["rohs3"] = clean_status(rec["rohs3"], ROHS_STATUSES, "rohs3")
     rec["reach"] = clean_status(rec["reach"], REACH_STATUSES, "reach")
+    rec["eccn"] = normalize_eccn(rec["eccn"])
+    rec["country_of_origin"] = normalize_country(rec["country_of_origin"])
     rec["mpn_norm"] = normalize_mpn(mpn)
     rec["mpn_loose"] = loose_mpn(mpn)
     rec["manufacturer_norm"] = normalize_manufacturer(rec["manufacturer"])

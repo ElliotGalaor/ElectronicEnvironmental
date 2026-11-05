@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 
-from .db import FIELDS
+from .db import FIELDS, country_name
 
 LABELS = {
     "conforme": "Conforme",
@@ -42,11 +42,17 @@ COLUMNS = [
     ("REACH", lambda l: LABELS.get(l["reach"], l["reach"])),
     ("Exemptions RoHS", lambda l: l["exemptions"]),
     ("SVHC", lambda l: l["svhc_list"]),
+    ("ECCN", lambda l: (l["component"] or {}).get("eccn", "")),
+    ("Pays d'origine", lambda l: _country((l["component"] or {}).get("country_of_origin", ""))),
     ("Source", lambda l: (l["component"] or {}).get("source", "")),
     ("Vérifié le", lambda l: (l["component"] or {}).get("last_checked", "")),
     ("Suggestions", lambda l: ", ".join(f"{s['mpn']} ({s['manufacturer']})" for s in l["suggestions"])),
     ("Remarques", lambda l: " | ".join(l["notes"])),
 ]
+
+def _country(code: str) -> str:
+    return f"{code} ({country_name(code)})" if code and country_name(code) != code else code
+
 
 FILLS = {
     "conforme": "C6EFCE",
@@ -88,6 +94,17 @@ def report_xlsx(report: dict) -> bytes:
     ws.append(["Trouvées en base", s["found"]])
     ws.append(["Correspondances incertaines", s["uncertain"]])
     ws.append(["Introuvables", s["not_found"]])
+    ex = s.get("export", {})
+    if ex:
+        ws.append([])
+        ws.append(["Export / douane (composants identifiés)"])
+        ws.cell(ws.max_row, 1).font = bold
+        ws.append(["ECCN contrôlé (hors EAR99)", ex["eccn_controlled"]])
+        ws.append(["ECCN EAR99", ex["eccn_ear99"]])
+        ws.append(["ECCN inconnu", ex["eccn_unknown"]])
+        ws.append(["Pays d'origine inconnu", ex["country_unknown"]])
+        if ex["countries"]:
+            ws.append(["Pays d'origine", ", ".join(f"{_country(c)} : {n}" for c, n in ex["countries"].items())])
     ws.append([])
     ws.append(["Norme", "Verdict BOM", "Conformes", "Exemption", "SVHC", "Non conformes", "À vérifier"])
     for c in ws[ws.max_row]:
@@ -122,7 +139,7 @@ def report_xlsx(report: dict) -> bytes:
         wd.append([f(line) for _, f in COLUMNS])
         for col, key in status_cols.items():
             wd.cell(wd.max_row, col).fill = PatternFill("solid", fgColor=FILLS.get(line[key], "FFFFFF"))
-    widths = [7, 18, 6, 22, 18, 30, 15, 22, 18, 20, 20, 16, 16, 30, 18, 12, 30, 50]
+    widths = [7, 18, 6, 22, 18, 30, 15, 22, 18, 20, 20, 16, 16, 30, 12, 20, 18, 12, 30, 50]
     for i, w in enumerate(widths, start=1):
         wd.column_dimensions[get_column_letter(i)].width = w
     wd.freeze_panes = "A2"

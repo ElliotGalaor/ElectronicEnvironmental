@@ -101,11 +101,13 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .grid td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .grid tr:last-child td { border-bottom: 0; }
 .grid tr.dnp td { opacity: .55; }
-#comps { min-width: 1100px; }
+#comps { min-width: 1250px; }
 #comps td:nth-child(1) { white-space: nowrap; }
 #comps td:nth-child(3) { min-width: 220px; }
-#comps td:nth-child(8) { white-space: nowrap; }
+#comps td:nth-child(10) { white-space: nowrap; }
+#lines { min-width: 1250px; }
 #lines td:nth-child(4) { white-space: nowrap; }
+#lines td.notes { min-width: 280px; }
 .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
 .notes { color: var(--muted); font-size: 12.5px; max-width: 420px; }
 .notes div + div { margin-top: 2px; }
@@ -117,6 +119,7 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .b-svhc { background: var(--svhc-bg); color: var(--svhc); }
 .b-non_conforme { background: var(--ko-bg); color: var(--ko); }
 .b-a_verifier, .b-inconnu { background: var(--chk-bg); color: var(--chk); }
+.b-eccn { background: var(--svhc-bg); color: var(--svhc); font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
 .b-non_monte { background: var(--skip-bg); color: var(--skip); }
 .inferred { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
 .match { font-size: 12.5px; }
