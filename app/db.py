@@ -75,6 +75,17 @@ CREATE TABLE IF NOT EXISTS components (
 );
 CREATE INDEX IF NOT EXISTS idx_components_mpn_norm  ON components (mpn_norm);
 CREATE INDEX IF NOT EXISTS idx_components_mpn_loose ON components (mpn_loose);
+CREATE INDEX IF NOT EXISTS idx_components_mfr_norm  ON components (manufacturer_norm);
+
+-- Informations sur les fabricants (clé = nom normalisé, comme components.manufacturer_norm)
+CREATE TABLE IF NOT EXISTS manufacturers (
+    key        TEXT PRIMARY KEY,
+    name       TEXT NOT NULL DEFAULT '',
+    website    TEXT NOT NULL DEFAULT '',
+    country    TEXT NOT NULL DEFAULT '',
+    notes      TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+);
 """
 
 # Alias courants de fabricants -> forme canonique (après normalisation).
@@ -304,6 +315,8 @@ def row_to_dict(row: sqlite3.Row | None) -> dict | None:
     if row is None:
         return None
     d = dict(row)
+    if "manufacturer_norm" in d:
+        d["manufacturer_key"] = d["manufacturer_norm"]  # lien vers la fiche fabricant
     for k in ("mpn_norm", "mpn_loose", "manufacturer_norm"):
         d.pop(k, None)
     return d

@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import datasheet, datasheet_ai, db
+from . import datasheet, datasheet_ai, db, manufacturers
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
@@ -31,6 +31,19 @@ app = FastAPI(
     description="Analyse de conformité RoHS 2, RoHS 3 et REACH d'une nomenclature (BOM) à partir d'une base de composants.",
     version="1.0.0",
 )
+
+
+@app.middleware("http")
+async def no_stale_frontend(request, call_next):
+    """Oblige le navigateur à revalider la page et ses scripts à chaque chargement.
+
+    Sans cela, un navigateur peut garder un ancien app.js en cache avec un index.html récent,
+    et les colonnes du tableau ne correspondent plus aux en-têtes.
+    """
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 def get_conn():
@@ -227,6 +240,41 @@ def extract_datasheet(
     result["ai_available"] = datasheet_ai.available()
     result.pop("manufacturer_norm", None)
     return result
+
+
+# ---------------------------------------------------------------- Fabricants
+# Clé = nom normalisé du fabricant ; "_" désigne les composants sans fabricant renseigné.
+
+class ManufacturerIn(BaseModel):
+    name: str = ""
+    website: str = ""
+    country: str = ""
+    notes: str = ""
+
+
+def _mfr_key(key: str) -> str:
+    return "" if key == "_" else key
+
+
+@app.get("/api/manufacturers", summary="Liste des fabricants avec leurs statistiques")
+def list_manufacturers(conn=Depends(get_conn)):
+    return manufacturers.list_all(conn)
+
+
+@app.get("/api/manufacturers/{key}", summary="Fiche d'un fabricant et ses composants")
+def get_manufacturer(key: str, conn=Depends(get_conn)):
+    info = manufacturers.get(conn, _mfr_key(key))
+    if info is None:
+        raise HTTPException(404, "Fabricant introuvable")
+    return info
+
+
+@app.put("/api/manufacturers/{key}", dependencies=[Depends(require_admin)], summary="Modifier les informations d'un fabricant")
+def update_manufacturer(key: str, body: ManufacturerIn, conn=Depends(get_conn)):
+    try:
+        return manufacturers.update(conn, _mfr_key(key), body.model_dump())
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
 
 
 @app.get("/api/countries", summary="Codes pays ISO reconnus et leur nom")
