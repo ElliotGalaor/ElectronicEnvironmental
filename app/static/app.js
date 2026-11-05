@@ -40,12 +40,42 @@ async function api(url, opts = {}) {
   return r.status === 204 ? null : r;
 }
 
-/* ------------------------------------------------------------------ onglets */
+/* ------------------------------------------------------------------ onglets et navigation
+   Adresses : #analyse, #base, #fabricants, #fabricant/<clé> (liens partageables, bouton Précédent) */
 $$(".tab").forEach((t) => t.addEventListener("click", () => {
-  $$(".tab").forEach((x) => x.classList.toggle("active", x === t));
-  $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + t.dataset.tab));
-  if (t.dataset.tab === "base") loadComponents();
+  const target = "#" + t.dataset.tab;
+  if (location.hash === target) route(); else location.hash = target;
 }));
+
+function showTab(name) {
+  $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === name));
+  $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + name));
+}
+
+function route() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith("fabricant/")) {
+    showTab("fabricants");
+    openManufacturer(h.slice("fabricant/".length));
+  } else if (h === "fabricants") {
+    showTab("fabricants");
+    $("#mfrDetail").hidden = true;
+    $("#mfrList").hidden = false;
+    loadManufacturers();
+  } else if (h === "base") {
+    showTab("base");
+    loadComponents();
+  } else {
+    showTab("analyse");
+  }
+}
+window.addEventListener("hashchange", route);
+
+// Lien vers la fiche d'un fabricant ("_" = fabricant non renseigné)
+const mfrHref = (key) => "#fabricant/" + encodeURIComponent(key === "" ? "_" : key);
+const mfrLink = (name, key) => (key === undefined || key === null)
+  ? esc(name)
+  : `<a class="mfr-link" href="${mfrHref(key)}">${esc(name || "(non renseigné)")}</a>`;
 
 async function loadStats() {
   try {
@@ -169,7 +199,7 @@ function renderLines() {
     const notes = l.notes.map((n) => `<div>${esc(n)}</div>`).join("");
     return `<tr class="${l.dnp ? "dnp" : ""}">
       <td>${l.line}</td><td class="mono">${esc(l.designator)}</td><td>${esc(l.quantity)}</td>
-      <td class="mono">${esc(l.bom_mpn)}</td><td>${esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
+      <td class="mono">${esc(l.bom_mpn)}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}</td></tr>`;
@@ -202,7 +232,7 @@ async function loadComponents() {
     $("#prev").disabled = state.page === 0;
     $("#next").disabled = state.page >= pages - 1;
     $("#comps tbody").innerHTML = items.map((c) => `<tr>
-      <td class="mono">${esc(c.mpn)}</td><td>${esc(c.manufacturer)}</td><td>${esc(c.description)}</td>
+      <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
       <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${esc(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
@@ -218,6 +248,111 @@ $("#comps").addEventListener("click", async (ev) => {
   if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
 });
 $("#btnAdd").addEventListener("click", () => openDialog(null));
+
+/* ------------------------------------------------------------------ fabricants */
+let MFRS = [];
+const pct = (n, total) => total ? Math.round((100 * n) / total) + " %" : "—";
+const siteLink = (url) => url
+  ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>`
+  : `<span class="muted">—</span>`;
+
+async function loadManufacturers() {
+  try {
+    MFRS = await (await api("/api/manufacturers")).json();
+    renderManufacturers();
+  } catch (e) {
+    $("#mfrs tbody").innerHTML = `<tr><td colspan="7">Erreur : ${esc(e.message)}</td></tr>`;
+  }
+}
+$("#mfrSearch").addEventListener("input", renderManufacturers);
+
+function renderManufacturers() {
+  const q = $("#mfrSearch").value.trim().toLowerCase();
+  const rows = MFRS.filter((m) => !q || [m.name, m.key, ...m.aliases].join(" ").toLowerCase().includes(q));
+  $("#mfrs tbody").innerHTML = rows.map((m) => {
+    const s = m.stats;
+    const rohs = s.rohs3_ko ? `<span class="badge b-non_conforme">${s.rohs3_ko} non conf.</span>`
+      : s.rohs3_unknown ? `<span class="badge b-inconnu">${s.rohs3_unknown} inconnu${s.rohs3_unknown > 1 ? "s" : ""}</span>`
+      : s.components ? `<span class="badge b-conforme">Conformes</span>` : "";
+    const reach = s.reach_ko ? `<span class="badge b-non_conforme">${s.reach_ko} non conf.</span>`
+      : s.reach_svhc ? `<span class="badge b-svhc">${s.reach_svhc} SVHC</span>` : "";
+    return `<tr>
+      <td>${mfrLink(m.name, m.key)}</td><td>${s.components}</td><td>${rohs}</td><td>${reach}</td>
+      <td>${s.eccn_controlled ? `<span class="badge b-eccn">${s.eccn_controlled}</span>` : ""}</td>
+      <td>${country(m.country)}</td><td>${siteLink(m.website)}</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="muted">Aucun fabricant.</td></tr>`;
+}
+
+let currentMfr = null;
+
+async function openManufacturer(key) {
+  $("#mfrList").hidden = true;
+  $("#mfrDetail").hidden = false;
+  $("#mfrName").textContent = "Chargement…";
+  try {
+    currentMfr = await (await api("/api/manufacturers/" + encodeURIComponent(key === "" ? "_" : key))).json();
+  } catch (e) {
+    currentMfr = null;
+    $("#mfrName").textContent = "Fabricant introuvable";
+    $("#mfrAliases").textContent = e.message;
+    $("#mfrCards").innerHTML = $("#mfrInfo").innerHTML = $("#mfrComps tbody").innerHTML = "";
+    $("#btnEditMfr").hidden = true;
+    return;
+  }
+  renderManufacturer();
+}
+
+function renderManufacturer() {
+  const m = currentMfr, s = m.stats;
+  $("#mfrName").textContent = m.name || "(fabricant non renseigné)";
+  $("#mfrAliases").textContent = m.aliases.length ? "Aussi écrit : " + m.aliases.join(", ") : "";
+  $("#btnEditMfr").hidden = m.key === "";
+  const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
+  $("#mfrCards").innerHTML = [
+    ["Composants en base", s.components, ""],
+    ["RoHS 3 conformes", `${s.rohs3_ok} / ${s.components}`, pct(s.rohs3_ok, s.components) + (s.rohs3_ko ? ` · ${plural(s.rohs3_ko, "non conforme")}` : "")],
+    ["REACH : SVHC > 0,1 %", s.reach_svhc, s.reach_ko ? plural(s.reach_ko, "non conforme") : ""],
+    ["ECCN contrôlés", s.eccn_controlled, s.eccn_unknown ? plural(s.eccn_unknown, "ECCN inconnu") : ""],
+  ].map(([t, v, d]) => `<div class="vcard"><div class="norm">${t}</div><div class="verdict">${v}</div><div class="detail">${esc(d)}</div></div>`).join("");
+  const origins = Object.entries(m.origins).map(([c, n]) => `${country(c)} (${n})`).join(", ");
+  const dflt = `<span class="tag" title="Valeur connue pour ce fabricant, modifiable">par défaut</span>`;
+  $("#mfrInfo").innerHTML = `
+    <dt>Site web</dt><dd>${siteLink(m.website)}${m.website_is_default ? dflt : ""}</dd>
+    <dt>Siège</dt><dd>${m.country ? `${esc(m.country_name)} (${esc(m.country)})` : `<span class="muted">—</span>`}${m.country_is_default ? dflt : ""}</dd>
+    <dt>Pays d'origine des composants</dt><dd>${origins || `<span class="muted">non renseignés</span>`}</dd>
+    <dt>Notes</dt><dd>${m.notes ? esc(m.notes) : `<span class="muted">—</span>`}</dd>`;
+  $("#mfrComps tbody").innerHTML = m.components.map((c) => `<tr>
+    <td class="mono">${esc(c.mpn)}</td><td>${esc(c.description)}</td>
+    <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
+    <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td>${esc(c.last_checked)}</td>
+    <td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
+    || `<tr><td colspan="9" class="muted">Aucun composant de ce fabricant en base.</td></tr>`;
+}
+
+$("#mfrComps").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-edit]");
+  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+});
+
+const dlgMfr = $("#dlgMfr"), mfrForm = $("#mfrForm");
+$("#btnEditMfr").addEventListener("click", () => {
+  const m = currentMfr;
+  for (const f of ["name", "website", "country", "notes"]) mfrForm.elements[f].value = m[f] || "";
+  $("#mfrError").hidden = true;
+  dlgMfr.showModal();
+});
+$("#btnMfrCancel").addEventListener("click", () => dlgMfr.close());
+mfrForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    currentMfr = await (await api("/api/manufacturers/" + encodeURIComponent(currentMfr.key), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(new FormData(mfrForm))),
+    })).json();
+    dlgMfr.close();
+    renderManufacturer();
+  } catch (e) { $("#mfrError").textContent = e.message; $("#mfrError").hidden = false; }
+});
 
 /* ------------------------------------------------------------------ modale */
 const dlg = $("#dlg"), form = $("#compForm");
@@ -325,11 +460,8 @@ $("#btnDelete").addEventListener("click", async () => {
 
 function afterDbChange() {
   loadStats();
-api("/api/countries").then((r) => r.json()).then((c) => {
-  COUNTRIES = c;
-  $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");
-}).catch(() => {});
   if ($("#tab-base").classList.contains("active")) loadComponents();
+  if ($("#tab-fabricants").classList.contains("active")) route();
   if (state.report) runAnalysis(); // relance l'analyse avec la base à jour
 }
 
@@ -352,4 +484,11 @@ $("#importFile").addEventListener("change", async (ev) => {
   box.hidden = false;
 });
 
+/* ------------------------------------------------------------------ démarrage */
 loadStats();
+api("/api/countries").then((r) => r.json()).then((c) => {
+  COUNTRIES = c;
+  $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");
+  route(); // ré-affiche la vue avec les noms de pays
+}).catch(() => {});
+route();

@@ -286,7 +286,7 @@ def test_migration_base_existante(tmp_path):
 def test_analyse_resume_export():
     rep = analyze_text("MPN,Manufacturer\nDEMO-LEADED-DIP8,Exemple Corp\nDEMO-RELAY-12V,Exemple Corp\nNE555P,TI\n")
     ex = rep["summary"]["export"]
-    assert ex["eccn_controlled"] == 1 and ex["eccn_ear99"] == 1 and ex["eccn_unknown"] == 1
+    assert ex["eccn_controlled"] == 1 and ex["eccn_ear99"] == 2 and ex["eccn_unknown"] == 0
     assert ex["countries"] == {"TW": 1, "CN": 1}
     line = next(l for l in rep["lines"] if l["bom_mpn"] == "DEMO-LEADED-DIP8")
     assert any("5A992.c" in n for n in line["notes"])
@@ -297,3 +297,34 @@ def test_datasheet_eccn_pays(monkeypatch):
     pdf = make_pdf([["XYZ123A Sensor", "www.ti.com", "ECCN: EAR99", "Country of Origin: Malaysia"]])
     f = extract_pdf(pdf, "xyz123a.pdf").json()["fields"]
     assert (f["eccn"], f["country_of_origin"]) == ("EAR99", "MY")
+
+
+# ---------------------------------------------------------------- fabricants
+
+def test_liste_fabricants():
+    mfrs = {m["key"]: m for m in client.get("/api/manufacturers").json()}
+    ti = mfrs["texas instruments"]
+    assert ti["name"] == "Texas Instruments" and ti["website"] == "https://www.ti.com" and ti["country"] == "US"
+    assert ti["stats"]["components"] >= 4
+    assert mfrs["exemple"]["website"] == ""  # fabricant fictif : pas de site connu
+
+
+def test_fiche_fabricant_regroupe_les_alias():
+    client.post("/api/components", json={"mpn": "ALIAS-TEST-1", "manufacturer": "TI"})
+    d = client.get("/api/manufacturers/texas instruments").json()
+    assert "ALIAS-TEST-1" in [c["mpn"] for c in d["components"]]
+    assert "TI" in d["aliases"]
+    assert all(c["manufacturer_key"] == "texas instruments" for c in d["components"])
+    assert client.get("/api/manufacturers/inexistant-xyz").status_code == 404
+
+
+def test_modifier_fabricant():
+    r = client.put("/api/manufacturers/exemple", json={"website": "exemple.com", "country": "France", "notes": "fictif"})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert (d["website"], d["country"], d["notes"]) == ("https://exemple.com", "FR", "fictif")
+    assert not d["website_is_default"]
+    assert client.put("/api/manufacturers/exemple", json={"website": "pas un site"}).status_code == 422
+    # Champ vidé : retour à la valeur par défaut connue
+    d = client.put("/api/manufacturers/murata", json={"website": ""}).json()
+    assert d["website"] == "https://www.murata.com" and d["website_is_default"]

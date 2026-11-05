@@ -64,6 +64,22 @@ Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_l
   reprise dans l'export Excel.
 - Les bases créées avant cette version reçoivent automatiquement les deux nouvelles colonnes (vides) au démarrage.
 
+## Fabricants
+
+Onglet « Fabricants » : liste des fabricants présents en base, avec le nombre de composants, l'état
+RoHS 3 / REACH, les ECCN contrôlés, le pays du siège et le site web.
+
+Chaque nom de fabricant (onglet Base, fiche fabricant, analyse de BOM) est un lien vers sa fiche :
+- site web et pays du siège (proposés par défaut pour les fabricants connus, modifiables) et notes libres
+  (contact conformité, lien vers les déclarations RoHS/REACH…) ;
+- statistiques : composants en base, part RoHS 3 conforme, SVHC, ECCN contrôlés ou inconnus,
+  pays d'origine des composants ;
+- liste de ses composants en base, avec accès direct à leur fiche.
+
+Les variantes d'écriture sont regroupées : « TI », « Texas Instruments » et « Texas Instruments Inc. »
+mènent à la même fiche. Chaque page a sa propre adresse (`#fabricant/texas instruments`), utilisable
+comme lien direct.
+
 ## Alimenter la base
 
 - **Interface web** : onglet « Base de composants » (ajout, modification, import CSV/XLSX, export).
@@ -117,6 +133,8 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | POST | `/api/components/import` | import en masse |
 | POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
 | GET | `/api/components/export` | export CSV de la base |
+| GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
+| GET/PUT | `/api/manufacturers/{clé}` | fiche d'un fabricant (infos + composants) / modification des infos |
 | GET | `/api/countries` | codes pays reconnus et leur nom |
 | GET | `/api/stats` | statistiques |
 
@@ -142,6 +160,7 @@ app/reports.py    exports Excel / CSV
 app/importer.py   import en masse de la base
 app/datasheet.py  extraction des datasheets PDF par règles
 app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
+app/manufacturers.py fiches fabricants (infos, statistiques, composants)
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```

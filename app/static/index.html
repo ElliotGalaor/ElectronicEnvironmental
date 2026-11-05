@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v=5">
 </head>
 <body>
 <header class="top">
@@ -21,6 +21,7 @@
 <nav class="tabs" role="tablist">
   <button class="tab active" data-tab="analyse" role="tab">Analyse de BOM</button>
   <button class="tab" data-tab="base" role="tab">Base de composants</button>
+  <button class="tab" data-tab="fabricants" role="tab">Fabricants</button>
 </nav>
 
 <main>
@@ -116,7 +117,65 @@
       <button class="btn" id="next">Suivant ›</button>
     </div>
   </section>
+  <!-- ============================== FABRICANTS ============================== -->
+  <section id="tab-fabricants" class="panel">
+    <div id="mfrList">
+      <div class="toolbar">
+        <div class="left"><input type="search" id="mfrSearch" placeholder="Rechercher un fabricant…"></div>
+      </div>
+      <div class="tablewrap">
+        <table class="grid" id="mfrs">
+          <thead><tr>
+            <th>Fabricant</th><th>Composants</th><th>RoHS 3</th><th>REACH</th><th>ECCN contrôlé</th><th>Siège</th><th>Site web</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="mfrDetail" hidden>
+      <a href="#fabricants" class="back">‹ Tous les fabricants</a>
+      <div class="mfrhead">
+        <div>
+          <h2 id="mfrName"></h2>
+          <div class="muted" id="mfrAliases"></div>
+        </div>
+        <button class="btn" id="btnEditMfr">Modifier les informations</button>
+      </div>
+      <div class="cards" id="mfrCards"></div>
+      <div class="card mfrinfo" id="mfrInfo"></div>
+      <h3 class="section">Composants en base</h3>
+      <div class="tablewrap">
+        <table class="grid" id="mfrComps">
+          <thead><tr>
+            <th>Référence</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Origine</th><th>Vérifié le</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </main>
+
+<!-- ============================== MODALE FABRICANT ============================== -->
+<dialog id="dlgMfr">
+  <form id="mfrForm" method="dialog">
+    <h2>Informations du fabricant</h2>
+    <div class="formgrid">
+      <label class="wide">Nom affiché<input name="name"></label>
+      <label class="wide">Site web<input name="website" placeholder="https://www.exemple.com" autocomplete="off"></label>
+      <label>Pays du siège<input name="country" list="countryList" placeholder="ex. US, Allemagne" autocomplete="off"></label>
+      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Contact conformité, lien vers les déclarations RoHS/REACH, remarques…"></textarea></label>
+    </div>
+    <p class="muted small">Laisser un champ vide rétablit la valeur par défaut connue pour ce fabricant, s'il y en a une.</p>
+    <div id="mfrError" class="alert error" hidden></div>
+    <div class="dlgactions">
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="btnMfrCancel">Annuler</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- ============================== MODALE COMPOSANT ============================== -->
 <dialog id="dlg">
@@ -168,6 +227,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=5"></script>
 </body>
 </html>
