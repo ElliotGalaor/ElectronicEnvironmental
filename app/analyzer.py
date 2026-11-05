@@ -8,7 +8,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
-from .db import loose_mpn, normalize_manufacturer, normalize_mpn, row_to_dict
+from .db import eccn_is_controlled, loose_mpn, normalize_manufacturer, normalize_mpn, row_to_dict
 from .tables import BomLine, ColumnMapping
 
 NORMS = ("rohs2", "rohs3", "reach")
@@ -207,6 +207,8 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
     if res.exemptions and OK_EXEMPTION in (res.rohs2, res.rohs3):
         res.notes.append(f"Exemption RoHS : {res.exemptions} (vérifier sa date d'expiration)")
+    if eccn_is_controlled(comp.get("eccn", "")):
+        res.notes.append(f"ECCN {comp['eccn']} : composant soumis au contrôle export, vérifier les licences")
     if res.reach == SVHC:
         res.notes.append("Contient une SVHC > 0,1 % : obligation d'information (REACH art. 33) et déclaration SCIP")
     return res
@@ -236,6 +238,16 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
         vals = [getattr(r, n) for r in results]
         summary[n] = {"verdict": _global_verdict(vals, n), "counts": dict(Counter(vals))}
     matches = Counter(r.match for r in results)
+
+    # Export / douane : sur les composants montés et identifiés en base
+    known = [r.component for r in results if r.component and not r.dnp]
+    export = {
+        "eccn_controlled": sum(1 for c in known if eccn_is_controlled(c.get("eccn", ""))),
+        "eccn_ear99": sum(1 for c in known if c.get("eccn") == "EAR99"),
+        "eccn_unknown": sum(1 for c in known if not c.get("eccn")),
+        "countries": dict(Counter(c["country_of_origin"] for c in known if c.get("country_of_origin")).most_common()),
+        "country_unknown": sum(1 for c in known if not c.get("country_of_origin")),
+    }
     overall_values = [summary[n]["verdict"] for n in NORMS]
     overall = KO if KO in overall_values else CHECK if CHECK in overall_values else OK
 
@@ -251,6 +263,7 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
             "uncertain": sum(1 for r in results if r.match in (MATCH_MPN_OTHER_MFR, MATCH_PREFIX, MATCH_AMBIGUOUS)),
             "not_found": matches.get(MATCH_NONE, 0),
             "overall": overall,
+            "export": export,
             **summary,
         },
         "lines": [asdict(r) for r in results],

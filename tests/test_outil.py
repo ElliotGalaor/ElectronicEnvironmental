@@ -231,3 +231,69 @@ def test_datasheet_ia_en_erreur_repli(monkeypatch):
     monkeypatch.setattr(datasheet_ai, "extract", boom)
     d = extract_pdf(TI_PDF, "lm358b.pdf").json()
     assert d["method"] == "heuristique" and any("quota" in w for w in d["warnings"])
+
+
+# ---------------------------------------------------------------- ECCN et pays d'origine
+
+import sqlite3  # noqa: E402
+
+
+def test_normalisation_eccn_et_pays():
+    assert db.normalize_eccn("5a992.C") == "5A992.c"
+    assert db.normalize_eccn("ear 99") == "EAR99"
+    assert db.normalize_eccn("") == ""
+    assert db.normalize_country("Malaisie") == "MY"
+    assert db.normalize_country("united states") == "US"
+    assert db.normalize_country("tw") == "TW"
+    for bad in ("5Z999", "ECCN"):
+        with pytest.raises(db.ValidationError):
+            db.normalize_eccn(bad)
+    with pytest.raises(db.ValidationError):
+        db.normalize_country("Atlantide")
+
+
+def test_crud_eccn_pays():
+    r = client.post("/api/components", json={"mpn": "EXP-1", "manufacturer": "Acme", "eccn": "3a991.a.1", "country_of_origin": "Japon"})
+    assert r.status_code == 201, r.text
+    assert (r.json()["eccn"], r.json()["country_of_origin"]) == ("3A991.a.1", "JP")
+    assert client.post("/api/components", json={"mpn": "EXP-2", "eccn": "faux"}).status_code == 422
+    client.delete(f"/api/components/{r.json()['id']}")
+
+
+def test_import_colonnes_eccn_pays():
+    csv_text = "Part Number;Fabricant;ECCN;Country of Origin\nIMP-ECCN-1;Acme;EAR99;Germany\nIMP-ECCN-2;Acme;5A002;Mars\n"
+    with db.session() as conn:
+        res = import_table(conn, csv_text.encode(), "base.csv")
+        row = conn.execute("SELECT eccn, country_of_origin FROM components WHERE mpn = 'IMP-ECCN-1'").fetchone()
+    assert res["created"] == 1 and res["error_count"] == 1  # "Mars" refusé
+    assert tuple(row) == ("EAR99", "DE")
+
+
+def test_migration_base_existante(tmp_path):
+    path = tmp_path / "ancienne.db"
+    conn = sqlite3.connect(path)
+    conn.executescript(db.SCHEMA.replace("    eccn              TEXT NOT NULL DEFAULT '',\n", "").replace(
+        "    country_of_origin TEXT NOT NULL DEFAULT '',\n", ""))
+    conn.execute("INSERT INTO components (mpn, mpn_norm, mpn_loose, updated_at) VALUES ('OLD1', 'OLD1', 'OLD1', 'x')")
+    conn.commit()
+    conn.close()
+    with db.session(path) as conn:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(components)")}
+        assert {"eccn", "country_of_origin"} <= cols
+        assert conn.execute("SELECT mpn, eccn FROM components").fetchone()["mpn"] == "OLD1"
+
+
+def test_analyse_resume_export():
+    rep = analyze_text("MPN,Manufacturer\nDEMO-LEADED-DIP8,Exemple Corp\nDEMO-RELAY-12V,Exemple Corp\nNE555P,TI\n")
+    ex = rep["summary"]["export"]
+    assert ex["eccn_controlled"] == 1 and ex["eccn_ear99"] == 1 and ex["eccn_unknown"] == 1
+    assert ex["countries"] == {"TW": 1, "CN": 1}
+    line = next(l for l in rep["lines"] if l["bom_mpn"] == "DEMO-LEADED-DIP8")
+    assert any("5A992.c" in n for n in line["notes"])
+
+
+def test_datasheet_eccn_pays(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    pdf = make_pdf([["XYZ123A Sensor", "www.ti.com", "ECCN: EAR99", "Country of Origin: Malaysia"]])
+    f = extract_pdf(pdf, "xyz123a.pdf").json()["fields"]
+    assert (f["eccn"], f["country_of_origin"]) == ("EAR99", "MY")

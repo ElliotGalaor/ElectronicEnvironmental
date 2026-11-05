@@ -62,6 +62,7 @@
           <button class="chip" data-filter="ko">Non conformes</button>
           <button class="chip" data-filter="check">À vérifier</button>
           <button class="chip" data-filter="svhc">SVHC / exemptions</button>
+          <button class="chip" data-filter="eccn">ECCN contrôlé</button>
         </div>
         <input type="search" id="lineSearch" placeholder="Filtrer (référence, repère…)">
       </div>
@@ -70,7 +71,7 @@
         <table class="grid" id="lines">
           <thead><tr>
             <th>Ligne</th><th>Repères</th><th>Qté</th><th>Référence BOM</th><th>Fabricant</th>
-            <th>Correspondance</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Remarques</th>
+            <th>Correspondance</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN / Origine</th><th>Remarques</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -104,7 +105,7 @@
       <table class="grid" id="comps">
         <thead><tr>
           <th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th>
-          <th>Exemptions / SVHC</th><th>Vérifié le</th><th></th>
+          <th>Exemptions / SVHC</th><th>ECCN</th><th>Origine</th><th>Vérifié le</th><th></th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -151,6 +152,9 @@
         </select></label>
       <label>Exemptions RoHS<input name="rohs_exemptions" placeholder="ex. 7(c)-I, 6(c)"></label>
       <label class="wide">SVHC présentes<input name="svhc_list" placeholder="ex. Plomb (CAS 7439-92-1)"></label>
+      <label>ECCN (contrôle export)<input name="eccn" placeholder="ex. EAR99, 5A992.c" autocomplete="off"></label>
+      <label>Pays d'origine<input name="country_of_origin" list="countryList" placeholder="ex. CN, MY, Allemagne" autocomplete="off"></label>
+      <datalist id="countryList"></datalist>
       <label>Source<input name="source" placeholder="Déclaration fabricant, URL…"></label>
       <label>Vérifié le<input name="last_checked" type="date"></label>
     </div>

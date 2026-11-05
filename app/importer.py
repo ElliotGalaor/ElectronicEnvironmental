@@ -12,6 +12,8 @@ IMPORT_HEADERS = {
     "reach": ("reach",),
     "rohs_exemptions": ("rohs exemptions", "exemptions", "exemption", "exemptions rohs"),
     "svhc_list": ("svhc list", "svhc", "substances svhc", "liste svhc"),
+    "eccn": ("eccn", "eccn us", "us eccn", "export control classification number", "classification export", "eu eccn"),
+    "country_of_origin": ("country of origin", "country_of_origin", "coo", "origin", "origine", "pays d origine", "pays origine", "pays de fabrication", "made in"),
     "source": ("source", "document", "declaration"),
     "last_checked": ("last checked", "verifie le", "date verification", "date"),
 }

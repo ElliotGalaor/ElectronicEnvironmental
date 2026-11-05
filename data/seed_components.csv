@@ -1,27 +1,27 @@
-mpn;manufacturer;description;rohs2;rohs3;reach;rohs_exemptions;svhc_list;source;last_checked
-NE555P;Texas Instruments;Timer bipolaire simple, DIP-8;conforme;conforme;conforme;;;DEMO - à vérifier;2026-01-15
-LM358DR;Texas Instruments;Double ampli-op, SOIC-8;conforme;conforme;conforme;;;DEMO - à vérifier;2026-01-15
-TPS54331DR;Texas Instruments;Convertisseur buck 3 A 28 V, SOIC-8;conforme;conforme;conforme;;;DEMO - à vérifier;2026-01-15
-LM1117IMPX-3.3/NOPB;Texas Instruments;Régulateur LDO 3,3 V 800 mA, SOT-223;conforme;conforme;conforme;;;DEMO - à vérifier;2026-01-15
-STM32F103C8T6;STMicroelectronics;MCU ARM Cortex-M3 64 Ko Flash, LQFP-48;conforme;conforme;conforme;;;DEMO - à vérifier;2026-02-03
-L7805CV;STMicroelectronics;Régulateur linéaire 5 V 1,5 A, TO-220;conforme;conforme;conforme;;;DEMO - à vérifier;2026-02-03
-ATMEGA328P-AU;Microchip;MCU AVR 8 bits 32 Ko Flash, TQFP-32;conforme;conforme;conforme;;;DEMO - à vérifier;2026-02-03
-MCP2551-I/SN;Microchip;Transceiver CAN, SOIC-8;conforme;conforme;conforme;;;DEMO - à vérifier;2026-02-03
-GRM188R71H104KA93D;Murata;Condensateur céramique 100 nF 50 V X7R 0603;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-GRM21BR61E106KA73L;Murata;Condensateur céramique 10 µF 25 V X5R 0805;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-CL10A106KP8NNNC;Samsung;Condensateur céramique 10 µF 10 V X5R 0603;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-RC0603FR-0710KL;Yageo;Résistance couche épaisse 10 kΩ 1 % 0603;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1) dans le verre de la couche résistive;DEMO - à vérifier;2026-03-10
-RC0805FR-07100RL;Yageo;Résistance couche épaisse 100 Ω 1 % 0805;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1) dans le verre de la couche résistive;DEMO - à vérifier;2026-03-10
-CRCW060310K0FKEA;Vishay;Résistance couche épaisse 10 kΩ 1 % 0603;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1);DEMO - à vérifier;2026-03-10
-1N4148W-7-F;Diodes;Diode de commutation 75 V, SOD-123;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-BAT54S;Nexperia;Double diode Schottky 30 V, SOT-23;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-BSS138;onsemi;MOSFET canal N 50 V 220 mA, SOT-23;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-IRLML6344TRPBF;Infineon;MOSFET canal N 30 V 5 A, SOT-23;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-LTST-C191KRKT;Lite-On;LED rouge 0603;conforme;conforme;conforme;;;DEMO - à vérifier;2026-03-10
-744771147;Wurth Elektronik;Inductance de puissance 47 µH;conforme;conforme;conforme;;;DEMO - à vérifier;2026-04-01
-61300311121;Wurth Elektronik;Connecteur barrette mâle 3 pts 2,54 mm;conforme;conforme;conforme;;;DEMO - à vérifier;2026-04-01
-ABM8-16.000MHZ-B2-T;Abracon;Quartz 16 MHz 3,2x2,5 mm;conforme;inconnu;inconnu;;;DEMO - à vérifier;2026-04-01
-SMBJ5.0A;Littelfuse;Diode TVS 5 V 600 W, SMB;exemption;exemption;conforme;7(a);;DEMO - à vérifier;2026-04-01
-DEMO-RELAY-12V;Exemple Corp;Relais 12 V (composant fictif de démonstration);conforme;non_conforme;svhc;;DEHP dans la gaine du bobinage (> 0,1 %);DEMO - fictif;2026-04-20
-DEMO-LEADED-DIP8;Exemple Corp;Ampli-op ancienne génération finition SnPb (composant fictif);non_conforme;non_conforme;svhc;;Plomb (CAS 7439-92-1) dans la finition des broches;DEMO - fictif;2026-04-20
-DEMO-CABLE-PVC;Exemple Corp;Câble PVC (composant fictif);conforme;conforme;non_conforme;;Restriction annexe XVII REACH;DEMO - fictif;2026-04-20
+mpn;manufacturer;description;rohs2;rohs3;reach;rohs_exemptions;svhc_list;eccn;country_of_origin;source;last_checked
+NE555P;Texas Instruments;Timer bipolaire simple, DIP-8;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-01-15
+LM358DR;Texas Instruments;Double ampli-op, SOIC-8;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-01-15
+TPS54331DR;Texas Instruments;Convertisseur buck 3 A 28 V, SOIC-8;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-01-15
+LM1117IMPX-3.3/NOPB;Texas Instruments;Régulateur LDO 3,3 V 800 mA, SOT-223;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-01-15
+STM32F103C8T6;STMicroelectronics;MCU ARM Cortex-M3 64 Ko Flash, LQFP-48;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-02-03
+L7805CV;STMicroelectronics;Régulateur linéaire 5 V 1,5 A, TO-220;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-02-03
+ATMEGA328P-AU;Microchip;MCU AVR 8 bits 32 Ko Flash, TQFP-32;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-02-03
+MCP2551-I/SN;Microchip;Transceiver CAN, SOIC-8;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-02-03
+GRM188R71H104KA93D;Murata;Condensateur céramique 100 nF 50 V X7R 0603;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+GRM21BR61E106KA73L;Murata;Condensateur céramique 10 µF 25 V X5R 0805;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+CL10A106KP8NNNC;Samsung;Condensateur céramique 10 µF 10 V X5R 0603;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+RC0603FR-0710KL;Yageo;Résistance couche épaisse 10 kΩ 1 % 0603;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1) dans le verre de la couche résistive;;;DEMO - à vérifier;2026-03-10
+RC0805FR-07100RL;Yageo;Résistance couche épaisse 100 Ω 1 % 0805;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1) dans le verre de la couche résistive;;;DEMO - à vérifier;2026-03-10
+CRCW060310K0FKEA;Vishay;Résistance couche épaisse 10 kΩ 1 % 0603;exemption;exemption;svhc;7(c)-I;Plomb (CAS 7439-92-1);;;DEMO - à vérifier;2026-03-10
+1N4148W-7-F;Diodes;Diode de commutation 75 V, SOD-123;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+BAT54S;Nexperia;Double diode Schottky 30 V, SOT-23;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+BSS138;onsemi;MOSFET canal N 50 V 220 mA, SOT-23;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+IRLML6344TRPBF;Infineon;MOSFET canal N 30 V 5 A, SOT-23;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+LTST-C191KRKT;Lite-On;LED rouge 0603;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-03-10
+744771147;Wurth Elektronik;Inductance de puissance 47 µH;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-04-01
+61300311121;Wurth Elektronik;Connecteur barrette mâle 3 pts 2,54 mm;conforme;conforme;conforme;;;;;DEMO - à vérifier;2026-04-01
+ABM8-16.000MHZ-B2-T;Abracon;Quartz 16 MHz 3,2x2,5 mm;conforme;inconnu;inconnu;;;;;DEMO - à vérifier;2026-04-01
+SMBJ5.0A;Littelfuse;Diode TVS 5 V 600 W, SMB;exemption;exemption;conforme;7(a);;;;DEMO - à vérifier;2026-04-01
+DEMO-RELAY-12V;Exemple Corp;Relais 12 V (composant fictif de démonstration);conforme;non_conforme;svhc;;DEHP dans la gaine du bobinage (> 0,1 %);EAR99;CN;DEMO - fictif;2026-04-20
+DEMO-LEADED-DIP8;Exemple Corp;Ampli-op ancienne génération finition SnPb (composant fictif);non_conforme;non_conforme;svhc;;Plomb (CAS 7439-92-1) dans la finition des broches;5A992.c;TW;DEMO - fictif;2026-04-20
+DEMO-CABLE-PVC;Exemple Corp;Câble PVC (composant fictif);conforme;conforme;non_conforme;;Restriction annexe XVII REACH;EAR99;VN;DEMO - fictif;2026-04-20

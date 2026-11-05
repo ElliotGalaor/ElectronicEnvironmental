@@ -18,7 +18,7 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .db import loose_mpn, normalize_manufacturer
+from .db import ValidationError, loose_mpn, normalize_country, normalize_eccn, normalize_manufacturer
 
 
 class DatasheetError(ValueError):
@@ -399,6 +399,52 @@ def detect_compliance(lines: list[tuple[int, str]]) -> tuple[dict, dict, list[st
     return res, dict(ev), notes
 
 
+# ------------------------------------------------------------------ export / douane
+
+_ECCN_LINE = re.compile(r"\b(?:US\s*|EU\s*)?ECCN\b\s*(?:code|number|no\.?|n°)?\s*[:=\-]?\s*(EAR\s?99|\d[A-E]\d{3}(?:\.[a-z0-9]+)*)", re.I)
+_COO_LINE = re.compile(
+    r"(?:country\s+of\s+origin|countries\s+of\s+origin|\bCOO\b|pays\s+d['’]origine|origin)\s*[:=\-]\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{1,40}?)(?=\s*(?:[,;|/()]|$|\s{2,}))"
+    r"|\bmade\s+in\s+([A-Z][A-Za-z .\-]{1,30}?)(?=\s*(?:[,;|/().]|$))"
+    r"|\bfabriqu[ée]\s+en\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .\-]{1,30}?)(?=\s*(?:[,;|/().]|$))",
+    re.I,
+)
+
+
+def detect_export(lines: list[tuple[int, str]]) -> tuple[dict, dict, list[str]]:
+    res = {"eccn": "", "country_of_origin": ""}
+    ev: dict[str, list[dict]] = {}
+    notes: list[str] = []
+    eccns: list[str] = []
+    countries: list[str] = []
+    for p, l in lines:
+        for m in _ECCN_LINE.finditer(l):
+            try:
+                code = normalize_eccn(m.group(1))
+            except ValidationError:
+                continue
+            if code and code not in eccns:
+                eccns.append(code)
+                ev.setdefault("eccn", []).append(_snippet(p, l))
+        for m in _COO_LINE.finditer(l):
+            raw = next(g for g in m.groups() if g)
+            try:
+                code = normalize_country(raw.strip(" .-"))
+            except ValidationError:
+                continue
+            if code and code not in countries:
+                countries.append(code)
+                ev.setdefault("country_of_origin", []).append(_snippet(p, l))
+    if eccns:
+        res["eccn"] = eccns[0]
+        if len(eccns) > 1:
+            notes.append(f"Plusieurs ECCN cités ({', '.join(eccns)}) : vérifiez celui de la référence exacte")
+    if countries:
+        res["country_of_origin"] = countries[0]
+        if len(countries) > 1:
+            notes.append(f"Plusieurs pays d'origine cités ({', '.join(countries)}) : dépend du site de fabrication")
+    return res, ev, notes
+
+
 # ------------------------------------------------------------------ point d'entrée
 
 def extract(data: bytes, filename: str = "") -> dict:
@@ -415,11 +461,13 @@ def extract(data: bytes, filename: str = "") -> dict:
     manufacturer = mfr_cands[0]["value"] if mfr_cands else ""
     description, desc_ev = detect_description(pages, meta, lines, mpn)
     compliance, comp_ev, notes = detect_compliance(lines)
+    export, export_ev, export_notes = detect_export(lines)
+    notes += export_notes
 
     if len(mpn_cands) > 1 and mpn_cands[1]["score"] >= mpn_cands[0]["score"] * 0.8:
         notes.insert(0, "Plusieurs références possibles : vérifiez la référence exacte (variante commandable)")
 
-    evidence = {"mpn": mpn_ev, "manufacturer": mfr_ev, "description": desc_ev, **comp_ev}
+    evidence = {"mpn": mpn_ev, "manufacturer": mfr_ev, "description": desc_ev, **comp_ev, **export_ev}
     return {
         "method": "heuristique",
         "fields": {
@@ -427,6 +475,7 @@ def extract(data: bytes, filename: str = "") -> dict:
             "manufacturer": manufacturer,
             "description": description,
             **compliance,
+            **export,
             "source": f"Datasheet {filename}".strip(),
         },
         "candidates": {"mpn": mpn_cands, "manufacturer": mfr_cands},
