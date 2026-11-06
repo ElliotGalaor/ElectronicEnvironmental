@@ -7,6 +7,8 @@
   --ko-bg: #fde4e4; --ko: #a31f1f;
   --chk-bg: #fdecdc; --chk: #9a4a0b;
   --skip-bg: #eceef1; --skip: #667085;
+  /* Camemberts de statut : palette validée (daltonisme et vision normale) sur fond clair */
+  --pie-ok: #1a7f5a; --pie-ex: #4f8fe6; --pie-svhc: #e0b02a; --pie-chk: #a3abb8; --pie-ko: #ef7a64;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
 }
 @media (prefers-color-scheme: dark) {
@@ -19,6 +21,7 @@
     --ko-bg: #451c1c; --ko: #ff9b9b;
     --chk-bg: #3d2918; --chk: #f6b37a;
     --skip-bg: #262c34; --skip: #8a94a3;
+    --pie-ok: #34a97f; --pie-ex: #6aa8ff; --pie-svhc: #e8b931; --pie-chk: #6b7584; --pie-ko: #ef6f5b;
     --shadow: none;
   }
 }
@@ -168,6 +171,28 @@ textarea { font: inherit; color: var(--text); background: var(--surface); border
 #mfrs { min-width: 900px; }
 #mfrComps { min-width: 1000px; }
 #mfrComps td:nth-child(1) { white-space: nowrap; }
+
+.swapbar[hidden] { display: none; }
+
+/* Camemberts par norme */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+.chart { display: flex; gap: 16px; align-items: center; }
+.chart h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.chart h4 span { color: var(--muted); font-weight: 400; }
+.pie { flex: 0 0 auto; width: 120px; height: 120px; }
+.pie path, .pie circle.slice { stroke: var(--surface); stroke-width: 2; cursor: default; transition: opacity .12s; }
+.pie.dim path, .pie.dim circle.slice { opacity: .35; }
+.pie.dim .on { opacity: 1; }
+.pie .center-value { font-size: 20px; font-weight: 700; fill: var(--text); }
+.pie .center-label { font-size: 10.5px; fill: var(--muted); }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; min-width: 0; }
+.legend li { display: flex; align-items: center; gap: 7px; padding: 1px 4px; border-radius: 5px; }
+.legend li.on { background: var(--surface-2); }
+.legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.legend .lbl { color: var(--text); }
+.legend .val { margin-left: auto; padding-left: 8px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart .foot { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.charttip { position: fixed; pointer-events: none; z-index: 50; background: var(--text); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
 
 dialog.wide { width: min(1100px, calc(100vw - 32px)); }
 .altref { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: grid; gap: 4px; }
