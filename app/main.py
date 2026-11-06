@@ -15,11 +15,11 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import datasheet, datasheet_ai, db, manufacturers
+from . import alternates, datasheet, datasheet_ai, db, manufacturers
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
-from .tables import TableError, parse_bom
+from .tables import TableError, apply_substitutions, modified_bom_csv, parse_bom
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 Mo
@@ -91,19 +91,32 @@ async def _read_upload(file: UploadFile) -> bytes:
 async def analyze_bom(
     file: UploadFile = File(...),
     mapping: str = Form(default="", description='Surcharge des colonnes, JSON : {"mpn": "Part Number", ...}'),
-    format: Literal["json", "xlsx", "csv"] = Query(default="json"),
+    substitutions: str = Form(default="", description='Remplacements, JSON : {"<n° de ligne>": <id du composant>, ...}'),
+    format: Literal["json", "xlsx", "csv", "bom"] = Query(default="json", description="bom : la nomenclature modifiée (remplacements appliqués), en CSV"),
     conn=Depends(get_conn),
 ):
     data = await _read_upload(file)
     try:
         overrides = json.loads(mapping) if mapping else None
+        subs = {int(k): int(v) for k, v in (json.loads(substitutions) if substitutions else {}).items()}
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(400, "Paramètre mapping ou substitutions : JSON invalide")
+    try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
-    except json.JSONDecodeError:
-        raise HTTPException(400, "Paramètre mapping : JSON invalide")
     except TableError as exc:
         raise HTTPException(422, str(exc))
-    report = analyze(conn, lines, colmap, file.filename or "")
+    try:
+        replaced = apply_substitutions(conn, lines, subs)
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
     stem = Path(file.filename or "bom").stem
+    if format == "bom":
+        return Response(
+            modified_bom_csv(data, file.filename or "", overrides, colmap, replaced),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{stem}_modifiee.csv"'},
+        )
+    report = analyze(conn, lines, colmap, file.filename or "")
     if format == "xlsx":
         return Response(
             report_xlsx(report),
@@ -140,6 +153,39 @@ def export_components(conn=Depends(get_conn)):
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="base_composants.csv"'},
     )
+
+
+@app.get("/api/alternatives", summary="Équivalents d'autres fabricants pour une référence quelconque (ex. ligne de BOM absente de la base)")
+def alternatives_for(mpn: str = "", manufacturer: str = "", description: str = "", conn=Depends(get_conn)):
+    return alternates.find(conn, mpn=mpn, manufacturer=manufacturer, description=description)
+
+
+@app.get("/api/components/{comp_id}/alternatives", summary="Équivalents d'autres fabricants pour un composant de la base")
+def component_alternatives(comp_id: int, conn=Depends(get_conn)):
+    if not db.get(conn, comp_id):
+        raise HTTPException(404, "Composant introuvable")
+    return alternates.find(conn, component_id=comp_id)
+
+
+class EquivalentIn(BaseModel):
+    other_id: int
+
+
+@app.post("/api/components/{comp_id}/equivalents", status_code=204, dependencies=[Depends(require_admin)],
+          summary="Confirmer qu'un autre composant est équivalent")
+def add_equivalent(comp_id: int, body: EquivalentIn, conn=Depends(get_conn)):
+    try:
+        alternates.confirm(conn, comp_id, body.other_id)
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
+    return Response(status_code=204)
+
+
+@app.delete("/api/components/{comp_id}/equivalents/{other_id}", status_code=204, dependencies=[Depends(require_admin)],
+            summary="Retirer une équivalence confirmée")
+def remove_equivalent(comp_id: int, other_id: int, conn=Depends(get_conn)):
+    alternates.unconfirm(conn, comp_id, other_id)
+    return Response(status_code=204)
 
 
 @app.get("/api/components/{comp_id}")

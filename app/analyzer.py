@@ -53,6 +53,8 @@ class LineResult:
     svhc_list: str = ""
     suggestions: list[dict] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    original_mpn: str = ""
+    original_manufacturer: str = ""
 
 
 def _candidates(conn: sqlite3.Connection, line: BomLine) -> tuple[str, list[dict]]:
@@ -147,7 +149,11 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         rohs2=CHECK,
         rohs3=CHECK,
         reach=CHECK,
+        original_mpn=line.original_mpn,
+        original_manufacturer=line.original_manufacturer,
     )
+    if line.original_mpn:
+        res.notes.append(f"Remplace {line.original_mpn}" + (f" ({line.original_manufacturer})" if line.original_manufacturer else ""))
     if line.dnp:
         res.rohs2 = res.rohs3 = res.reach = SKIPPED
         res.match = "-"
@@ -262,6 +268,7 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
             "found": sum(1 for r in results if r.match in RELIABLE_MATCHES),
             "uncertain": sum(1 for r in results if r.match in (MATCH_MPN_OTHER_MFR, MATCH_PREFIX, MATCH_AMBIGUOUS)),
             "not_found": matches.get(MATCH_NONE, 0),
+            "substituted": sum(1 for r in results if r.original_mpn),
             "overall": overall,
             "export": export,
             **summary,

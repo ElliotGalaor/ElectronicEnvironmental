@@ -169,6 +169,25 @@ textarea { font: inherit; color: var(--text); background: var(--surface); border
 #mfrComps { min-width: 1000px; }
 #mfrComps td:nth-child(1) { white-space: nowrap; }
 
+dialog.wide { width: min(1100px, calc(100vw - 32px)); }
+.altref { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: grid; gap: 4px; }
+.altref-main { font-weight: 600; font-size: 15px; }
+.swapnote { margin-top: 6px; color: var(--ex); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#altTable { min-width: 900px; }
+#altTable td.simcell { min-width: 260px; }
+#altTable td:first-child { min-width: 200px; }
+#altTable .ok { color: var(--ok); margin-top: 3px; }
+#altTable .warn { color: var(--chk); margin-top: 3px; }
+#altTable tr.notcompliant td { background: color-mix(in srgb, var(--ko-bg) 35%, transparent); }
+#altTable .actions-cell { white-space: nowrap; }
+#altTable .actions-cell .btn + .btn { margin-left: 6px; }
+.score { font-weight: 600; }
+.nomono { font-family: inherit; }
+a.mpn-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.mpn-link:hover { color: var(--accent); }
+#lines tr.swapped td { background: color-mix(in srgb, var(--ex-bg) 55%, transparent); }
+.swapbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--ex-bg); color: var(--ex); font-weight: 600; }
+
 @media (max-width: 640px) {
   .mfrinfo { grid-template-columns: 1fr; }
   .tabs { overflow-x: auto; }

@@ -77,6 +77,13 @@ CREATE INDEX IF NOT EXISTS idx_components_mpn_norm  ON components (mpn_norm);
 CREATE INDEX IF NOT EXISTS idx_components_mpn_loose ON components (mpn_loose);
 CREATE INDEX IF NOT EXISTS idx_components_mfr_norm  ON components (manufacturer_norm);
 
+-- Équivalences confirmées par un utilisateur (stockées dans les deux sens)
+CREATE TABLE IF NOT EXISTS component_equivalents (
+    a INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
+    b INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
+    PRIMARY KEY (a, b)
+);
+
 -- Informations sur les fabricants (clé = nom normalisé, comme components.manufacturer_norm)
 CREATE TABLE IF NOT EXISTS manufacturers (
     key        TEXT PRIMARY KEY,
@@ -364,6 +371,7 @@ def update(conn: sqlite3.Connection, comp_id: int, data: dict) -> bool:
 
 
 def delete(conn: sqlite3.Connection, comp_id: int) -> bool:
+    conn.execute("DELETE FROM component_equivalents WHERE a = ? OR b = ?", (comp_id, comp_id))
     return conn.execute("DELETE FROM components WHERE id = ?", (comp_id,)).rowcount > 0
 
 
