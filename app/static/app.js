@@ -28,7 +28,7 @@ const eccnCell = (e) => !e ? "" : e === "EAR99"
   : `<a class="eccn-link" href="${eccnHref(e)}" title="Soumis au contrôle export : voir le domaine d'application et la définition"><span class="badge b-eccn">${esc(e)}</span></a>`;
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 
-const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, page: 0, pageSize: 50, adminRequired: false };
+const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50, adminRequired: false };
 
 function token() { try { return localStorage.getItem("rrc_token") || ""; } catch { return ""; } }
 
@@ -108,7 +108,7 @@ const drop = $("#drop");
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
-function startAnalysis(file) { state.file = file; state.overrides = {}; state.substitutions = {}; runAnalysis(); }
+function startAnalysis(file) { state.file = file; state.overrides = {}; state.substitutions = {}; state.historyId = null; runAnalysis(); }
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
@@ -116,6 +116,10 @@ async function runAnalysis(format = "json") {
   fd.append("file", state.file);
   fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
   fd.append("substitutions", Object.keys(state.substitutions).length ? JSON.stringify(state.substitutions) : "");
+  // Utilisateur connecté : enregistrement dans l'historique (mise à jour de l'entrée si la BOM y est déjà)
+  if (format === "json" && state.user) {
+    if (state.historyId) fd.append("history_id", state.historyId); else fd.append("save", "1");
+  }
   $("#error").hidden = true;
   try {
     const r = await api(`/api/analyze?format=${format}`, { method: "POST", body: fd });
@@ -132,8 +136,10 @@ async function runAnalysis(format = "json") {
       return;
     }
     state.report = await r.json();
+    if (state.report.history_id) state.historyId = state.report.history_id;
     renderReport();
     renderSwapBar();
+    if (state.user) loadHistory();
   } catch (e) {
     $("#error").textContent = "Erreur : " + e.message;
     $("#error").hidden = false;
@@ -792,8 +798,149 @@ eccnForm.addEventListener("submit", async (ev) => {
   } catch (e) { $("#eccnError").textContent = e.message; $("#eccnError").hidden = false; }
 });
 
+/* ------------------------------------------------------------------ comptes et historique des BOM */
+const dlgAuth = $("#dlgAuth"), authForm = $("#authForm");
+let authMode = "login";
+
+function fmtDate(iso) {
+  try { return new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
+}
+
+async function loadUser() {
+  try { state.user = await (await api("/api/auth/me")).json(); } catch { state.user = null; }
+  renderAccount();
+  loadHistory();
+}
+
+function renderAccount() {
+  const u = state.user;
+  $("#account").innerHTML = u
+    ? `<span class="who" title="${esc(u.email)}">${esc(u.name)}</span>
+       <button class="btn small" id="btnMyBoms">Mes BOM</button>
+       <button class="btn small" id="btnLogout">Se déconnecter</button>`
+    : `<button class="btn small primary" id="btnLogin">Se connecter</button>`;
+  $("#historyHint").hidden = !!u;
+  $("#historyBox").hidden = !u;
+}
+
+$("#account").addEventListener("click", async (ev) => {
+  if (ev.target.closest("#btnLogin")) openAuth("login");
+  else if (ev.target.closest("#btnMyBoms")) {
+    location.hash = "#analyse";
+    $("#historyBox").scrollIntoView({ behavior: "smooth", block: "start" });
+  } else if (ev.target.closest("#btnLogout")) {
+    await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+    state.user = null;
+    state.historyId = null;
+    renderAccount();
+  }
+});
+$("#historyHint").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-auth]");
+  if (b) openAuth(b.dataset.auth);
+});
+
+function openAuth(mode) {
+  setAuthMode(mode);
+  authForm.reset();
+  $("#authError").hidden = true;
+  dlgAuth.showModal();
+  authForm.elements.email.focus();
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  $$("#dlgAuth .authtab").forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
+  const signup = mode === "register";
+  $("#authNameRow").hidden = !signup;
+  authForm.elements.password.autocomplete = signup ? "new-password" : "current-password";
+  $("#authPwHint").hidden = !signup;
+  $("#authSubmit").textContent = signup ? "Créer mon compte" : "Se connecter";
+  $("#authError").hidden = true;
+}
+$$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
+$("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
+
+authForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const body = { email: authForm.elements.email.value, password: authForm.elements.password.value };
+  if (authMode === "register") body.name = authForm.elements.name.value;
+  $("#authSubmit").disabled = true;
+  try {
+    state.user = await (await api(authMode === "register" ? "/api/auth/register" : "/api/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    })).json();
+    dlgAuth.close();
+    renderAccount();
+    // Une BOM déjà ouverte est enregistrée dans l'historique dès la connexion
+    if (state.report && state.file) runAnalysis(); else loadHistory();
+  } catch (e) {
+    $("#authError").textContent = e.message;
+    $("#authError").hidden = false;
+  } finally {
+    $("#authSubmit").disabled = false;
+  }
+});
+
+const VERDICT_SHORT = { conforme: "Conforme", exemption: "Exemption", svhc: "SVHC", non_conforme: "Non conforme", a_verifier: "À vérifier" };
+const verdictBadge = (v) => `<span class="badge b-${esc(v)}">${esc(VERDICT_SHORT[v] || v)}</span>`;
+
+async function loadHistory() {
+  if (!state.user) return;
+  let items;
+  try { items = await (await api("/api/history")).json(); } catch (e) {
+    $("#historyList").innerHTML = `<p class="muted">Historique indisponible : ${esc(e.message)}</p>`;
+    return;
+  }
+  $("#historyCount").textContent = items.length ? `${items.length} analyse${items.length > 1 ? "s" : ""}` : "";
+  $("#historyList").innerHTML = items.length ? `<div class="tablewrap"><table class="grid" id="historyTable"><thead><tr>
+      <th>Fichier</th><th>Analysée le</th><th>Global</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Lignes</th><th></th>
+    </tr></thead><tbody>${items.map((h) => {
+      const s = h.summary || {};
+      const swaps = Object.keys(h.substitutions || {}).length;
+      return `<tr class="${h.id === state.historyId ? "current" : ""}">
+        <td><span class="mono">${esc(h.filename)}</span>${h.id === state.historyId ? ` <span class="tag">ouverte</span>` : ""}</td>
+        <td class="nowrap">${esc(fmtDate(h.updated_at))}</td>
+        <td>${s.overall ? verdictBadge(s.overall) : ""}</td><td>${s.rohs2 ? verdictBadge(s.rohs2) : ""}</td>
+        <td>${s.rohs3 ? verdictBadge(s.rohs3) : ""}</td><td>${s.reach ? verdictBadge(s.reach) : ""}</td>
+        <td class="small">${s.lines ?? ""}${swaps ? `<div class="muted">${swaps} remplacement${swaps > 1 ? "s" : ""}</div>` : ""}</td>
+        <td class="nowrap"><button class="btn small primary" data-reopen="${h.id}">Rouvrir</button>
+          <button class="btn small" data-hdelete="${h.id}" title="Supprimer de l'historique">Supprimer</button></td></tr>`;
+    }).join("")}</tbody></table></div>`
+    : `<p class="muted">Aucune BOM analysée pour l'instant : déposez un fichier ci-dessus, il sera enregistré ici.</p>`;
+  state.historyItems = items;
+}
+
+$("#historyList").addEventListener("click", async (ev) => {
+  const re = ev.target.closest("[data-reopen]");
+  const del = ev.target.closest("[data-hdelete]");
+  if (re) {
+    const h = state.historyItems.find((x) => String(x.id) === re.dataset.reopen);
+    try {
+      const blob = await (await api(`/api/history/${h.id}/file`)).blob();
+      state.file = new File([blob], h.filename);
+      state.overrides = h.mapping || {};
+      state.substitutions = Object.fromEntries(Object.entries(h.substitutions || {}).map(([k, v]) => [k, Number(v)]));
+      state.historyId = h.id;
+      await runAnalysis();
+      $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      $("#error").textContent = "Impossible de rouvrir cette BOM : " + e.message;
+      $("#error").hidden = false;
+    }
+  } else if (del) {
+    if (!confirm("Supprimer cette BOM de votre historique ?")) return;
+    try {
+      await api(`/api/history/${del.dataset.hdelete}`, { method: "DELETE" });
+      if (String(state.historyId) === del.dataset.hdelete) state.historyId = null;
+      loadHistory();
+    } catch (e) { alert(e.message); }
+  }
+});
+
 /* ------------------------------------------------------------------ démarrage */
 loadStats();
+loadUser();
 api("/api/countries").then((r) => r.json()).then((c) => {
   COUNTRIES = c;
   $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");

@@ -174,6 +174,26 @@ textarea { font: inherit; color: var(--text); background: var(--surface); border
 
 .swapbar[hidden] { display: none; }
 
+/* Comptes et historique */
+.topright { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.account { display: flex; align-items: center; gap: 8px; }
+.account .who { font-weight: 600; font-size: 13px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.historyhint { margin: 10px 2px 0; }
+.historyhint[hidden], .history[hidden] { display: none; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.history { margin-top: 14px; }
+.historyhead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.historyhead h3 { margin: 0; font-size: 15px; }
+#historyTable { min-width: 820px; }
+#historyTable tr.current td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.nowrap { white-space: nowrap; }
+dialog.narrow { width: min(420px, calc(100vw - 32px)); }
+.authtabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.authtab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; color: var(--muted); cursor: pointer; }
+.authtab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.formgrid.single { grid-template-columns: 1fr; }
+.formgrid label[hidden] { display: none; }
+
 /* Codes ECCN */
 a.eccn-link { color: inherit; text-decoration: none; }
 a.eccn-link.mono { text-decoration: underline dotted; text-underline-offset: 3px; }

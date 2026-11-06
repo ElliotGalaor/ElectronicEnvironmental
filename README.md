@@ -80,6 +80,29 @@ Les variantes d'écriture sont regroupées : « TI », « Texas Instruments » e
 mènent à la même fiche. Chaque page a sa propre adresse (`#fabricant/texas instruments`), utilisable
 comme lien direct.
 
+## Comptes et historique des BOM
+
+Bouton « Se connecter » en haut à droite : connexion ou création de compte (e-mail, mot de passe
+de 8 caractères minimum, nom facultatif).
+
+Une fois connecté, chaque BOM analysée est enregistrée dans **« Mes dernières BOM »** (onglet Analyse) :
+fichier d'origine, colonnes choisies, remplacements par des équivalents et verdicts. Modifier les
+colonnes ou remplacer une ligne met à jour la même entrée. « Rouvrir » relance l'analyse avec la base
+actuelle : les statuts peuvent avoir évolué depuis. Les 20 analyses les plus récentes sont conservées
+par utilisateur ; chacun ne voit que ses propres BOM.
+
+Sécurité :
+- mots de passe hachés avec scrypt (sel aléatoire par compte), jamais stockés en clair ;
+- session de 30 jours dans un cookie `HttpOnly`, `SameSite=Lax` (et `Secure` en HTTPS) ; seule
+  l'empreinte SHA-256 du jeton est stockée en base ;
+- 5 échecs de connexion sur une même adresse bloquent les essais pendant 15 minutes ;
+- les comptes servent à l'historique : la modification de la base reste protégée par
+  `RRC_ADMIN_TOKEN` si défini.
+
+Pour un serveur accessible par d'autres personnes, servez l'application en **HTTPS** (par exemple
+derrière un proxy inverse) pour que mots de passe et cookies ne circulent pas en clair. Les BOM
+enregistrées sont stockées dans la base SQLite (`data/components.db`).
+
 ## Codes ECCN
 
 Onglet « Codes ECCN » : liste des codes présents en base (contrôlés en premier), avec le domaine,
@@ -169,7 +192,7 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse d'une BOM (`file`, `mapping` et `substitutions` optionnels) ; `bom` renvoie la BOM modifiée |
+| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse d'une BOM (`file`, `mapping` et `substitutions` optionnels ; `save=1` ou `history_id` pour l'historique si connecté) ; `bom` renvoie la BOM modifiée |
 | GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
 | GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
 | POST | `/api/components/import` | import en masse |
@@ -178,6 +201,10 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | GET | `/api/components/{id}/alternatives` | équivalents d'autres fabricants pour un composant |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | équivalents pour une référence absente de la base |
 | POST / DELETE | `/api/components/{id}/equivalents[/{autre_id}]` | confirmer / retirer une équivalence |
+| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | créer un compte, se connecter, se déconnecter |
+| GET | `/api/auth/me` | utilisateur connecté (`null` sinon) |
+| GET | `/api/history` | dernières BOM analysées par l'utilisateur connecté |
+| GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | fichier d'origine d'une BOM / suppression |
 | GET | `/api/eccn` | codes ECCN présents en base, avec leur explication |
 | GET/PUT | `/api/eccn/{code}` | fiche d'un code (décomposition, intitulé officiel, liens eCFR, composants) / intitulé et notes |
 | GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
@@ -210,6 +237,8 @@ app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
 app/manufacturers.py fiches fabricants (infos, statistiques, composants)
 app/alternates.py   recherche d'équivalents et équivalences confirmées
 app/eccn.py         fiches des codes ECCN (explication, définition officielle)
+app/auth.py         comptes utilisateurs et sessions
+app/history.py      historique des BOM analysées
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```

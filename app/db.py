@@ -84,6 +84,38 @@ CREATE TABLE IF NOT EXISTS component_equivalents (
     PRIMARY KEY (a, b)
 );
 
+-- Comptes utilisateurs (mot de passe haché avec scrypt, jamais stocké en clair)
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT NOT NULL UNIQUE,
+    name          TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL
+);
+
+-- Sessions de connexion : seule l'empreinte SHA-256 du jeton est conservée
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
+
+-- Historique des BOM analysées par utilisateur (fichier d'origine conservé pour pouvoir la rouvrir)
+CREATE TABLE IF NOT EXISTS bom_history (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    filename      TEXT NOT NULL,
+    file_data     BLOB NOT NULL,
+    mapping       TEXT NOT NULL DEFAULT '',
+    substitutions TEXT NOT NULL DEFAULT '',
+    summary       TEXT NOT NULL DEFAULT '',
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bom_history_user ON bom_history (user_id, updated_at);
+
 -- Codes ECCN : intitulé et notes saisis par l'utilisateur (l'explication est calculée)
 CREATE TABLE IF NOT EXISTS eccn_codes (
     code       TEXT PRIMARY KEY,

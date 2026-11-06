@@ -440,3 +440,95 @@ def test_api_eccn():
     assert client.get("/api/eccn/pas-un-code").status_code == 422
     r = client.put("/api/eccn/5A992.c", json={"title": "Chiffrement grand public", "notes": "ENC"})
     assert r.status_code == 200 and r.json()["title"] == "Chiffrement grand public"
+
+
+# ---------------------------------------------------------------- comptes et historique
+
+import uuid  # noqa: E402
+
+from app import auth as auth_mod  # noqa: E402
+from app import history as history_mod  # noqa: E402
+
+
+def new_client_with_account(password="motdepasse123"):
+    c = TestClient(app)
+    email = f"user-{uuid.uuid4().hex[:8]}@exemple.fr"
+    r = c.post("/api/auth/register", json={"email": email, "password": password, "name": "Testeur"})
+    assert r.status_code == 201, r.text
+    return c, email
+
+
+def test_hachage_mot_de_passe():
+    h = auth_mod.hash_password("secret-123")
+    assert h.startswith("scrypt$") and "secret-123" not in h
+    assert auth_mod.verify_password("secret-123", h) and not auth_mod.verify_password("autre", h)
+
+
+def test_inscription_connexion_deconnexion():
+    c, email = new_client_with_account()
+    assert c.get("/api/auth/me").json()["email"] == email          # connecté après inscription
+    assert c.post("/api/auth/logout").status_code == 204
+    assert c.get("/api/auth/me").json() is None
+    assert c.post("/api/auth/login", json={"email": email.upper(), "password": "faux-mot-de-passe"}).status_code == 401
+    r = c.post("/api/auth/login", json={"email": email.upper(), "password": "motdepasse123"})
+    assert r.status_code == 200 and c.get("/api/auth/me").json()["email"] == email
+    cookie = r.headers["set-cookie"].lower()
+    assert "httponly" in cookie and "samesite=lax" in cookie
+
+
+def test_inscription_invalide():
+    c, email = new_client_with_account()
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "motdepasse123"}).status_code == 409
+    assert TestClient(app).post("/api/auth/register", json={"email": "pas-un-email", "password": "motdepasse123"}).status_code == 422
+    assert TestClient(app).post("/api/auth/register", json={"email": "court@exemple.fr", "password": "court"}).status_code == 422
+
+
+def test_limitation_des_essais():
+    _, email = new_client_with_account()
+    c = TestClient(app)
+    for _ in range(5):
+        assert c.post("/api/auth/login", json={"email": email, "password": "mauvais"}).status_code == 401
+    assert c.post("/api/auth/login", json={"email": email, "password": "motdepasse123"}).status_code == 429
+
+
+def test_historique_enregistre_et_isole():
+    c, _ = new_client_with_account()
+    bom = "MPN,Manufacturer\nNE555P,TI\nDEMO-LEADED-DIP8,Exemple Corp\n"
+    r = c.post("/api/analyze", files={"file": ("ma_carte.csv", bom.encode())}, data={"save": "1"}).json()
+    hid = r["history_id"]
+    items = c.get("/api/history").json()
+    assert [i["filename"] for i in items] == ["ma_carte.csv"] and items[0]["summary"]["overall"] == "non_conforme"
+    assert c.get(f"/api/history/{hid}/file").content == bom.encode()
+
+    # Mise à jour de la même entrée (remplacement) plutôt qu'une nouvelle
+    lm = comp_id("LM358DR")
+    r2 = c.post("/api/analyze", files={"file": ("ma_carte.csv", bom.encode())},
+                data={"history_id": str(hid), "substitutions": json.dumps({"3": lm})}).json()
+    assert r2["history_id"] == hid
+    items = c.get("/api/history").json()
+    assert len(items) == 1 and items[0]["substitutions"] == {"3": lm} and items[0]["summary"]["substituted"] == 1
+
+    # Un autre utilisateur ne voit pas cette BOM
+    other, _ = new_client_with_account()
+    assert other.get("/api/history").json() == []
+    assert other.get(f"/api/history/{hid}/file").status_code == 404
+    assert other.delete(f"/api/history/{hid}").status_code == 404
+
+    assert c.delete(f"/api/history/{hid}").status_code == 204
+    assert c.get("/api/history").json() == []
+
+
+def test_historique_sans_connexion():
+    anon = TestClient(app)
+    r = anon.post("/api/analyze", files={"file": ("b.csv", b"MPN\nNE555P\n")}, data={"save": "1"}).json()
+    assert "history_id" not in r
+    assert anon.get("/api/history").status_code == 401
+
+
+def test_historique_limite():
+    c, _ = new_client_with_account()
+    for i in range(history_mod.MAX_PER_USER + 3):
+        c.post("/api/analyze", files={"file": (f"bom{i}.csv", b"MPN\nNE555P\n")}, data={"save": "1"})
+    items = c.get("/api/history").json()
+    assert len(items) == history_mod.MAX_PER_USER
+    assert items[0]["filename"] == f"bom{history_mod.MAX_PER_USER + 2}.csv"   # la plus récente en tête
