@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css?v=9">
+<link rel="stylesheet" href="/static/style.css?v=11">
 </head>
 <body>
 <header class="top">
@@ -22,6 +22,7 @@
   <button class="tab active" data-tab="analyse" role="tab">Analyse de BOM</button>
   <button class="tab" data-tab="base" role="tab">Base de composants</button>
   <button class="tab" data-tab="fabricants" role="tab">Fabricants</button>
+  <button class="tab" data-tab="eccn" role="tab">Codes ECCN</button>
 </nav>
 
 <main>
@@ -125,6 +126,43 @@
       <button class="btn" id="next">Suivant ›</button>
     </div>
   </section>
+  <!-- ============================== CODES ECCN ============================== -->
+  <section id="tab-eccn" class="panel">
+    <div id="eccnList">
+      <div class="toolbar">
+        <div class="left"><input type="search" id="eccnSearch" placeholder="Rechercher un code, un domaine, un fabricant…"></div>
+        <span class="muted small" id="eccnUnknown"></span>
+      </div>
+      <div class="tablewrap">
+        <table class="grid" id="eccns">
+          <thead><tr><th>Code</th><th>Domaine</th><th>Statut</th><th>Composants</th><th>Fabricants</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small">L'ECCN classe un article selon la Commerce Control List américaine (15 CFR partie 774).
+        Cliquez sur un code pour voir son domaine d'application, sa définition officielle et les composants concernés.</p>
+    </div>
+
+    <div id="eccnDetail" hidden>
+      <a href="#eccn" class="back">‹ Tous les codes ECCN</a>
+      <div class="mfrhead">
+        <div><h2 id="eccnCode"></h2><div class="muted" id="eccnSummary"></div></div>
+        <button class="btn" id="btnEditEccn">Modifier l'intitulé et les notes</button>
+      </div>
+      <div class="cards" id="eccnParts"></div>
+      <div class="card mfrinfo" id="eccnInfo"></div>
+      <h3 class="section">Composants en base avec ce code</h3>
+      <div class="tablewrap">
+        <table class="grid" id="eccnComps">
+          <thead><tr><th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Origine</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small">Le résumé par catégorie, groupe et motif est indicatif : seule la définition officielle fait foi
+        pour une décision d'exportation.</p>
+    </div>
+  </section>
+
   <!-- ============================== FABRICANTS ============================== -->
   <section id="tab-fabricants" class="panel">
     <div id="mfrList">
@@ -164,6 +202,22 @@
     </div>
   </section>
 </main>
+
+<!-- ============================== MODALE ECCN ============================== -->
+<dialog id="dlgEccn">
+  <form id="eccnForm" method="dialog">
+    <h2>Code ECCN</h2>
+    <div class="formgrid">
+      <label class="wide">Intitulé (affiché à la place du résumé)<input name="title" placeholder="ex. Microcontrôleurs non contrôlés par 3A001"></label>
+      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Licences, exceptions applicables (ex. NLR, ENC), remarques internes…"></textarea></label>
+    </div>
+    <div id="eccnError" class="alert error" hidden></div>
+    <div class="dlgactions"><span class="spacer"></span>
+      <button type="button" class="btn" id="btnEccnCancel">Annuler</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- ============================== MODALE ÉQUIVALENTS ============================== -->
 <dialog id="dlgAlt" class="wide">
@@ -245,6 +299,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=9"></script>
+<script src="/static/app.js?v=11"></script>
 </body>
 </html>

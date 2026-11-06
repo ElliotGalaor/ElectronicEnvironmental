@@ -22,7 +22,10 @@ const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", 
 
 let COUNTRIES = {};
 const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${esc(code)}</span>` : "";
-const eccnCell = (e) => !e ? "" : e === "EAR99" ? `<span class="mono">EAR99</span>` : `<span class="badge b-eccn" title="Soumis au contrôle export">${esc(e)}</span>`;
+const eccnHref = (e) => "#eccn/" + encodeURIComponent(e);
+const eccnCell = (e) => !e ? "" : e === "EAR99"
+  ? `<a class="eccn-link mono" href="${eccnHref(e)}" title="Voir la définition de EAR99">EAR99</a>`
+  : `<a class="eccn-link" href="${eccnHref(e)}" title="Soumis au contrôle export : voir le domaine d'application et la définition"><span class="badge b-eccn">${esc(e)}</span></a>`;
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 
 const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, page: 0, pageSize: 50, adminRequired: false };
@@ -57,6 +60,14 @@ function route() {
   if (h.startsWith("fabricant/")) {
     showTab("fabricants");
     openManufacturer(h.slice("fabricant/".length));
+  } else if (h.startsWith("eccn/")) {
+    showTab("eccn");
+    openEccn(h.slice("eccn/".length));
+  } else if (h === "eccn") {
+    showTab("eccn");
+    $("#eccnDetail").hidden = true;
+    $("#eccnList").hidden = false;
+    loadEccnList();
   } else if (h === "fabricants") {
     showTab("fabricants");
     $("#mfrDetail").hidden = true;
@@ -645,7 +656,7 @@ $("#altBody").addEventListener("click", async (ev) => {
   const use = ev.target.closest("[data-use]");
   const confirmBtn = ev.target.closest("[data-confirm]");
   const unconfirm = ev.target.closest("[data-unconfirm]");
-  if (ev.target.closest("a.mfr-link")) { dlgAlt.close(); return; }
+  if (ev.target.closest("a.mfr-link, a.eccn-link")) { dlgAlt.close(); return; }
   if (use && altCtx.line) {
     state.substitutions[altCtx.line.line] = Number(use.dataset.use);
     dlgAlt.close();
@@ -685,6 +696,101 @@ for (const sel of ["#comps", "#mfrComps"]) {
     if (b) openAlternatives({ compId: Number(b.dataset.alt) });
   });
 }
+
+/* ------------------------------------------------------------------ codes ECCN */
+let ECCNS = { codes: [], unknown_components: 0 };
+let currentEccn = null;
+
+async function loadEccnList() {
+  try {
+    ECCNS = await (await api("/api/eccn")).json();
+    renderEccnList();
+  } catch (e) {
+    $("#eccns tbody").innerHTML = `<tr><td colspan="5">Erreur : ${esc(e.message)}</td></tr>`;
+  }
+}
+$("#eccnSearch").addEventListener("input", renderEccnList);
+
+function renderEccnList() {
+  const q = $("#eccnSearch").value.trim().toLowerCase();
+  const rows = ECCNS.codes.filter((e) => !q || [e.code, e.summary, e.official_heading, e.title, ...e.manufacturers].join(" ").toLowerCase().includes(q));
+  $("#eccns tbody").innerHTML = rows.map((e) => `<tr>
+      <td>${eccnCell(e.code)}</td>
+      <td>${esc(e.title || e.summary)}${e.official_heading ? `<div class="muted small">${esc(e.official_heading)}</div>` : ""}</td>
+      <td>${e.controlled ? `<span class="badge b-eccn">Contrôlé</span>` : `<span class="badge b-conforme">Non listé</span>`}</td>
+      <td>${e.components}</td>
+      <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Aucun code ECCN en base.</td></tr>`;
+  const u = ECCNS.unknown_components;
+  $("#eccnUnknown").textContent = u ? `${u} composant${u > 1 ? "s" : ""} sans ECCN renseigné.` : "";
+}
+
+async function openEccn(code) {
+  $("#eccnList").hidden = true;
+  $("#eccnDetail").hidden = false;
+  $("#eccnCode").textContent = code;
+  $("#eccnSummary").textContent = "Chargement…";
+  try {
+    currentEccn = await (await api("/api/eccn/" + encodeURIComponent(code))).json();
+  } catch (e) {
+    currentEccn = null;
+    $("#eccnSummary").textContent = "Code introuvable : " + e.message;
+    $("#eccnParts").innerHTML = $("#eccnInfo").innerHTML = $("#eccnComps tbody").innerHTML = "";
+    $("#btnEditEccn").hidden = true;
+    return;
+  }
+  renderEccn();
+}
+
+function renderEccn() {
+  const e = currentEccn;
+  $("#btnEditEccn").hidden = false;
+  $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-eccn">Soumis au contrôle export</span>` : `<span class="badge b-conforme">Non listé (EAR99)</span>`}`;
+  $("#eccnSummary").textContent = e.title || e.summary;
+  $("#eccnParts").innerHTML = e.parts.length ? e.parts.map((p) => `<div class="vcard part">
+      <div class="norm">${esc(p.label)}</div><div class="partcode mono">${esc(p.code)}</div>
+      <div class="partname">${esc(p.name)}</div><div class="detail">${esc(p.description)}</div></div>`).join("") : "";
+  const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
+  const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
+  $("#eccnInfo").innerHTML = `
+    ${e.official_heading ? `<dt>Intitulé officiel de l'entrée ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Texte de la Commerce Control List (eCFR${e.as_of ? `, version du ${esc(e.as_of)}` : ""}).</div></dd>` : ""}
+    <dt>Domaine d'application</dt><dd>${esc(e.explanation)}</dd>
+    ${e.control_scope ? `<dt>Portée du contrôle</dt><dd>${esc(e.control_scope)}</dd>` : ""}
+    <dt>Définition officielle</dt><dd>${links}</dd>
+    ${e.related_codes.length ? `<dt>Codes voisins en base</dt><dd>${e.related_codes.map((c) => eccnCell(c)).join(" ")}</dd>` : ""}
+    <dt>Fabricants</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
+    <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`;
+  $("#eccnComps tbody").innerHTML = e.components.map((c) => `<tr>
+    <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+    <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td><td>${country(c.country_of_origin)}</td>
+    <td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
+    || `<tr><td colspan="8" class="muted">Aucun composant de la base n'a ce code.</td></tr>`;
+}
+
+$("#eccnComps").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-edit]");
+  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+});
+
+const dlgEccn = $("#dlgEccn"), eccnForm = $("#eccnForm");
+$("#btnEditEccn").addEventListener("click", () => {
+  eccnForm.elements.title.value = currentEccn.title || "";
+  eccnForm.elements.notes.value = currentEccn.notes || "";
+  $("#eccnError").hidden = true;
+  dlgEccn.showModal();
+});
+$("#btnEccnCancel").addEventListener("click", () => dlgEccn.close());
+eccnForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    currentEccn = await (await api("/api/eccn/" + encodeURIComponent(currentEccn.code), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(new FormData(eccnForm))),
+    })).json();
+    dlgEccn.close();
+    renderEccn();
+  } catch (e) { $("#eccnError").textContent = e.message; $("#eccnError").hidden = false; }
+});
 
 /* ------------------------------------------------------------------ démarrage */
 loadStats();
