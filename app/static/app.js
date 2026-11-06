@@ -25,7 +25,7 @@ const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${
 const eccnCell = (e) => !e ? "" : e === "EAR99" ? `<span class="mono">EAR99</span>` : `<span class="badge b-eccn" title="Soumis au contrôle export">${esc(e)}</span>`;
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 
-const state = { file: null, report: null, filter: "all", overrides: {}, page: 0, pageSize: 50, adminRequired: false };
+const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, page: 0, pageSize: 50, adminRequired: false };
 
 function token() { try { return localStorage.getItem("rrc_token") || ""; } catch { return ""; } }
 
@@ -97,13 +97,14 @@ const drop = $("#drop");
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
-function startAnalysis(file) { state.file = file; state.overrides = {}; runAnalysis(); }
+function startAnalysis(file) { state.file = file; state.overrides = {}; state.substitutions = {}; runAnalysis(); }
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
   const fd = new FormData();
   fd.append("file", state.file);
   fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
+  fd.append("substitutions", Object.keys(state.substitutions).length ? JSON.stringify(state.substitutions) : "");
   $("#error").hidden = true;
   try {
     const r = await api(`/api/analyze?format=${format}`, { method: "POST", body: fd });
@@ -111,7 +112,9 @@ async function runAnalysis(format = "json") {
       const blob = await r.blob();
       const a = Object.assign(document.createElement("a"), {
         href: URL.createObjectURL(blob),
-        download: `conformite_${state.file.name.replace(/\.[^.]+$/, "")}.${format}`,
+        download: format === "bom"
+          ? `${state.file.name.replace(/\.[^.]+$/, "")}_modifiee.csv`
+          : `conformite_${state.file.name.replace(/\.[^.]+$/, "")}.${format}`,
       });
       a.click();
       URL.revokeObjectURL(a.href);
@@ -119,6 +122,7 @@ async function runAnalysis(format = "json") {
     }
     state.report = await r.json();
     renderReport();
+    renderSwapBar();
   } catch (e) {
     $("#error").textContent = "Erreur : " + e.message;
     $("#error").hidden = false;
@@ -160,7 +164,10 @@ function renderReport() {
   $("#counts").innerHTML = `<span><b>${S.found}</b> trouvées en base</span><span><b>${S.uncertain}</b> correspondances incertaines</span>
     <span><b>${S.not_found}</b> introuvables</span><span><b>${S.dnp}</b> non montées</span>` +
     (S.export ? `<span>Export : <b>${S.export.eccn_controlled}</b> ECCN contrôlé${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> ECCN inconnu${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
-      `<span>Origines : ${Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`).join(", ") || "—"}${S.export.country_unknown ? `, <b>${S.export.country_unknown}</b> inconnue${S.export.country_unknown > 1 ? "s" : ""}` : ""}</span>` : "");
+      `<span>Origines : ${[
+        ...Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`),
+        ...(S.export.country_unknown ? [`<b>${S.export.country_unknown}</b> inconnue${S.export.country_unknown > 1 ? "s" : ""}`] : []),
+      ].join(", ") || "—"}</span>` : "");
   renderLines();
 }
 
@@ -197,16 +204,26 @@ function renderLines() {
     const add = (l.match === "introuvable" && l.bom_mpn)
       ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Ajouter à la base</button></div>` : "";
     const notes = l.notes.map((n) => `<div>${esc(n)}</div>`).join("");
-    return `<tr class="${l.dnp ? "dnp" : ""}">
+    const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small" data-altline="${l.line}">Équivalents</button></div>` : "";
+    const ref = (!l.dnp && l.bom_mpn)
+      ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="Voir les équivalents d'autres fabricants">${esc(l.bom_mpn)}</a>`
+      : esc(l.bom_mpn);
+    return `<tr class="${l.dnp ? "dnp" : ""}${l.original_mpn ? " swapped" : ""}">
       <td>${l.line}</td><td class="mono">${esc(l.designator)}</td><td>${esc(l.quantity)}</td>
-      <td class="mono">${esc(l.bom_mpn)}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
+      <td class="mono">${ref}${l.original_mpn ? `<div class="muted small">au lieu de ${esc(l.original_mpn)}</div>` : ""}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
-      <td class="notes">${notes}${sugg}${add}</td></tr>`;
+      <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
   }).join("") || `<tr><td colspan="11" class="muted">Aucune ligne pour ce filtre.</td></tr>`;
 }
 
 $("#lines").addEventListener("click", (ev) => {
+  const alt = ev.target.closest("[data-altline]");
+  if (alt) {
+    ev.preventDefault();
+    openAlternatives({ line: state.report.lines.find((x) => String(x.line) === alt.dataset.altline) });
+    return;
+  }
   const b = ev.target.closest("[data-add]");
   if (!b) return;
   const l = state.report.lines.find((x) => String(x.line) === b.dataset.add);
@@ -236,7 +253,7 @@ async function loadComponents() {
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
       <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${esc(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
-      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
+      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
       || `<tr><td colspan="11" class="muted">Aucun composant.</td></tr>`;
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="11">Erreur : ${esc(e.message)}</td></tr>`;
@@ -325,7 +342,7 @@ function renderManufacturer() {
     <td class="mono">${esc(c.mpn)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
     <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td>${esc(c.last_checked)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
+    <td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
     || `<tr><td colspan="9" class="muted">Aucun composant de ce fabricant en base.</td></tr>`;
 }
 
@@ -483,6 +500,117 @@ $("#importFile").addEventListener("change", async (ev) => {
   } catch (e) { box.className = "alert error"; box.textContent = "Import impossible : " + e.message; }
   box.hidden = false;
 });
+
+/* ------------------------------------------------------------------ équivalents d'autres fabricants
+   Ouvert depuis une ligne de BOM (remplacement possible) ou depuis un composant de la base. */
+const dlgAlt = $("#dlgAlt");
+let altCtx = null; // { line?: <ligne de BOM>, compId?: <id composant> }
+
+async function openAlternatives(ctx) {
+  altCtx = ctx;
+  $("#altBody").innerHTML = `<p class="muted">Recherche d'équivalents…</p>`;
+  $("#altRef").innerHTML = "";
+  if (!dlgAlt.open) dlgAlt.showModal();
+  const l = ctx.line;
+  const compId = ctx.compId ?? (l && l.component ? l.component.id : null);
+  let url;
+  if (compId) url = `/api/components/${compId}/alternatives`;
+  else {
+    const p = new URLSearchParams({ mpn: l.bom_mpn, manufacturer: l.bom_manufacturer, description: l.bom_description });
+    url = "/api/alternatives?" + p;
+  }
+  try {
+    renderAlternatives(await (await api(url)).json(), compId);
+  } catch (e) {
+    $("#altBody").innerHTML = `<div class="alert error">Erreur : ${esc(e.message)}</div>`;
+  }
+}
+
+function renderAlternatives(data, compId) {
+  const ref = data.reference, attr = data.attributes, l = altCtx.line;
+  const status = ref.rohs2 ? `${badge(ref.rohs2)} ${badge(ref.rohs3)} ${badge(ref.reach)}` : `<span class="muted">absent de la base</span>`;
+  const attrs = [attr.category_label, ...Object.values(attr.values).flat(), attr.package, attr.dielectric,
+    attr.tolerance != null ? attr.tolerance + " %" : "", attr.channel ? "canal " + attr.channel : ""].filter(Boolean);
+  $("#altRef").innerHTML = `
+    <div class="altref-main"><span class="mono">${esc(ref.mpn)}</span> · ${esc(ref.manufacturer || "fabricant non renseigné")}</div>
+    <div class="muted">${esc(ref.description || "")}</div>
+    <div class="altref-status">RoHS 2 / RoHS 3 / REACH : ${status}</div>
+    <div class="muted small">Caractéristiques reconnues : ${attrs.length ? attrs.map(esc).join(" · ") : "aucune (description trop vague)"}</div>
+    ${l && l.original_mpn ? `<div class="swapnote">Cette ligne remplace <span class="mono">${esc(l.original_mpn)}</span>.
+      <button type="button" class="btn small" id="altRevert">Revenir à la référence d'origine</button></div>` : ""}`;
+  const rev = $("#altRevert");
+  if (rev) rev.addEventListener("click", () => { delete state.substitutions[l.line]; dlgAlt.close(); runAnalysis(); });
+
+  const alts = data.alternatives;
+  if (!alts.length) {
+    $("#altBody").innerHTML = `<p class="muted">Aucun équivalent d'un autre fabricant trouvé dans la base.
+      ${attr.category ? "" : "La description ne permet pas d'identifier le type de composant."}
+      ${["microcontrôleur", "convertisseur DC-DC", "transceiver"].includes(attr.category_label) ? "Pour ce type de composant, seuls les équivalents confirmés sont proposés." : ""}</p>`;
+    return;
+  }
+  $("#altBody").innerHTML = `<div class="tablewrap"><table class="grid" id="altTable"><thead><tr>
+      <th>Référence</th><th>Fabricant</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Similarité</th><th></th>
+    </tr></thead><tbody>${alts.map((a) => {
+      const c = a.component;
+      const sim = (a.confirmed ? `<span class="badge b-conforme">Équivalent confirmé</span>` : `<span class="score">${Math.min(100, a.score)} / 100</span>`) +
+        (a.matches.length ? `<div class="small ok">✓ ${a.matches.map(esc).join(" · ")}</div>` : "") +
+        (a.differences.length ? `<div class="small warn">⚠ ${a.differences.map(esc).join(" · ")}</div>` : "");
+      const use = l ? `<button type="button" class="btn small primary" data-use="${c.id}">Utiliser dans la BOM</button>` : "";
+      const conf = compId ? (a.confirmed
+        ? `<button type="button" class="btn small" data-unconfirm="${c.id}">Retirer l'équivalence</button>`
+        : `<button type="button" class="btn small" data-confirm="${c.id}">Confirmer l'équivalence</button>`) : "";
+      return `<tr class="${a.compliant ? "" : "notcompliant"}">
+        <td class="mono">${esc(c.mpn)}<div class="muted small nomono">${esc(c.description)}</div></td>
+        <td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
+        <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td><td>${eccnCell(c.eccn)}</td>
+        <td class="simcell">${sim}</td><td class="actions-cell">${use}${conf}</td></tr>`;
+    }).join("")}</tbody></table></div>`;
+}
+
+$("#altBody").addEventListener("click", async (ev) => {
+  const use = ev.target.closest("[data-use]");
+  const confirmBtn = ev.target.closest("[data-confirm]");
+  const unconfirm = ev.target.closest("[data-unconfirm]");
+  if (ev.target.closest("a.mfr-link")) { dlgAlt.close(); return; }
+  if (use && altCtx.line) {
+    state.substitutions[altCtx.line.line] = Number(use.dataset.use);
+    dlgAlt.close();
+    runAnalysis();
+    return;
+  }
+  const compId = altCtx.compId ?? altCtx.line?.component?.id;
+  try {
+    if (confirmBtn) {
+      await api(`/api/components/${compId}/equivalents`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ other_id: Number(confirmBtn.dataset.confirm) }),
+      });
+    } else if (unconfirm) {
+      await api(`/api/components/${compId}/equivalents/${unconfirm.dataset.unconfirm}`, { method: "DELETE" });
+    } else return;
+    openAlternatives(altCtx);
+  } catch (e) {
+    $("#altBody").insertAdjacentHTML("afterbegin", `<div class="alert error">${esc(e.message)}</div>`);
+  }
+});
+$("#btnAltClose").addEventListener("click", () => dlgAlt.close());
+
+// Bandeau des remplacements dans la BOM
+function renderSwapBar() {
+  const n = Object.keys(state.substitutions).length;
+  $("#swapBar").hidden = n === 0;
+  $("#swapCount").textContent = `${n} ligne${n > 1 ? "s" : ""} remplacée${n > 1 ? "s" : ""} par un équivalent`;
+}
+$("#btnSwapReset").addEventListener("click", () => { state.substitutions = {}; runAnalysis(); });
+$("#btnSwapExport").addEventListener("click", () => runAnalysis("bom"));
+
+// Boutons « Équivalents » de l'onglet Base et des fiches fabricant
+for (const sel of ["#comps", "#mfrComps"]) {
+  $(sel).addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-alt]");
+    if (b) openAlternatives({ compId: Number(b.dataset.alt) });
+  });
+}
 
 /* ------------------------------------------------------------------ démarrage */
 loadStats();

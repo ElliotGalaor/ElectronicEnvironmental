@@ -201,6 +201,8 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
 class BomLine:
     line: int  # numéro de ligne dans le fichier (1-based)
     mpn: str
+    original_mpn: str = ""          # renseignés quand la ligne a été remplacée par un équivalent
+    original_manufacturer: str = ""
     manufacturer: str = ""
     description: str = ""
     quantity: str = ""
@@ -261,3 +263,59 @@ def parse_bom(data: bytes, filename: str, overrides: dict[str, str] | None = Non
     if not lines:
         raise TableError("Aucune ligne de composant trouvée sous l'en-tête")
     return lines, mapping
+
+
+# ------------------------------------------------------------------ remplacements par des équivalents
+
+def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dict[int, dict]:
+    """Remplace la référence et le fabricant des lignes indiquées par ceux d'un composant de la base.
+
+    subs : {numéro de ligne: id du composant}. Retourne {numéro de ligne: composant} pour l'export.
+    """
+    from .db import ValidationError, get
+
+    by_line = {l.line: l for l in lines}
+    replaced = {}
+    for line_no, comp_id in subs.items():
+        line = by_line.get(line_no)
+        comp = get(conn, comp_id)
+        if line is None:
+            raise ValidationError(f"Remplacement : la ligne {line_no} n'existe pas dans la BOM")
+        if comp is None:
+            raise ValidationError(f"Remplacement : le composant {comp_id} n'existe plus dans la base")
+        line.original_mpn, line.original_manufacturer = line.mpn, line.manufacturer
+        line.mpn, line.manufacturer = comp["mpn"], comp["manufacturer"]
+        if comp.get("description"):
+            line.description = comp["description"]
+        replaced[line_no] = comp
+    return replaced
+
+
+def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMapping, replaced: dict[int, dict]) -> bytes:
+    """La BOM d'origine (toutes ses colonnes) avec les remplacements appliqués, en CSV (séparateur ;).
+
+    Une colonne « Remplace » indique la référence d'origine des lignes modifiées.
+    """
+    rows = read_rows(data, filename)
+    c = mapping.columns
+    out = io.StringIO()
+    w = csv.writer(out, delimiter=";")
+    for idx, row in enumerate(rows, start=1):
+        row = list(row) + [""] * (len(mapping.headers) - len(row))
+        if idx - 1 < mapping.header_row:
+            w.writerow(row)
+            continue
+        if idx - 1 == mapping.header_row:
+            w.writerow(row + ["Remplace"])
+            continue
+        comp = replaced.get(idx)
+        note = ""
+        if comp:
+            old_mpn = row[c["mpn"]]
+            old_mfr = row[c["manufacturer"]] if "manufacturer" in c else ""
+            row[c["mpn"]] = comp["mpn"]
+            if "manufacturer" in c:
+                row[c["manufacturer"]] = comp["manufacturer"]
+            note = f"{old_mpn} ({old_mfr})" if old_mfr else old_mpn
+        w.writerow(row + [note])
+    return out.getvalue().encode("utf-8-sig")

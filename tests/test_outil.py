@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import sys
 import tempfile
@@ -328,3 +329,82 @@ def test_modifier_fabricant():
     # Champ vidé : retour à la valeur par défaut connue
     d = client.put("/api/manufacturers/murata", json={"website": ""}).json()
     assert d["website"] == "https://www.murata.com" and d["website_is_default"]
+
+
+# ---------------------------------------------------------------- équivalents et remplacements
+
+from app import alternates  # noqa: E402
+
+
+def comp_id(mpn: str) -> int:
+    return client.get("/api/components", params={"q": mpn}).json()["items"][0]["id"]
+
+
+def test_extraction_attributs():
+    a = alternates.extract("Condensateur céramique 10 µF 25 V X5R 0805")
+    assert (a.category, a.package, a.dielectric) == ("capacitor", "0805", "X5R")
+    assert a.primary() == pytest.approx(10e-6) and a.max("V") == 25
+    m = alternates.extract("MOSFET canal N 50 V 220 mA, SOT-23")
+    assert (m.category, m.channel, m.package) == ("mosfet", "N", "SOT23")
+
+
+def test_equivalents_meme_valeur_autre_fabricant():
+    alts = client.get(f"/api/components/{comp_id('RC0603FR-0710KL')}/alternatives").json()["alternatives"]
+    mpns = [a["component"]["mpn"] for a in alts]
+    assert "CRCW060310K0FKEA" in mpns            # même valeur, même boîtier, autre fabricant
+    assert "RC0805FR-07100RL" not in mpns        # même fabricant et autre valeur
+
+
+def test_pas_de_suggestion_automatique_pour_les_mcu():
+    alts = client.get(f"/api/components/{comp_id('STM32F103C8T6')}/alternatives").json()["alternatives"]
+    assert alts == []
+
+
+def test_equivalent_conforme_pour_composant_non_conforme():
+    alts = client.get(f"/api/components/{comp_id('DEMO-LEADED-DIP8')}/alternatives").json()["alternatives"]
+    lm = next(a for a in alts if a["component"]["mpn"] == "LM358DR")
+    assert lm["compliant"] and any("boîtier" in d for d in lm["differences"])
+
+
+def test_alternatives_pour_ligne_hors_base():
+    r = client.get("/api/alternatives", params={"mpn": "XYZ-10K", "manufacturer": "Acme", "description": "Résistance 10 kΩ 1 % 0603"}).json()
+    assert {"RC0603FR-0710KL", "CRCW060310K0FKEA"} <= {a["component"]["mpn"] for a in r["alternatives"]}
+
+
+def test_confirmer_equivalence():
+    a, b = comp_id("NE555P"), comp_id("L7805CV")
+    assert client.post(f"/api/components/{a}/equivalents", json={"other_id": b}).status_code == 204
+    alts = client.get(f"/api/components/{b}/alternatives").json()["alternatives"]
+    assert alts[0]["component"]["id"] == a and alts[0]["confirmed"]  # symétrique et en tête
+    assert client.delete(f"/api/components/{a}/equivalents/{b}").status_code == 204
+    assert all(x["component"]["id"] != a for x in client.get(f"/api/components/{b}/alternatives").json()["alternatives"])
+    assert client.post(f"/api/components/{a}/equivalents", json={"other_id": a}).status_code == 422
+
+
+BOM_SWAP = "Designator;Manufacturer;MPN\nU1;Exemple Corp;DEMO-LEADED-DIP8\nR1;Yageo;RC0603FR-0710KL\n"
+
+
+def test_remplacement_dans_la_bom():
+    lm = comp_id("LM358DR")
+    rep = analyze_text(BOM_SWAP, substitutions=json.dumps({"2": lm}))
+    line = rep["lines"][0]
+    assert line["bom_mpn"] == "LM358DR" and line["original_mpn"] == "DEMO-LEADED-DIP8"
+    assert line["rohs3"] == "conforme" and rep["summary"]["substituted"] == 1
+    assert rep["summary"]["rohs3"]["verdict"] != "non_conforme"
+
+
+def test_bom_modifiee_export():
+    lm = comp_id("LM358DR")
+    r = client.post("/api/analyze?format=bom", files={"file": ("b.csv", BOM_SWAP.encode())},
+                    data={"substitutions": json.dumps({"2": lm})})
+    lines = r.content.decode("utf-8-sig").splitlines()
+    assert lines[0].endswith(";Remplace")
+    assert lines[1] == "U1;Texas Instruments;LM358DR;DEMO-LEADED-DIP8 (Exemple Corp)"
+    assert lines[2] == "R1;Yageo;RC0603FR-0710KL;"
+
+
+def test_remplacement_invalide():
+    r = client.post("/api/analyze", files={"file": ("b.csv", BOM_SWAP.encode())}, data={"substitutions": '{"99": 1}'})
+    assert r.status_code == 422
+    r = client.post("/api/analyze", files={"file": ("b.csv", BOM_SWAP.encode())}, data={"substitutions": "pas du json"})
+    assert r.status_code == 400

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
 <header class="top">
@@ -50,6 +50,13 @@
         <p class="muted">Colonnes utilisées (ligne d'en-tête <span id="hdrRow"></span>). Corrigez si besoin puis relancez.</p>
         <div class="mapgrid" id="mapgrid"></div>
         <button class="btn primary" id="btnRerun">Relancer l'analyse</button>
+      </div>
+
+      <div id="swapBar" class="swapbar" hidden>
+        <span id="swapCount"></span>
+        <span class="spacer"></span>
+        <button class="btn" id="btnSwapReset">Annuler les remplacements</button>
+        <button class="btn primary" id="btnSwapExport">Télécharger la BOM modifiée</button>
       </div>
 
       <div class="cards" id="cards"></div>
@@ -157,6 +164,16 @@
   </section>
 </main>
 
+<!-- ============================== MODALE ÉQUIVALENTS ============================== -->
+<dialog id="dlgAlt" class="wide">
+  <h2>Équivalents d'autres fabricants</h2>
+  <div id="altRef" class="altref"></div>
+  <div id="altBody"></div>
+  <p class="muted small">Suggestions calculées à partir des descriptions : vérifiez le brochage, l'encombrement et les
+    caractéristiques détaillées sur la datasheet avant de remplacer un composant.</p>
+  <div class="dlgactions"><span class="spacer"></span><button type="button" class="btn" id="btnAltClose">Fermer</button></div>
+</dialog>
+
 <!-- ============================== MODALE FABRICANT ============================== -->
 <dialog id="dlgMfr">
   <form id="mfrForm" method="dialog">
@@ -227,6 +244,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=5"></script>
+<script src="/static/app.js?v=7"></script>
 </body>
 </html>

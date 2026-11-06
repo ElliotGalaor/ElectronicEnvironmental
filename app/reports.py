@@ -32,6 +32,7 @@ COLUMNS = [
     ("Repères", lambda l: l["designator"]),
     ("Qté", lambda l: l["quantity"]),
     ("Réf. BOM", lambda l: l["bom_mpn"]),
+    ("Remplace", lambda l: (l["original_mpn"] + (f" ({l['original_manufacturer']})" if l["original_manufacturer"] else "")) if l.get("original_mpn") else ""),
     ("Fabricant BOM", lambda l: l["bom_manufacturer"]),
     ("Description BOM", lambda l: l["bom_description"]),
     ("Correspondance", lambda l: MATCH_LABELS.get(l["match"], l["match"])),
@@ -94,6 +95,8 @@ def report_xlsx(report: dict) -> bytes:
     ws.append(["Trouvées en base", s["found"]])
     ws.append(["Correspondances incertaines", s["uncertain"]])
     ws.append(["Introuvables", s["not_found"]])
+    if s.get("substituted"):
+        ws.append(["Lignes remplacées par un équivalent", s["substituted"]])
     ex = s.get("export", {})
     if ex:
         ws.append([])
@@ -139,7 +142,7 @@ def report_xlsx(report: dict) -> bytes:
         wd.append([f(line) for _, f in COLUMNS])
         for col, key in status_cols.items():
             wd.cell(wd.max_row, col).fill = PatternFill("solid", fgColor=FILLS.get(line[key], "FFFFFF"))
-    widths = [7, 18, 6, 22, 18, 30, 15, 22, 18, 20, 20, 16, 16, 30, 12, 20, 18, 12, 30, 50]
+    widths = [7, 18, 6, 22, 22, 18, 30, 15, 22, 18, 20, 20, 16, 16, 30, 12, 20, 18, 12, 30, 50]
     for i, w in enumerate(widths, start=1):
         wd.column_dimensions[get_column_letter(i)].width = w
     wd.freeze_panes = "A2"

@@ -80,6 +80,28 @@ Les variantes d'écriture sont regroupées : « TI », « Texas Instruments » e
 mènent à la même fiche. Chaque page a sa propre adresse (`#fabricant/texas instruments`), utilisable
 comme lien direct.
 
+## Équivalents d'autres fabricants
+
+Cliquer sur une référence dans l'analyse de BOM (ou sur le bouton « Équivalents » d'un composant dans
+l'onglet Base ou une fiche fabricant) ouvre la liste des composants similaires **d'autres fabricants**
+présents en base, avec leurs statuts RoHS 2 / RoHS 3 / REACH et leur ECCN.
+
+- **Similarité** calculée à partir des descriptions : type de composant, valeur (Ω, F, H, Hz, V),
+  boîtier, tension et courant nominaux, diélectrique, tolérance, canal (MOSFET). Les points communs et
+  les différences (« tension inférieure », « boîtier différent »…) sont affichés pour chaque suggestion.
+  Une valeur différente (10 kΩ contre 100 Ω) exclut le candidat.
+- Pour les composants complexes (microcontrôleurs, convertisseurs DC-DC, transceivers génériques),
+  partager le même type ne suffit pas : seuls les **équivalents confirmés** sont proposés.
+- **Équivalences confirmées** : bouton « Confirmer l'équivalence » ; elles apparaissent toujours en tête,
+  dans les deux sens.
+- **Remplacement dans la BOM** : « Utiliser dans la BOM » remplace la ligne et relance l'analyse.
+  Les lignes remplacées sont surlignées ; un bandeau permet d'annuler les remplacements ou de
+  **télécharger la BOM modifiée** (CSV avec toutes les colonnes d'origine et une colonne « Remplace »).
+  Les exports Excel/CSV du rapport indiquent aussi la référence d'origine.
+
+Les suggestions sont des pistes : vérifiez le brochage, l'encombrement et les caractéristiques
+détaillées sur la datasheet avant de valider un remplacement.
+
 ## Alimenter la base
 
 - **Interface web** : onglet « Base de composants » (ajout, modification, import CSV/XLSX, export).
@@ -127,12 +149,15 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| POST | `/api/analyze?format=json\|xlsx\|csv` | analyse d'une BOM (`file`, `mapping` optionnel) |
+| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse d'une BOM (`file`, `mapping` et `substitutions` optionnels) ; `bom` renvoie la BOM modifiée |
 | GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
 | GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
 | POST | `/api/components/import` | import en masse |
 | POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
 | GET | `/api/components/export` | export CSV de la base |
+| GET | `/api/components/{id}/alternatives` | équivalents d'autres fabricants pour un composant |
+| GET | `/api/alternatives?mpn=&manufacturer=&description=` | équivalents pour une référence absente de la base |
+| POST / DELETE | `/api/components/{id}/equivalents[/{autre_id}]` | confirmer / retirer une équivalence |
 | GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
 | GET/PUT | `/api/manufacturers/{clé}` | fiche d'un fabricant (infos + composants) / modification des infos |
 | GET | `/api/countries` | codes pays reconnus et leur nom |
@@ -161,6 +186,7 @@ app/importer.py   import en masse de la base
 app/datasheet.py  extraction des datasheets PDF par règles
 app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
 app/manufacturers.py fiches fabricants (infos, statistiques, composants)
+app/alternates.py   recherche d'équivalents et équivalences confirmées
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```
