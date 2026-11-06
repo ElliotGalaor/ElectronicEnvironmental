@@ -168,8 +168,82 @@ function renderReport() {
         ...Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`),
         ...(S.export.country_unknown ? [`<b>${S.export.country_unknown}</b> inconnue${S.export.country_unknown > 1 ? "s" : ""}`] : []),
       ].join(", ") || "—"}</span>` : "");
+  renderCharts(S);
   renderLines();
 }
+
+/* ------------------------------------------------------------------ camemberts par norme
+   Répartition des statuts des lignes montées (les lignes non montées sont exclues). */
+const PIE_STATUSES = [
+  ["conforme", "Conforme", "--pie-ok"],
+  ["exemption", "Exemption", "--pie-ex"],
+  ["svhc", "SVHC", "--pie-svhc"],
+  ["a_verifier", "À vérifier", "--pie-chk"],
+  ["non_conforme", "Non conforme", "--pie-ko"],
+];
+
+function pieSvg(slices, total, centerValue, centerLabel) {
+  const R = 58, r = 36, C = 60; // anneau : rayon extérieur 58, intérieur 36
+  const pt = (rad, a) => [C + rad * Math.sin(a), C - rad * Math.cos(a)];
+  let a0 = 0;
+  const marks = slices.map((s) => {
+    const frac = s.n / total;
+    if (frac >= 0.9999) {
+      return `<path class="slice" data-k="${s.key}" fill="var(${s.color})" fill-rule="evenodd"
+        d="M ${C} ${C - R} A ${R} ${R} 0 1 1 ${C - 0.01} ${C - R} Z M ${C} ${C - r} A ${r} ${r} 0 1 0 ${C + 0.01} ${C - r} Z"/>`;
+    }
+    const a1 = a0 + frac * 2 * Math.PI, large = frac > 0.5 ? 1 : 0;
+    const [x0, y0] = pt(R, a0), [x1, y1] = pt(R, a1), [x2, y2] = pt(r, a1), [x3, y3] = pt(r, a0);
+    a0 = a1;
+    return `<path class="slice" data-k="${s.key}" fill="var(${s.color})"
+      d="M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${r} ${r} 0 ${large} 0 ${x3} ${y3} Z"/>`;
+  }).join("");
+  return `<svg class="pie" viewBox="0 0 120 120" role="img" aria-hidden="true">${marks}
+    <text class="center-value" x="60" y="62" text-anchor="middle">${centerValue}</text>
+    <text class="center-label" x="60" y="77" text-anchor="middle">${centerLabel}</text></svg>`;
+}
+
+function renderCharts(S) {
+  $("#charts").innerHTML = NORMS.map(([k, name, ref]) => {
+    const counts = S[k].counts;
+    const slices = PIE_STATUSES.filter(([key]) => counts[key]).map(([key, label, color]) => ({ key, label, color, n: counts[key] }));
+    const total = slices.reduce((t, s) => t + s.n, 0);
+    const skipped = counts.non_monte || 0;
+    if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">Aucune ligne montée.</p></div></div>`;
+    const okShare = slices.filter((s) => s.key !== "a_verifier" && s.key !== "non_conforme").reduce((t, s) => t + s.n, 0);
+    const pctOf = (n) => Math.round((100 * n) / total) + " %";
+    const legend = slices.map((s) => `<li data-k="${s.key}"><span class="sw" style="background:var(${s.color})"></span>
+      <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
+    const desc = slices.map((s) => `${s.label} : ${s.n}`).join(", ");
+    return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name} : ${desc}">
+      ${pieSvg(slices, total, pctOf(okShare), "conformes")}
+      <div><h4>${name} <span>· ${total} ligne${total > 1 ? "s" : ""}</span></h4>
+        <ul class="legend">${legend}</ul>
+        ${skipped ? `<div class="foot">${skipped} non montée${skipped > 1 ? "s" : ""} exclue${skipped > 1 ? "s" : ""}</div>` : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+// Survol : met en avant la part et sa ligne de légende, avec une infobulle
+const chartTip = Object.assign(document.createElement("div"), { className: "charttip", hidden: true });
+document.body.appendChild(chartTip);
+function chartHover(ev) {
+  const el = ev.target.closest(".pie [data-k], .legend [data-k]");
+  const card = ev.target.closest(".chart");
+  $$("#charts .pie").forEach((p) => p.classList.remove("dim"));
+  $$("#charts .on").forEach((e) => e.classList.remove("on"));
+  if (!el || !card) { chartTip.hidden = true; return; }
+  const key = el.dataset.k;
+  card.querySelector(".pie").classList.add("dim");
+  card.querySelectorAll(`[data-k="${key}"]`).forEach((e) => e.classList.add("on"));
+  const li = card.querySelector(`.legend [data-k="${key}"]`);
+  chartTip.textContent = `${card.querySelector("h4").firstChild.textContent.trim()} · ${li.querySelector(".lbl").textContent} : ${li.querySelector(".val").textContent}`;
+  chartTip.hidden = false;
+  chartTip.style.left = Math.min(ev.clientX + 14, innerWidth - chartTip.offsetWidth - 8) + "px";
+  chartTip.style.top = ev.clientY + 14 + "px";
+}
+$("#charts").addEventListener("mousemove", chartHover);
+$("#charts").addEventListener("mouseleave", chartHover);
 
 $$("#filters .chip").forEach((c) => c.addEventListener("click", () => {
   state.filter = c.dataset.filter;
