@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css?v=11">
+<link rel="stylesheet" href="/static/style.css?v=12">
 </head>
 <body>
 <header class="top">
@@ -15,7 +15,10 @@
       <p class="sub">Conformité environnementale d'une nomenclature (BOM)</p>
     </div>
   </div>
-  <div class="dbinfo" id="dbinfo">Base : …</div>
+  <div class="topright">
+    <div class="dbinfo" id="dbinfo">Base : …</div>
+    <div class="account" id="account"></div>
+  </div>
 </header>
 
 <nav class="tabs" role="tablist">
@@ -34,6 +37,17 @@
       <strong>Déposez votre BOM ici</strong> ou cliquez pour choisir un fichier
       <span class="hint">CSV, TXT ou Excel (.xlsx) — colonnes détectées automatiquement (référence fabricant, fabricant, repères, quantité…)</span>
     </label>
+
+    <p id="historyHint" class="muted small historyhint">
+      <button class="linkbtn" data-auth="login">Connectez-vous</button> ou
+      <button class="linkbtn" data-auth="register">créez un compte</button> pour retrouver vos dernières BOM analysées.
+    </p>
+    <div id="historyBox" class="card history" hidden>
+      <div class="historyhead"><h3>Mes dernières BOM</h3><span class="muted small" id="historyCount"></span></div>
+      <div id="historyList"></div>
+      <p class="muted small">Rouvrir une BOM relance l'analyse avec la base actuelle : les statuts peuvent avoir évolué
+        depuis. Les 20 analyses les plus récentes sont conservées.</p>
+    </div>
 
     <div id="error" class="alert error" hidden></div>
 
@@ -203,6 +217,27 @@
   </section>
 </main>
 
+<!-- ============================== MODALE CONNEXION ============================== -->
+<dialog id="dlgAuth" class="narrow">
+  <div class="authtabs">
+    <button type="button" class="authtab active" data-mode="login">Se connecter</button>
+    <button type="button" class="authtab" data-mode="register">Créer un compte</button>
+  </div>
+  <form id="authForm">
+    <div class="formgrid single">
+      <label id="authNameRow" hidden>Nom (facultatif)<input name="name" autocomplete="name" maxlength="80"></label>
+      <label>Adresse e-mail<input name="email" type="email" autocomplete="email" required></label>
+      <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
+      <span id="authPwHint" class="muted small" hidden>8 caractères minimum.</span>
+    </div>
+    <div id="authError" class="alert error" hidden></div>
+    <div class="dlgactions"><span class="spacer"></span>
+      <button type="button" class="btn" id="btnAuthCancel">Annuler</button>
+      <button type="submit" class="btn primary" id="authSubmit">Se connecter</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============================== MODALE ECCN ============================== -->
 <dialog id="dlgEccn">
   <form id="eccnForm" method="dialog">
@@ -299,6 +334,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=11"></script>
+<script src="/static/app.js?v=12"></script>
 </body>
 </html>

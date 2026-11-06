@@ -7,15 +7,17 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, datasheet, datasheet_ai, db, eccn, manufacturers
+from . import alternates, auth, datasheet, datasheet_ai, db, eccn, history, manufacturers
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
@@ -61,6 +63,17 @@ def require_admin(x_admin_token: str = Header(default="")):
         raise HTTPException(401, "Jeton administrateur requis (en-tête X-Admin-Token)")
 
 
+def current_user(rrc_session: str | None = Cookie(default=None), conn=Depends(get_conn)) -> dict | None:
+    """Utilisateur connecté (cookie de session), ou None."""
+    return auth.user_from_token(conn, rrc_session)
+
+
+def require_user(user=Depends(current_user)) -> dict:
+    if not user:
+        raise HTTPException(401, "Connexion requise")
+    return user
+
+
 class ComponentIn(BaseModel):
     mpn: str
     manufacturer: str = ""
@@ -93,7 +106,10 @@ async def analyze_bom(
     mapping: str = Form(default="", description='Surcharge des colonnes, JSON : {"mpn": "Part Number", ...}'),
     substitutions: str = Form(default="", description='Remplacements, JSON : {"<n° de ligne>": <id du composant>, ...}'),
     format: Literal["json", "xlsx", "csv", "bom"] = Query(default="json", description="bom : la nomenclature modifiée (remplacements appliqués), en CSV"),
+    save: str = Form(default="", description="1 : enregistrer l'analyse dans l'historique de l'utilisateur connecté"),
+    history_id: str = Form(default="", description="Entrée d'historique à mettre à jour (même BOM, réglages modifiés)"),
     conn=Depends(get_conn),
+    user=Depends(current_user),
 ):
     data = await _read_upload(file)
     try:
@@ -129,7 +145,109 @@ async def analyze_bom(
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="conformite_{stem}.csv"'},
         )
+    if user and (save == "1" or history_id):
+        report["history_id"] = history.save(
+            conn, user["id"], file.filename or "bom", data, mapping, substitutions, report,
+            history_id=int(history_id) if history_id.isdigit() else None,
+        )
     return report
+
+
+# ---------------------------------------------------------------- Comptes utilisateurs
+
+class RegisterIn(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+# Limitation des essais de mot de passe : 5 échecs par adresse en 15 minutes
+_LOGIN_WINDOW, _LOGIN_MAX = 15 * 60, 5
+_login_failures: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_throttle(email: str) -> None:
+    now = time.monotonic()
+    recent = [t for t in _login_failures[email] if now - t < _LOGIN_WINDOW]
+    _login_failures[email] = recent
+    if len(recent) >= _LOGIN_MAX:
+        raise HTTPException(429, "Trop de tentatives : réessayez dans quelques minutes")
+
+
+def _open_session(conn, user: dict, request: Request, response: Response) -> dict:
+    token = auth.create_session(conn, user["id"])
+    response.set_cookie(
+        auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="lax",
+        secure=request.url.scheme == "https", path="/",
+    )
+    return user
+
+
+@app.post("/api/auth/register", status_code=201, summary="Créer un compte (et se connecter)")
+def register(body: RegisterIn, request: Request, response: Response, conn=Depends(get_conn)):
+    try:
+        user = auth.create_user(conn, body.email, body.password, body.name)
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
+    except auth.AuthError as exc:
+        raise HTTPException(409, str(exc))
+    return _open_session(conn, user, request, response)
+
+
+@app.post("/api/auth/login", summary="Se connecter")
+def login(body: LoginIn, request: Request, response: Response, conn=Depends(get_conn)):
+    email = auth.normalize_email(body.email)
+    _check_throttle(email)
+    try:
+        user = auth.authenticate(conn, email, body.password)
+    except auth.AuthError as exc:
+        _login_failures[email].append(time.monotonic())
+        raise HTTPException(401, str(exc))
+    _login_failures.pop(email, None)
+    return _open_session(conn, user, request, response)
+
+
+@app.post("/api/auth/logout", status_code=204, summary="Se déconnecter")
+def logout(response: Response, rrc_session: str | None = Cookie(default=None), conn=Depends(get_conn)):
+    auth.delete_session(conn, rrc_session)
+    response.delete_cookie(auth.SESSION_COOKIE, path="/")
+    response.status_code = 204
+    return response
+
+
+@app.get("/api/auth/me", summary="Utilisateur connecté (null si personne)")
+def me(user=Depends(current_user)):
+    return user
+
+
+# ---------------------------------------------------------------- Historique des BOM
+
+@app.get("/api/history", summary="Dernières BOM analysées par l'utilisateur connecté")
+def list_history(user=Depends(require_user), conn=Depends(get_conn)):
+    return history.list_for(conn, user["id"])
+
+
+@app.get("/api/history/{history_id}/file", summary="Fichier d'origine d'une BOM de l'historique")
+def history_file(history_id: int, user=Depends(require_user), conn=Depends(get_conn)):
+    found = history.get_file(conn, user["id"], history_id)
+    if not found:
+        raise HTTPException(404, "Analyse introuvable")
+    filename, data = found
+    safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in filename) or "bom"
+    return Response(data, media_type="application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{safe}"'})
+
+
+@app.delete("/api/history/{history_id}", status_code=204, summary="Supprimer une BOM de l'historique")
+def delete_history(history_id: int, user=Depends(require_user), conn=Depends(get_conn)):
+    if not history.delete(conn, user["id"], history_id):
+        raise HTTPException(404, "Analyse introuvable")
+    return Response(status_code=204)
 
 
 # ---------------------------------------------------------------- Base de composants
