@@ -84,6 +84,14 @@ CREATE TABLE IF NOT EXISTS component_equivalents (
     PRIMARY KEY (a, b)
 );
 
+-- Codes ECCN : intitulé et notes saisis par l'utilisateur (l'explication est calculée)
+CREATE TABLE IF NOT EXISTS eccn_codes (
+    code       TEXT PRIMARY KEY,
+    title      TEXT NOT NULL DEFAULT '',
+    notes      TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+);
+
 -- Informations sur les fabricants (clé = nom normalisé, comme components.manufacturer_norm)
 CREATE TABLE IF NOT EXISTS manufacturers (
     key        TEXT PRIMARY KEY,

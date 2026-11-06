@@ -408,3 +408,35 @@ def test_remplacement_invalide():
     assert r.status_code == 422
     r = client.post("/api/analyze", files={"file": ("b.csv", BOM_SWAP.encode())}, data={"substitutions": "pas du json"})
     assert r.status_code == 400
+
+
+# ---------------------------------------------------------------- codes ECCN
+
+from app import eccn as eccn_mod  # noqa: E402
+
+
+def test_decomposition_eccn():
+    d = eccn_mod.describe("5A992.c")
+    labels = {p["label"]: p for p in d["parts"]}
+    assert labels["Catégorie"]["code"] == "5" and "Télécommunications" in labels["Catégorie"]["name"]
+    assert labels["Groupe de produits"]["code"] == "A"
+    assert "unilatéraux" in labels["Motif de contrôle"]["name"]
+    assert labels["Sous-rubrique"]["code"] == ".c"
+    assert d["official_heading"].startswith("Equipment not controlled by 5A002")
+    assert d["links"][0]["url"].startswith("https://www.ecfr.gov/") and "part-774" in d["links"][0]["url"]
+    assert "Wassenaar" in eccn_mod.describe("3A001")["parts"][2]["name"]
+
+
+def test_ear99():
+    d = eccn_mod.describe("EAR99")
+    assert not d["controlled"] and "section-734.3" in d["links"][0]["url"]
+
+
+def test_api_eccn():
+    codes = {e["code"]: e for e in client.get("/api/eccn").json()["codes"]}
+    assert codes["5A992.c"]["controlled"] and codes["5A992.c"]["components"] >= 1
+    d = client.get("/api/eccn/5a992.C").json()       # code normalisé
+    assert d["code"] == "5A992.c" and "DEMO-LEADED-DIP8" in [c["mpn"] for c in d["components"]]
+    assert client.get("/api/eccn/pas-un-code").status_code == 422
+    r = client.put("/api/eccn/5A992.c", json={"title": "Chiffrement grand public", "notes": "ENC"})
+    assert r.status_code == 200 and r.json()["title"] == "Chiffrement grand public"

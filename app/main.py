@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, datasheet, datasheet_ai, db, manufacturers
+from . import alternates, datasheet, datasheet_ai, db, eccn, manufacturers
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
@@ -319,6 +319,34 @@ def get_manufacturer(key: str, conn=Depends(get_conn)):
 def update_manufacturer(key: str, body: ManufacturerIn, conn=Depends(get_conn)):
     try:
         return manufacturers.update(conn, _mfr_key(key), body.model_dump())
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
+
+
+# ---------------------------------------------------------------- Codes ECCN
+
+class EccnIn(BaseModel):
+    title: str = ""
+    notes: str = ""
+
+
+@app.get("/api/eccn", summary="Codes ECCN présents en base, avec leur explication")
+def list_eccn(conn=Depends(get_conn)):
+    return eccn.list_all(conn)
+
+
+@app.get("/api/eccn/{code}", summary="Fiche d'un code ECCN : domaine d'application, définition officielle, composants")
+def get_eccn(code: str, conn=Depends(get_conn)):
+    try:
+        return eccn.get(conn, code)
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
+
+
+@app.put("/api/eccn/{code}", dependencies=[Depends(require_admin)], summary="Modifier l'intitulé et les notes d'un code ECCN")
+def update_eccn(code: str, body: EccnIn, conn=Depends(get_conn)):
+    try:
+        return eccn.update(conn, code, body.model_dump())
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc))
 

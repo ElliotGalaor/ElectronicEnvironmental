@@ -80,6 +80,26 @@ Les variantes d'écriture sont regroupées : « TI », « Texas Instruments » e
 mènent à la même fiche. Chaque page a sa propre adresse (`#fabricant/texas instruments`), utilisable
 comme lien direct.
 
+## Codes ECCN
+
+Onglet « Codes ECCN » : liste des codes présents en base (contrôlés en premier), avec le domaine,
+le nombre de composants et les fabricants. Chaque code ECCN affiché dans l'application est un lien
+vers sa fiche :
+- **décomposition du code** : catégorie (ex. 3 = Électronique), groupe de produits (A = systèmes,
+  équipements et composants), motif de contrôle déduit du numéro (0xx Wassenaar, 1xx MTCR, 2xx NSG,
+  3xx Groupe d'Australie, 5xx/6xx articles spatiaux/militaires, 9xx contrôles unilatéraux
+  américains / anti-terrorisme) et sous-rubrique ;
+- **intitulé officiel** de l'entrée, tiré de la Commerce Control List (`data/ccl_headings.json`,
+  622 entrées extraites de l'eCFR, domaine public) ;
+- **liens vers la définition officielle** sur l'eCFR (site du gouvernement américain) :
+  Commerce Control List (15 CFR partie 774, supplément n° 1) et Commerce Country Chart
+  (15 CFR partie 738) ; pour EAR99, 15 CFR 734.3(c) ;
+- composants de la base portant ce code, intitulé et notes modifiables.
+
+Le résumé par catégorie / groupe / motif est indicatif : seule la définition officielle fait foi.
+Pour mettre à jour les intitulés, relancer l'extraction depuis l'API eCFR
+(`/api/versioner/v1/full/<date>/title-15.xml?part=774&appendix=Supplement No. 1 to Part 774`).
+
 ## Équivalents d'autres fabricants
 
 Cliquer sur une référence dans l'analyse de BOM (ou sur le bouton « Équivalents » d'un composant dans
@@ -158,6 +178,8 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | GET | `/api/components/{id}/alternatives` | équivalents d'autres fabricants pour un composant |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | équivalents pour une référence absente de la base |
 | POST / DELETE | `/api/components/{id}/equivalents[/{autre_id}]` | confirmer / retirer une équivalence |
+| GET | `/api/eccn` | codes ECCN présents en base, avec leur explication |
+| GET/PUT | `/api/eccn/{code}` | fiche d'un code (décomposition, intitulé officiel, liens eCFR, composants) / intitulé et notes |
 | GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
 | GET/PUT | `/api/manufacturers/{clé}` | fiche d'un fabricant (infos + composants) / modification des infos |
 | GET | `/api/countries` | codes pays reconnus et leur nom |
@@ -187,6 +209,7 @@ app/datasheet.py  extraction des datasheets PDF par règles
 app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
 app/manufacturers.py fiches fabricants (infos, statistiques, composants)
 app/alternates.py   recherche d'équivalents et équivalences confirmées
+app/eccn.py         fiches des codes ECCN (explication, définition officielle)
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```
