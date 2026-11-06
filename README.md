@@ -103,6 +103,28 @@ Pour un serveur accessible par d'autres personnes, servez l'application en **HTT
 derrière un proxy inverse) pour que mots de passe et cookies ne circulent pas en clair. Les BOM
 enregistrées sont stockées dans la base SQLite (`data/components.db`).
 
+## Exemptions RoHS
+
+Onglet « Exemptions RoHS » : exemptions utilisées par les composants de la base, avec les substances
+concernées, la validité (« expire le … », « dans N jours ») et les composants / fabricants.
+Chaque code d'exemption affiché dans l'application (onglet Base, analyse de BOM) est un lien vers sa fiche :
+- **texte officiel** de l'exemption et son **champ d'application et dates**, en français, tirés du
+  texte consolidé de la directive 2011/65/UE sur EUR-Lex (annexes III et IV, 161 exemptions,
+  `data/rohs_exemptions.json`) ;
+- dates citées, mises en évidence si elles sont dépassées, et rappel de l'article 5, § 5 (une
+  exemption reste valable pendant l'examen d'une demande de renouvellement déposée à temps) ;
+- version consolidée à venir déjà publiée (changements prévus pour l'exemption) ;
+- liens vers EUR-Lex, composants concernés (avec accès aux équivalents pour anticiper une
+  expiration), notes modifiables.
+
+Les codes sont reconnus sous plusieurs écritures (`7(c)-I`, `7 c)-I`, `7c-I`) ; préfixer par `IV-`
+pour l'annexe IV. Mise à jour du texte officiel quand une nouvelle version consolidée paraît :
+
+```bash
+.venv\Scripts\python tools\extract_rohs_exemptions.py 20260701 20270813
+```
+(versions disponibles : https://eur-lex.europa.eu/legal-content/FR/ALL/?uri=CELEX:32011L0065)
+
 ## Codes ECCN
 
 Onglet « Codes ECCN » : liste des codes présents en base (contrôlés en premier), avec le domaine,
@@ -205,6 +227,8 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | GET | `/api/auth/me` | utilisateur connecté (`null` sinon) |
 | GET | `/api/history` | dernières BOM analysées par l'utilisateur connecté |
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | fichier d'origine d'une BOM / suppression |
+| GET | `/api/exemptions` | exemptions RoHS utilisées par les composants de la base |
+| GET/PUT | `/api/exemptions/{code}` | fiche d'une exemption (texte officiel, dates, composants) / notes |
 | GET | `/api/eccn` | codes ECCN présents en base, avec leur explication |
 | GET/PUT | `/api/eccn/{code}` | fiche d'un code (décomposition, intitulé officiel, liens eCFR, composants) / intitulé et notes |
 | GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
@@ -239,6 +263,8 @@ app/alternates.py   recherche d'équivalents et équivalences confirmées
 app/eccn.py         fiches des codes ECCN (explication, définition officielle)
 app/auth.py         comptes utilisateurs et sessions
 app/history.py      historique des BOM analysées
+app/exemptions.py   fiches des exemptions RoHS (texte officiel EUR-Lex)
+tools/extract_rohs_exemptions.py  mise à jour du texte des exemptions depuis EUR-Lex
 app/main.py       API FastAPI + interface web (app/static)
 cli.py            ligne de commande
 ```

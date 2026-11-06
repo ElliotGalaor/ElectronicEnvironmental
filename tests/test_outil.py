@@ -532,3 +532,39 @@ def test_historique_limite():
     items = c.get("/api/history").json()
     assert len(items) == history_mod.MAX_PER_USER
     assert items[0]["filename"] == f"bom{history_mod.MAX_PER_USER + 2}.csv"   # la plus récente en tête
+
+
+# ---------------------------------------------------------------- exemptions RoHS
+
+from app import exemptions as ex_mod  # noqa: E402
+
+
+def test_normalisation_code_exemption():
+    assert ex_mod.normalize_key("7(c)-I") == ex_mod.normalize_key("7 c)-I") == ex_mod.normalize_key("7c-I") == "7C-I"
+    assert ex_mod.normalize_key("Annexe IV 37") == ex_mod.normalize_key("IV-37") == "IV-37"
+    assert ex_mod.split_codes("7(a), 7(c)-I; 6(c)") == ["7(a)", "7(c)-I", "6(c)"]
+
+
+def test_texte_officiel_exemption():
+    d = ex_mod.describe("7(c)-I")
+    assert d["found"] and d["annex"] == "III" and d["code"] == "7 c)-I"
+    assert "plomb dans du verre" in d["description"] and d["substances"] == ["plomb"]
+    assert d["dates"] and all(len(x) == 10 for x in d["dates"])
+    assert d["links"][0]["url"].startswith("https://eur-lex.europa.eu/")
+    assert not ex_mod.describe("99z")["found"]
+    assert ex_mod.describe("IV-1")["annex"] == "IV"
+
+
+def test_statut_expiration(monkeypatch):
+    assert ex_mod._status([])["kind"] == "sans_date"
+    assert ex_mod._status(["2000-01-01"])["kind"] == "depassee"
+    assert ex_mod._status(["2999-01-01"])["kind"] == "en_vigueur"
+
+
+def test_api_exemptions():
+    rows = {e["key"]: e for e in client.get("/api/exemptions").json()["exemptions"]}
+    assert rows["7C-I"]["components"] >= 2 and "Yageo" in rows["7C-I"]["manufacturers"]
+    d = client.get("/api/exemptions/7(c)-I").json()
+    assert "RC0603FR-0710KL" in [c["mpn"] for c in d["components"]]
+    r = client.put("/api/exemptions/7(c)-I", json={"notes": "Renouvellement demandé par le fabricant"})
+    assert r.status_code == 200 and r.json()["notes"].startswith("Renouvellement")

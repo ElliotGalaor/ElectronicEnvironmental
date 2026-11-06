@@ -22,6 +22,9 @@ const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", 
 
 let COUNTRIES = {};
 const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${esc(code)}</span>` : "";
+const exHref = (code) => "#exemption/" + encodeURIComponent(code);
+const exLinks = (field) => (field || "").split(/[,;/]|\s+et\s+|\s+and\s+/).map((c) => c.trim()).filter(Boolean)
+  .map((c) => `<a class="ex-link" href="${exHref(c)}" title="Voir le texte officiel et la date d'expiration">${esc(c)}</a>`).join(", ");
 const eccnHref = (e) => "#eccn/" + encodeURIComponent(e);
 const eccnCell = (e) => !e ? "" : e === "EAR99"
   ? `<a class="eccn-link mono" href="${eccnHref(e)}" title="Voir la définition de EAR99">EAR99</a>`
@@ -60,6 +63,14 @@ function route() {
   if (h.startsWith("fabricant/")) {
     showTab("fabricants");
     openManufacturer(h.slice("fabricant/".length));
+  } else if (h.startsWith("exemption/")) {
+    showTab("exemptions");
+    openExemption(h.slice("exemption/".length));
+  } else if (h === "exemptions") {
+    showTab("exemptions");
+    $("#exemptDetail").hidden = true;
+    $("#exemptList").hidden = false;
+    loadExemptionList();
   } else if (h.startsWith("eccn/")) {
     showTab("eccn");
     openEccn(h.slice("eccn/".length));
@@ -108,7 +119,19 @@ const drop = $("#drop");
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
-function startAnalysis(file) { state.file = file; state.overrides = {}; state.substitutions = {}; state.historyId = null; runAnalysis(); }
+// Filtres du tableau des lignes : remis à zéro à chaque nouvelle BOM (un filtre resté d'une BOM
+// précédente, ou rempli automatiquement par le navigateur, masquerait toutes les lignes).
+function resetLineFilters() {
+  $("#lineSearch").value = "";
+  state.filter = "all";
+  $$("#filters .chip").forEach((x) => x.classList.toggle("active", x.dataset.filter === "all"));
+}
+
+function startAnalysis(file) {
+  state.file = file; state.overrides = {}; state.substitutions = {}; state.historyId = null;
+  resetLineFilters();
+  runAnalysis();
+}
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
@@ -269,6 +292,16 @@ $$("#filters .chip").forEach((c) => c.addEventListener("click", () => {
 }));
 $("#lineSearch").addEventListener("input", renderLines);
 
+// Tableau vide alors que la BOM contient des lignes : on dit pourquoi et on propose de tout afficher
+function emptyLinesRow() {
+  if (!state.report.lines.length) return `<tr><td colspan="11" class="muted">La BOM ne contient aucune ligne.</td></tr>`;
+  const q = $("#lineSearch").value.trim();
+  const chip = $(`#filters .chip[data-filter="${state.filter}"]`);
+  const why = [q ? `recherche « ${esc(q)} »` : "", state.filter !== "all" && chip ? `filtre « ${esc(chip.textContent)} »` : ""].filter(Boolean).join(" et ");
+  return `<tr><td colspan="11" class="emptyrow">Aucune des ${state.report.lines.length} lignes ne correspond ${why ? `à : ${why}` : "aux filtres"}.
+    <button class="btn small" data-clearfilters>Afficher toutes les lignes</button></td></tr>`;
+}
+
 function lineVisible(l) {
   const st = [l.rohs2, l.rohs3, l.reach];
   const f = state.filter;
@@ -294,7 +327,8 @@ function renderLines() {
       ? `<div class="sugg">Proches : ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
     const add = (l.match === "introuvable" && l.bom_mpn)
       ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Ajouter à la base</button></div>` : "";
-    const notes = l.notes.map((n) => `<div>${esc(n)}</div>`).join("");
+    const notes = l.notes.map((n) => n.startsWith("Exemption RoHS") && l.exemptions
+      ? `<div>Exemption RoHS : ${exLinks(l.exemptions)} (voir la date d'expiration)</div>` : `<div>${esc(n)}</div>`).join("");
     const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small" data-altline="${l.line}">Équivalents</button></div>` : "";
     const ref = (!l.dnp && l.bom_mpn)
       ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="Voir les équivalents d'autres fabricants">${esc(l.bom_mpn)}</a>`
@@ -305,10 +339,14 @@ function renderLines() {
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
-  }).join("") || `<tr><td colspan="11" class="muted">Aucune ligne pour ce filtre.</td></tr>`;
+  }).join("") || emptyLinesRow();
+  const total = state.report.lines.length;
+  $("#lineCount").textContent = rows.length === total ? `${total} ligne${total > 1 ? "s" : ""}` : `${rows.length} ligne${rows.length > 1 ? "s" : ""} affichée${rows.length > 1 ? "s" : ""} sur ${total}`;
+  $("#lineCount").classList.toggle("filtered", rows.length !== total);
 }
 
 $("#lines").addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-clearfilters]")) { resetLineFilters(); renderLines(); return; }
   const alt = ev.target.closest("[data-altline]");
   if (alt) {
     ev.preventDefault();
@@ -342,7 +380,7 @@ async function loadComponents() {
     $("#comps tbody").innerHTML = items.map((c) => `<tr>
       <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-      <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${esc(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
+      <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${exLinks(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
       <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
       || `<tr><td colspan="11" class="muted">Aucun composant.</td></tr>`;
@@ -662,7 +700,7 @@ $("#altBody").addEventListener("click", async (ev) => {
   const use = ev.target.closest("[data-use]");
   const confirmBtn = ev.target.closest("[data-confirm]");
   const unconfirm = ev.target.closest("[data-unconfirm]");
-  if (ev.target.closest("a.mfr-link, a.eccn-link")) { dlgAlt.close(); return; }
+  if (ev.target.closest("a.mfr-link, a.eccn-link, a.ex-link")) { dlgAlt.close(); return; }
   if (use && altCtx.line) {
     state.substitutions[altCtx.line.line] = Number(use.dataset.use);
     dlgAlt.close();
@@ -798,6 +836,114 @@ eccnForm.addEventListener("submit", async (ev) => {
   } catch (e) { $("#eccnError").textContent = e.message; $("#eccnError").hidden = false; }
 });
 
+/* ------------------------------------------------------------------ exemptions RoHS */
+let EXEMPTIONS = { exemptions: [] };
+let currentExemption = null;
+const STATUS_BADGE = { en_vigueur: "b-conforme", bientot: "b-svhc", depassee: "b-non_conforme", sans_date: "b-ex-none", inconnue: "b-inconnu" };
+const statusBadge = (s) => `<span class="badge ${STATUS_BADGE[s.kind] || "b-inconnu"}">${esc(s.label)}</span>`;
+
+async function loadExemptionList() {
+  try {
+    EXEMPTIONS = await (await api("/api/exemptions")).json();
+    renderExemptionList();
+  } catch (e) {
+    $("#exempts tbody").innerHTML = `<tr><td colspan="6">Erreur : ${esc(e.message)}</td></tr>`;
+  }
+}
+$("#exemptSearch").addEventListener("input", renderExemptionList);
+
+function renderExemptionList() {
+  const q = $("#exemptSearch").value.trim().toLowerCase();
+  const rows = EXEMPTIONS.exemptions.filter((e) => !q || [e.code, e.key, e.description, e.parent, ...e.substances, ...e.manufacturers].join(" ").toLowerCase().includes(q));
+  $("#exempts tbody").innerHTML = rows.map((e) => `<tr>
+      <td class="nowrap"><a class="ex-link" href="${exHref(e.key)}">${esc(e.found ? e.code : e.key)}</a>
+        ${e.annex ? `<div class="muted small">Annexe ${esc(e.annex)}</div>` : ""}</td>
+      <td>${e.found ? esc(((e.parent ? e.parent + " " : "") + e.description).slice(0, 220)) + (((e.parent || "") + e.description).length > 220 ? "…" : "")
+        : `<span class="muted">Code absent des annexes III et IV : vérifiez l'écriture du code.</span>`}</td>
+      <td class="small">${e.substances.map(esc).join(", ")}</td>
+      <td>${statusBadge(e.status)}</td>
+      <td>${e.components}</td>
+      <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="muted">Aucune exemption utilisée par les composants de la base.</td></tr>`;
+  const up = EXEMPTIONS.upcoming;
+  $("#exemptSource").innerHTML = EXEMPTIONS.version
+    ? `Texte officiel : directive 2011/65/UE consolidée au ${esc(EXEMPTIONS.version)}
+       (<a href="${esc(EXEMPTIONS.source_url)}" target="_blank" rel="noopener noreferrer">EUR-Lex ↗</a>).
+       ${up ? `Version du ${esc(up.version)} déjà publiée : ${up.changes ? `${up.changes} exemption(s) modifiée(s)` : "aucun changement dans les annexes III et IV"}.` : ""}`
+    : "";
+}
+
+async function openExemption(code) {
+  $("#exemptList").hidden = true;
+  $("#exemptDetail").hidden = false;
+  $("#exemptCode").textContent = code;
+  $("#exemptSummary").textContent = "Chargement…";
+  try {
+    currentExemption = await (await api("/api/exemptions/" + encodeURIComponent(code))).json();
+  } catch (e) {
+    currentExemption = null;
+    $("#exemptSummary").textContent = "Erreur : " + e.message;
+    return;
+  }
+  renderExemption();
+}
+
+function renderExemption() {
+  const e = currentExemption;
+  $("#exemptCode").innerHTML = `${e.found ? `Exemption ${esc(e.code)}` : esc(e.input)} ${statusBadge(e.status)}`;
+  $("#exemptSummary").textContent = e.found ? e.annex_label : "Ce code ne correspond à aucune exemption des annexes III et IV.";
+  const datesList = (e.dates || []).map((d) => {
+    const past = d < new Date().toISOString().slice(0, 10);
+    return `<span class="badge ${past ? "b-non_conforme" : "b-conforme"}">${new Date(d + "T00:00:00").toLocaleDateString("fr-FR", { dateStyle: "long" })}</span>`;
+  }).join(" ");
+  const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
+  const up = e.upcoming;
+  const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
+  $("#exemptInfo").innerHTML = e.found ? `
+    ${e.group ? `<dt>Rubrique</dt><dd>${esc(e.group)}</dd>` : ""}
+    <dt>Texte officiel</dt><dd>${e.parent ? `<div class="muted">${esc(e.parent)}</div>` : ""}<q>${esc(e.description)}</q></dd>
+    <dt>Champ d'application et dates</dt><dd>${e.scope ? esc(e.scope) : `<span class="muted">Aucune précision (s'applique sans date d'expiration indiquée)</span>`}</dd>
+    ${datesList ? `<dt>Dates citées</dt><dd>${datesList}</dd>` : ""}
+    <dt>Substances concernées</dt><dd>${e.substances.length ? e.substances.map(esc).join(", ") : "—"}</dd>
+    <dt>Renouvellement</dt><dd>${esc(e.renewal_note)}</dd>
+    ${up ? `<dt>Version à venir</dt><dd>Version consolidée du ${esc(up.version)} : ${up.type === "aucun" ? "pas de changement pour cette exemption." : `exemption ${esc(up.type)}${up.scope ? ` — ${esc(up.scope)}` : ""}.`} <a href="${esc(up.url)}" target="_blank" rel="noopener noreferrer">Voir ↗</a></dd>` : ""}
+    <dt>Source officielle</dt><dd>${links}</dd>
+    <dt>Fabricants</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
+    <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`
+    : `<dt>Code saisi</dt><dd>${esc(e.input)}</dd><dt>Source officielle</dt><dd>${links}</dd>`;
+  $("#exemptComps tbody").innerHTML = e.components.map((c) => `<tr>
+    <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+    <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
+    <td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
+    || `<tr><td colspan="7" class="muted">Aucun composant de la base n'utilise cette exemption.</td></tr>`;
+}
+
+$("#exemptComps").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("[data-edit]");
+  const a = ev.target.closest("[data-alt]");
+  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+  else if (a) openAlternatives({ compId: Number(a.dataset.alt) });
+});
+
+const dlgExempt = $("#dlgExempt"), exemptForm = $("#exemptForm");
+$("#btnEditExempt").addEventListener("click", () => {
+  exemptForm.elements.notes.value = currentExemption.notes || "";
+  $("#exemptError").hidden = true;
+  dlgExempt.showModal();
+});
+$("#btnExemptCancel").addEventListener("click", () => dlgExempt.close());
+exemptForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  try {
+    currentExemption = await (await api("/api/exemptions/" + encodeURIComponent(currentExemption.key), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: exemptForm.elements.notes.value }),
+    })).json();
+    dlgExempt.close();
+    renderExemption();
+  } catch (e) { $("#exemptError").textContent = e.message; $("#exemptError").hidden = false; }
+});
+
 /* ------------------------------------------------------------------ comptes et historique des BOM */
 const dlgAuth = $("#dlgAuth"), authForm = $("#authForm");
 let authMode = "login";
@@ -922,6 +1068,7 @@ $("#historyList").addEventListener("click", async (ev) => {
       state.overrides = h.mapping || {};
       state.substitutions = Object.fromEntries(Object.entries(h.substitutions || {}).map(([k, v]) => [k, Number(v)]));
       state.historyId = h.id;
+      resetLineFilters();
       await runAnalysis();
       $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
