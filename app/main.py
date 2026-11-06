@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, auth, datasheet, datasheet_ai, db, eccn, history, manufacturers
+from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
 from .analyzer import analyze
 from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
@@ -437,6 +437,30 @@ def get_manufacturer(key: str, conn=Depends(get_conn)):
 def update_manufacturer(key: str, body: ManufacturerIn, conn=Depends(get_conn)):
     try:
         return manufacturers.update(conn, _mfr_key(key), body.model_dump())
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc))
+
+
+# ---------------------------------------------------------------- Exemptions RoHS
+
+class ExemptionNotesIn(BaseModel):
+    notes: str = ""
+
+
+@app.get("/api/exemptions", summary="Exemptions RoHS utilisées par les composants de la base")
+def list_exemptions(conn=Depends(get_conn)):
+    return exemptions.list_all(conn)
+
+
+@app.get("/api/exemptions/{code}", summary="Fiche d'une exemption RoHS : texte officiel, dates, composants")
+def get_exemption(code: str, conn=Depends(get_conn)):
+    return exemptions.get(conn, code)
+
+
+@app.put("/api/exemptions/{code}", dependencies=[Depends(require_admin)], summary="Modifier les notes d'une exemption")
+def update_exemption(code: str, body: ExemptionNotesIn, conn=Depends(get_conn)):
+    try:
+        return exemptions.update(conn, code, body.notes)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc))
 

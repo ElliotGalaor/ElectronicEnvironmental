@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css?v=12">
+<link rel="stylesheet" href="/static/style.css?v=16">
 </head>
 <body>
 <header class="top">
@@ -25,6 +25,7 @@
   <button class="tab active" data-tab="analyse" role="tab">Analyse de BOM</button>
   <button class="tab" data-tab="base" role="tab">Base de composants</button>
   <button class="tab" data-tab="fabricants" role="tab">Fabricants</button>
+  <button class="tab" data-tab="exemptions" role="tab">Exemptions RoHS</button>
   <button class="tab" data-tab="eccn" role="tab">Codes ECCN</button>
 </nav>
 
@@ -88,7 +89,7 @@
           <button class="chip" data-filter="svhc">SVHC / exemptions</button>
           <button class="chip" data-filter="eccn">ECCN contrôlé</button>
         </div>
-        <input type="search" id="lineSearch" placeholder="Filtrer (référence, repère…)">
+        <div class="left"><input type="search" id="lineSearch" name="filtre-lineSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Filtrer (référence, repère…)"><span class="muted small" id="lineCount"></span></div>
       </div>
 
       <div class="tablewrap">
@@ -108,7 +109,7 @@
   <section id="tab-base" class="panel">
     <div class="toolbar">
       <div class="left">
-        <input type="search" id="q" placeholder="Rechercher une référence, un fabricant, une description…">
+        <input type="search" id="q" name="filtre-q" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher une référence, un fabricant, une description…">
         <label class="check"><input type="checkbox" id="onlyIssues"> Problèmes uniquement</label>
       </div>
       <div class="actions">
@@ -140,11 +141,48 @@
       <button class="btn" id="next">Suivant ›</button>
     </div>
   </section>
+  <!-- ============================== EXEMPTIONS RoHS ============================== -->
+  <section id="tab-exemptions" class="panel">
+    <div id="exemptList">
+      <div class="toolbar">
+        <div class="left"><input type="search" id="exemptSearch" name="filtre-exemptSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher une exemption, une substance, un fabricant…"></div>
+      </div>
+      <div class="tablewrap">
+        <table class="grid" id="exempts">
+          <thead><tr><th>Exemption</th><th>Texte officiel</th><th>Substances</th><th>Validité</th><th>Composants</th><th>Fabricants</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small" id="exemptSource"></p>
+      <p class="muted small">Une exemption autorise, pour une application précise et pour une durée limitée, une substance
+        restreinte par RoHS (plomb, mercure, cadmium…). Cliquez sur une exemption pour voir son texte officiel, ses dates et
+        les composants concernés.</p>
+    </div>
+
+    <div id="exemptDetail" hidden>
+      <a href="#exemptions" class="back">‹ Toutes les exemptions</a>
+      <div class="mfrhead">
+        <div><h2 id="exemptCode"></h2><div class="muted" id="exemptSummary"></div></div>
+        <button class="btn" id="btnEditExempt">Modifier les notes</button>
+      </div>
+      <div class="card mfrinfo" id="exemptInfo"></div>
+      <h3 class="section">Composants en base utilisant cette exemption</h3>
+      <div class="tablewrap">
+        <table class="grid" id="exemptComps">
+          <thead><tr><th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small">Pour anticiper l'expiration d'une exemption, le bouton « Équivalents » propose des composants
+        d'autres fabricants avec leur statut RoHS.</p>
+    </div>
+  </section>
+
   <!-- ============================== CODES ECCN ============================== -->
   <section id="tab-eccn" class="panel">
     <div id="eccnList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="eccnSearch" placeholder="Rechercher un code, un domaine, un fabricant…"></div>
+        <div class="left"><input type="search" id="eccnSearch" name="filtre-eccnSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher un code, un domaine, un fabricant…"></div>
         <span class="muted small" id="eccnUnknown"></span>
       </div>
       <div class="tablewrap">
@@ -181,7 +219,7 @@
   <section id="tab-fabricants" class="panel">
     <div id="mfrList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="mfrSearch" placeholder="Rechercher un fabricant…"></div>
+        <div class="left"><input type="search" id="mfrSearch" name="filtre-mfrSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher un fabricant…"></div>
       </div>
       <div class="tablewrap">
         <table class="grid" id="mfrs">
@@ -234,6 +272,21 @@
     <div class="dlgactions"><span class="spacer"></span>
       <button type="button" class="btn" id="btnAuthCancel">Annuler</button>
       <button type="submit" class="btn primary" id="authSubmit">Se connecter</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============================== MODALE EXEMPTION ============================== -->
+<dialog id="dlgExempt">
+  <form id="exemptForm" method="dialog">
+    <h2>Notes sur l'exemption</h2>
+    <div class="formgrid single">
+      <label>Notes<textarea name="notes" rows="5" placeholder="Demande de renouvellement en cours, plan de remplacement, échéances internes…"></textarea></label>
+    </div>
+    <div id="exemptError" class="alert error" hidden></div>
+    <div class="dlgactions"><span class="spacer"></span>
+      <button type="button" class="btn" id="btnExemptCancel">Annuler</button>
+      <button type="submit" class="btn primary">Enregistrer</button>
     </div>
   </form>
 </dialog>
@@ -334,6 +387,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=12"></script>
+<script src="/static/app.js?v=16"></script>
 </body>
 </html>

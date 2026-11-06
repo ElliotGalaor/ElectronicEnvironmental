@@ -116,6 +116,13 @@ CREATE TABLE IF NOT EXISTS bom_history (
 );
 CREATE INDEX IF NOT EXISTS idx_bom_history_user ON bom_history (user_id, updated_at);
 
+-- Exemptions RoHS : notes saisies par l'utilisateur (le texte officiel vient de data/rohs_exemptions.json)
+CREATE TABLE IF NOT EXISTS exemption_notes (
+    key        TEXT PRIMARY KEY,
+    notes      TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+);
+
 -- Codes ECCN : intitulé et notes saisis par l'utilisateur (l'explication est calculée)
 CREATE TABLE IF NOT EXISTS eccn_codes (
     code       TEXT PRIMARY KEY,
