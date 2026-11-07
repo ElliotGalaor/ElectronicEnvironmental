@@ -167,7 +167,7 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
 
     used: set[int] = set()
     for role in ("mpn", "manufacturer", "designator", "quantity", "description", "value", "dnp"):
-        for score, idx in sorted(candidates.get(role, []), key=lambda t: (-t[0], t[1])):
+        for _score, idx in sorted(candidates.get(role, []), key=lambda t: (-t[0], t[1])):
             if idx not in used:
                 mapping.columns[role] = idx
                 used.add(idx)
