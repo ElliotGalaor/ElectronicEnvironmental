@@ -688,11 +688,13 @@ function renderAlternatives(data, compId) {
       const conf = compId ? (a.confirmed
         ? `<button type="button" class="btn small" data-unconfirm="${c.id}">Retirer l'équivalence</button>`
         : `<button type="button" class="btn small" data-confirm="${c.id}">Confirmer l'équivalence</button>`) : "";
+      // data-label : intitulé de colonne affiché quand le tableau passe en cartes (fenêtre étroite)
       return `<tr class="${a.compliant ? "" : "notcompliant"}">
         <td class="mono">${esc(c.mpn)}<div class="muted small nomono">${esc(c.description)}</div></td>
-        <td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
-        <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td><td>${eccnCell(c.eccn)}</td>
-        <td class="simcell">${sim}</td><td class="actions-cell">${use}${conf}</td></tr>`;
+        <td data-label="Fabricant">${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
+        <td data-label="RoHS 2">${badge(c.rohs2)}</td><td data-label="RoHS 3">${badge(c.rohs3)}</td>
+        <td data-label="REACH">${badge(c.reach)}</td><td data-label="ECCN">${eccnCell(c.eccn)}</td>
+        <td class="simcell" data-label="Similarité">${sim}</td><td class="actions-cell">${use}${conf}</td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
 

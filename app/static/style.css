@@ -255,6 +255,27 @@ dialog.wide { width: min(1240px, calc(100vw - 32px)); }
 #altTable .actions-cell { min-width: 190px; }
 #altTable .actions-cell .btn { display: flex; justify-content: center; width: 100%; }
 #altTable .actions-cell .btn + .btn { margin-top: 6px; }
+/* Quand la fenêtre est trop étroite pour le tableau, chaque équivalent devient une carte :
+   les boutons d'action restent visibles sans défilement horizontal. */
+#altBody { container-type: inline-size; }
+@container (max-width: 1080px) {
+  #altTable { min-width: 0; }
+  #altTable, #altTable tbody, #altTable td { display: block; }
+  #altTable thead { display: none; }
+  #altTable tr { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 20px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  #altTable tr:last-child { border-bottom: 0; }
+  #altTable td, #altTable td:first-child, #altTable td.simcell, #altTable .actions-cell { padding: 0; border: 0; min-width: 0; }
+  #altTable td:first-child, #altTable td.simcell, #altTable .actions-cell { flex: 1 1 100%; }
+  #altTable td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 3px; font-size: 11.5px; color: var(--muted); }
+  #altTable tr.notcompliant { background: color-mix(in srgb, var(--ko-bg) 35%, transparent); }
+  #altTable tr.notcompliant td { background: none; }
+  #altTable .actions-cell { display: flex; flex-wrap: wrap; gap: 8px; }
+  #altTable .actions-cell .btn { width: auto; }
+  #altTable .actions-cell .btn + .btn { margin-top: 0; }
+}
+@container (max-width: 480px) {
+  #altTable .actions-cell .btn { flex: 1 1 100%; }
+}
 .score { font-weight: 600; }
 .nomono { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12.5px; }
 a.mpn-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
