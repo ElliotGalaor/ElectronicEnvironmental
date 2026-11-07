@@ -9,14 +9,20 @@ la conformité à **RoHS 2** (2011/65/UE), **RoHS 3** (UE 2015/863) et **REACH**
 ```bash
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python cli.py seed          # charge 26 composants de démonstration
+.venv\Scripts\python cli.py seed          # charge 129 composants de démonstration
 .venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:8000/docs).
 
-> ⚠ Les données de démonstration (`data/seed_components.csv`) servent uniquement à tester l'outil.
-> Remplacez-les par vos propres données issues des déclarations fabricants.
+> ⚠ Les données de démonstration (`data/seed_components.csv`) servent à tester l'outil :
+> - 26 composants d'exemple (source « DEMO - à vérifier », dont 3 fictifs `DEMO-…`) ;
+> - 103 composants courants relevés sur le distributeur LCSC le 6 novembre 2026 (source « LCSC Cxxxx ») :
+>   RoHS 2 / RoHS 3 d'après le certificat publié par LCSC (RoHS 3 laissé « inconnu » sans certificat RoHS 3),
+>   ECCN d'après la fiche LCSC ; REACH et exemptions RoHS ne sont pas publiés par ce distributeur et restent
+>   « inconnu » / vides.
+>
+> Pour une attestation de conformité, appuyez-vous sur les déclarations des fabricants.
 
 ## Fonctionnement
 

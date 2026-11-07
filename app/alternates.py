@@ -43,7 +43,9 @@ _CATEGORIES = [
     ("inductor", r"inductance|inductor|\bself\b"),
     ("ferrite", r"ferrite"),
     ("resistor", r"r[ée]sistance|resistor|\bres\b|couche [ée]paisse|couche mince|thick film|thin film"),
-    ("capacitor", r"condensateur|capacitor|\bcap\b|mlcc|tantale|tantalum|[ée]lectrolytique"),
+    ("cap_tantalum", r"tantale|tantalum"),
+    ("cap_alu", r"[ée]lectrolytique|electrolytic"),
+    ("capacitor", r"condensateur|capacitor|\bcap\b|mlcc"),
     ("connector", r"connecteur|connector|header|barrette|embase|bornier|terminal block"),
     ("relay", r"relais|relay"),
     ("fuse", r"fusible|\bfuse\b|polyfuse|\bptc\b"),
@@ -56,12 +58,14 @@ CATEGORY_LABELS = {
     "mosfet": "MOSFET", "bjt": "transistor bipolaire", "opamp": "ampli-op", "comparator": "comparateur",
     "ldo": "régulateur linéaire", "dcdc": "convertisseur DC-DC", "timer": "timer", "mcu": "microcontrôleur",
     "can": "transceiver CAN", "transceiver": "transceiver", "crystal": "quartz", "oscillator": "oscillateur",
-    "inductor": "inductance", "ferrite": "ferrite", "resistor": "résistance", "capacitor": "condensateur",
+    "inductor": "inductance", "ferrite": "ferrite", "resistor": "résistance", "capacitor": "condensateur céramique",
+    "cap_tantalum": "condensateur tantale", "cap_alu": "condensateur électrolytique",
     "connector": "connecteur", "relay": "relais", "fuse": "fusible", "cable": "câble",
 }
 
 # Valeur principale de chaque famille (unité SI)
-_PRIMARY = {"resistor": "Ω", "capacitor": "F", "inductor": "H", "crystal": "Hz", "oscillator": "Hz", "ldo": "V", "zener": "V"}
+_PRIMARY = {"resistor": "Ω", "capacitor": "F", "cap_tantalum": "F", "cap_alu": "F", "inductor": "H", "crystal": "Hz",
+            "oscillator": "Hz", "ldo": "V", "zener": "V"}
 
 _PREFIX = {"p": 1e-12, "n": 1e-9, "µ": 1e-6, "μ": 1e-6, "u": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3, "K": 1e3, "M": 1e6, "G": 1e9}
 _VALUE_RE = re.compile(r"(?<![\w.,])(\d+(?:[.,]\d+)?)\s?([pnµμumkKMG]?)\s?(Ω|ohms?|F|H|Hz|V|A|W)(?![a-zA-Z])")
@@ -162,7 +166,7 @@ def extract(description: str, mpn: str = "") -> Attributes:
 # ------------------------------------------------------------------ similarité
 
 # Familles interchangeables entre elles
-_FAMILY = {"schottky": "diode", "zener": "diode"}
+_FAMILY = {"schottky": "diode", "zener": "diode", "cap_tantalum": "capacitor", "cap_alu": "capacitor"}
 
 # Composants complexes : partager le même type ne suffit pas (un STM32 ne remplace pas un ATmega).
 # Ils ne sont proposés que s'ils ont été confirmés comme équivalents.

@@ -181,6 +181,9 @@ MANUFACTURER_ALIASES = {
     "rohm semiconductor": "rohm",
     "panasonic electronic components": "panasonic",
     "bourns inc": "bourns",
+    "liteon": "lite on",
+    "lite on technology": "lite on",
+    "murata manufacturing co": "murata",
     "molex llc": "molex",
 }
 
