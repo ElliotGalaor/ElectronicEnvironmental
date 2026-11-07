@@ -52,12 +52,27 @@ def test_bom_exemple_verdicts():
     assert by_mpn["LM1117IMPX-3.3/NOPB"]["match"] == "exact"  # alias "TI"
     assert by_mpn["RC0603FR-0710KL"]["rohs3"] == "exemption"
     assert by_mpn["RC0603FR-0710KL"]["reach"] == "svhc"
-    assert by_mpn["BSS138LT1G"]["match"] == "partiel"
-    assert by_mpn["BSS138LT1G"]["rohs3"] == "a_verifier"
+    assert by_mpn["BSS138LT1G"]["match"] == "exact"   # présent dans les données LCSC
     assert by_mpn["DEMO-RELAY-12V"]["rohs2"] == "conforme"
     assert by_mpn["DEMO-RELAY-12V"]["rohs3"] == "non_conforme"
-    assert by_mpn["RC0603FR-07100KL"]["match"] == "introuvable"
-    assert by_mpn["RC0603FR-07100KL"]["suggestions"]
+    assert by_mpn["RC0603FR-07100KL"]["match"] == "exact"   # présent dans les données LCSC
+    assert by_mpn["SRR1260-470M"]["match"] == "introuvable"
+    # Référence absente mais proche d'une référence connue : des suggestions sont proposées
+    near = analyze_text("MPN,Manufacturer\nRC0603FR-0710KZ,Yageo\n")["lines"][0]
+    assert near["match"] == "introuvable" and near["suggestions"]
+
+
+def test_correspondance_partielle_suffixe():
+    # Référence de base connue + suffixe d'emballage inconnu : correspondance partielle, à vérifier
+    line = analyze_text("MPN,Manufacturer\nBSS138-ZZTEST,onsemi\n")["lines"][0]
+    assert line["match"] == "partiel" and line["rohs3"] == "a_verifier"
+
+
+def test_composants_lcsc_importes():
+    with db.session() as conn:
+        n = conn.execute("SELECT COUNT(*) FROM components WHERE source LIKE 'LCSC C%'").fetchone()[0]
+        bad = conn.execute("SELECT COUNT(*) FROM components WHERE source LIKE 'LCSC C%' AND reach != 'inconnu'").fetchone()[0]
+    assert n >= 100 and bad == 0   # REACH non publié par LCSC : jamais renseigné à partir de cette source
 
 
 def test_bom_entierement_conforme():
