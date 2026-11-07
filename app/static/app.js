@@ -789,7 +789,7 @@ async function openEccn(code) {
 function renderEccn() {
   const e = currentEccn;
   $("#btnEditEccn").hidden = false;
-  $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-eccn">Soumis au contrôle export</span>` : `<span class="badge b-conforme">Non listé (EAR99)</span>`}`;
+  $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-svhc">Soumis au contrôle export</span>` : `<span class="badge b-conforme">Non listé (EAR99)</span>`}`;
   $("#eccnSummary").textContent = e.title || e.summary;
   $("#eccnParts").innerHTML = e.parts.length ? e.parts.map((p) => `<div class="vcard part">
       <div class="norm">${esc(p.label)}</div><div class="partcode mono">${esc(p.code)}</div>

@@ -242,7 +242,7 @@ a.eccn-link .badge { cursor: pointer; }
 .chart .foot { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
 .charttip { position: fixed; pointer-events: none; z-index: 50; background: var(--text); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
 
-dialog.wide { width: min(1100px, calc(100vw - 32px)); }
+dialog.wide { width: min(1240px, calc(100vw - 32px)); }
 .altref { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); display: grid; gap: 4px; }
 .altref-main { font-weight: 600; font-size: 15px; }
 .swapnote { margin-top: 6px; color: var(--ex); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -252,10 +252,11 @@ dialog.wide { width: min(1100px, calc(100vw - 32px)); }
 #altTable .ok { color: var(--ok); margin-top: 3px; }
 #altTable .warn { color: var(--chk); margin-top: 3px; }
 #altTable tr.notcompliant td { background: color-mix(in srgb, var(--ko-bg) 35%, transparent); }
-#altTable .actions-cell { white-space: nowrap; }
-#altTable .actions-cell .btn + .btn { margin-left: 6px; }
+#altTable .actions-cell { min-width: 190px; }
+#altTable .actions-cell .btn { display: flex; justify-content: center; width: 100%; }
+#altTable .actions-cell .btn + .btn { margin-top: 6px; }
 .score { font-weight: 600; }
-.nomono { font-family: inherit; }
+.nomono { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12.5px; }
 a.mpn-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 a.mpn-link:hover { color: var(--accent); }
 #lines tr.swapped td { background: color-mix(in srgb, var(--ex-bg) 55%, transparent); }
