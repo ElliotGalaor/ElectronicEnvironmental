@@ -1,0 +1,3 @@
+# Fins de ligne Unix pour les scripts exécutés dans le conteneur
+*.sh text eol=lf
+Dockerfile text eol=lf
