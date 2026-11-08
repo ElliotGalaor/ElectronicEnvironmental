@@ -1,0 +1,7 @@
+Nomenclature carte capteur;;;;;
+Révision B - export ERP;;;;;
+Code article fournisseur;Société;Libellé;Distributeur;Directive 2015/863;Règlement 1907/2006
+GRM188R71H104KA93D;Murata;Condensateur 100 nF;Mouser;non;oui
+CC0603KRX7R9BB104;Yageo;Condensateur 100 nF;Farnell;oui;oui
+BSS138;onsemi;MOSFET canal N;Digikey;oui;oui
+XYZ-INCONNU-42;Acme;Capteur prototype;Mouser;oui;non
