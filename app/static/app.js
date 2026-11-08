@@ -17,7 +17,6 @@ const MATCH = {
   mpn_autre_fabricant: ["Autre fabricant", "warn"], partiel: ["Partielle", "warn"],
   ambigu: ["Ambiguë", "warn"], introuvable: ["Introuvable", "bad"], "-": ["—", ""],
 };
-const ROLES = { mpn: "Référence fabricant *", manufacturer: "Fabricant", designator: "Repères", quantity: "Quantité", description: "Description", value: "Valeur", dnp: "Non monté (DNP)" };
 const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", "Directive (UE) 2015/863"], ["reach", "REACH", "Règlement (CE) 1907/2006"]];
 
 let COUNTRIES = {};
@@ -41,7 +40,7 @@ async function api(url, opts = {}) {
   if (!r.ok) {
     let msg = r.statusText;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: r.status, kind: r.headers.get("X-Error-Kind") || "" });
   }
   return r.status === 204 ? null : r;
 }
@@ -164,31 +163,39 @@ async function runAnalysis(format = "json") {
     renderSwapBar();
     if (state.user) loadHistory();
   } catch (e) {
+    if (format === "json" && e.kind === "columns") {
+      // Message laissé sous la fenêtre, au cas où l'utilisateur l'annule
+      $("#error").textContent = "Colonnes à préciser : " + e.message;
+      $("#error").hidden = false;
+      $("#result").hidden = true;
+      openBomMapping(e.message);
+      return;
+    }
     $("#error").textContent = "Erreur : " + e.message;
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
   }
 }
 
+// Correspondance des colonnes de la BOM : ouverte par « Colonnes… » ou quand la détection échoue
+function openBomMapping(problem = "") {
+  openMapping({
+    kind: "bom", file: state.file, mapping: state.overrides, problem,
+    intro: "Choisissez la colonne du fichier qui correspond à chaque champ. Seule la référence fabricant est obligatoire ; " +
+      "le fabricant et la description améliorent la recherche dans la base.",
+    okLabel: "Analyser",
+    onConfirm: (mapping) => { state.overrides = mapping; runAnalysis(); },
+  });
+}
+
 $$("[data-export]").forEach((b) => b.addEventListener("click", () => runAnalysis(b.dataset.export)));
-$("#btnMapping").addEventListener("click", () => { $("#mapping").hidden = !$("#mapping").hidden; });
-$("#btnRerun").addEventListener("click", () => {
-  state.overrides = {};
-  $$("#mapgrid select").forEach((s) => { state.overrides[s.name] = s.value || "__none__"; });
-  runAnalysis();
-});
+$("#btnMapping").addEventListener("click", () => openBomMapping());
 
 function renderReport() {
   const R = state.report, S = R.summary;
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
   $("#fmeta").textContent = `— ${S.lines} lignes, analysé avec ${R.database_size} composants en base`;
-
-  // Colonnes
-  $("#hdrRow").textContent = R.mapping.header_row;
-  const opts = (sel) => `<option value="">— aucune —</option>` + R.mapping.headers.map((h) => h && `<option ${h === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
-  $("#mapgrid").innerHTML = Object.entries(ROLES).map(([role, label]) =>
-    `<label>${label}<select name="${role}">${opts(R.mapping.columns[role])}</select></label>`).join("");
 
   // Verdicts
   const detail = (c) => [
@@ -322,7 +329,8 @@ function renderLines() {
     const comp = l.component;
     const matchCell = `<span class="match ${mCls}">${mLabel}</span>` +
       (comp && l.match !== "exact" ? `<div class="mono muted">${esc(comp.mpn)}</div>` : "");
-    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">déduit</span>` : "");
+    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">déduit</span>` : "") +
+      ((l.from_bom || []).includes(k) ? `<span class="inferred" title="Statut déclaré dans la BOM, pas dans la base">selon la BOM</span>` : "");
     const sugg = l.suggestions.length && !comp
       ? `<div class="sugg">Proches : ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
     const add = (l.match === "introuvable" && l.bom_mpn)
@@ -613,22 +621,284 @@ function afterDbChange() {
 
 /* ------------------------------------------------------------------ import */
 $("#btnImport").addEventListener("click", () => $("#importFile").click());
-$("#importFile").addEventListener("change", async (ev) => {
+$("#importFile").addEventListener("change", (ev) => {
   const f = ev.target.files[0];
   ev.target.value = "";
   if (!f) return;
+  openMapping({
+    kind: "components", file: f,
+    intro: "Vérifiez la colonne utilisée pour chaque champ : l'onglet Résultat montre, avant d'écrire quoi que ce soit, les composants " +
+      "qui seront créés et les valeurs qui seront modifiées (même référence et même fabricant = composant existant).",
+    okLabel: "Importer",
+    onConfirm: (mapping) => importComponents(f, mapping),
+  });
+});
+
+async function importComponents(f, mapping) {
   const fd = new FormData();
   fd.append("file", f);
+  fd.append("mapping", JSON.stringify(mapping));
   const box = $("#importMsg");
   try {
     const r = await (await api("/api/components/import", { method: "POST", body: fd })).json();
     box.className = "alert " + (r.error_count ? "" : "success");
-    box.innerHTML = `Import de <b>${esc(f.name)}</b> : ${r.created} créés, ${r.updated} mis à jour, ${r.error_count} erreurs.` +
+    box.innerHTML = `Import de <b>${esc(f.name)}</b> : ${r.created} créés, ${r.updated} modifiés, ${r.unchanged} inchangés, ${r.error_count} erreurs.` +
       (r.errors.length ? "<br>" + r.errors.slice(0, 10).map(esc).join("<br>") : "");
     afterDbChange();
   } catch (e) { box.className = "alert error"; box.textContent = "Import impossible : " + e.message; }
   box.hidden = false;
+}
+
+/* ------------------------------------------------------------------ correspondance des colonnes
+   Fenêtre commune à l'analyse de BOM et à l'import en base : ligne d'en-tête, colonne à utiliser pour
+   chaque champ (préremplie par la détection automatique), et deux vues :
+   - Résultat : les lignes telles qu'elles seront lues, avec ce qui va changer (calculé par le serveur) ;
+   - Fichier d'origine : le fichier brut, colonnes utilisées surlignées. */
+const dlgMap = $("#dlgMap");
+let mapCtx = null; // { kind, file, onConfirm, preview, tab, seq }
+const STATUS_FIELDS = new Set(["rohs2", "rohs3", "reach"]);
+const ACTION = {
+  create: ["Nouveau", "b-conforme"], update: ["Modifié", "b-exemption"],
+  unchanged: ["Inchangé", "b-non_monte"], error: ["Erreur", "b-non_conforme"],
+};
+
+async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Valider", onConfirm }) {
+  mapCtx = { kind, file, onConfirm, preview: null, tab: mapCtx?.tab || "result", seq: 0, before: null };
+  $("#mapFile").textContent = "— " + file.name;
+  $("#mapIntro").textContent = intro;
+  $("#btnMapOk").textContent = okLabel;
+  const alert = $("#mapAlert");
+  alert.hidden = !problem;
+  alert.className = "alert error";
+  alert.textContent = problem;
+  ["#mapFields", "#mapPreview", "#mapResult", "#mapSummary", "#mapFoot"].forEach((s) => { $(s).innerHTML = ""; });
+  $("#mapManual").hidden = true;
+  showMapTab(mapCtx.tab);
+  if (!dlgMap.open) dlgMap.showModal();
+  await loadMapPreview(mapping);
+}
+
+async function loadMapPreview(mapping) {
+  const seq = ++mapCtx.seq; // seule la dernière réponse compte (choix successifs rapides)
+  const fd = new FormData();
+  fd.append("file", mapCtx.file);
+  fd.append("mapping", JSON.stringify(mapping || {}));
+  $("#mapStatus").textContent = "Lecture du fichier…";
+  $("#btnMapOk").disabled = true;
+  let preview;
+  try {
+    preview = await (await api(`/api/table/preview?kind=${mapCtx.kind}`, { method: "POST", body: fd })).json();
+  } catch (e) {
+    if (seq !== mapCtx.seq) return;
+    // Correspondance enregistrée devenue invalide (colonne renommée…) : on repart de la détection automatique
+    if (mapping && Object.keys(mapping).length) return loadMapPreview({});
+    $("#mapAlert").className = "alert error";
+    $("#mapAlert").textContent = "Fichier illisible : " + e.message;
+    $("#mapAlert").hidden = false;
+    $("#mapStatus").textContent = "";
+    return;
+  }
+  if (seq !== mapCtx.seq) return;
+  mapCtx.preview = preview;
+  renderMapping();
+}
+
+// Correspondance à envoyer : ligne d'en-tête + chaque champ (« __none__ » = ignoré)
+function collectMapping() {
+  const mapping = { _header_row: mapCtx.preview.header_row };
+  $$("#mapFields select").forEach((s) => { mapping[s.name] = s.value || "__none__"; });
+  return mapping;
+}
+
+function renderMapping() {
+  const P = mapCtx.preview;
+  const hr = $("#mapHeaderRow");
+  hr.value = P.header_row;
+  hr.max = P.total_rows;
+  const examples = columnExamples(P);
+  const opts = (sel) => `<option value="">— aucune —</option>` +
+    P.headers.map((h) => `<option value="${esc(h)}" ${h === sel ? "selected" : ""}>${esc(h)}${examples[h] ? ` — ex. ${esc(examples[h])}` : ""}</option>`).join("");
+  $("#mapFields").innerHTML = P.fields.map((f) => {
+    const manual = (P.columns[f.key] || "") !== (P.detected[f.key] || "");
+    return `<label class="${manual ? "manual" : ""}"><span>${esc(f.label)}${f.required ? " *" : ""}${manual
+      ? ` <span class="tag" title="Détection automatique : ${esc(P.detected[f.key] || "aucune")}">modifié</span>` : ""}</span>
+      <select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`;
+  }).join("");
+  renderManualChanges();
+  renderChangeDemo();
+  renderMapResult();
+  renderMapRaw();
+  const missing = P.fields.filter((f) => f.required && !P.columns[f.key]).map((f) => f.label);
+  const shown = P.rows.length < P.total_rows ? ` · ${P.rows.length} premières lignes affichées sur ${P.total_rows}` : "";
+  $("#mapStatus").textContent = missing.length ? `Champ obligatoire à renseigner : ${missing.join(", ")}` : `Ligne d'en-tête ${P.header_row || "absente"}${shown}`;
+  $("#mapStatus").classList.toggle("warn", missing.length > 0);
+  $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
+  $("#btnMapOk").disabled = missing.length > 0;
+}
+
+const DEMO_ROWS = 3;
+
+// Premières valeurs non vides de chaque colonne, sous la ligne d'en-tête (pour les listes déroulantes)
+function columnExamples(P) {
+  const out = {};
+  const data = P.rows.slice(Math.max(P.header_row, 0));
+  P.headers.forEach((h, j) => {
+    const vals = [];
+    for (const r of data) {
+      const v = (r[j] || "").trim();
+      if (v && !vals.includes(v)) vals.push(v.length > 24 ? v.slice(0, 23) + "…" : v);
+      if (vals.length === 2) break;
+    }
+    out[h] = vals.join(", ");
+  });
+  return out;
+}
+
+// Les premières lignes telles qu'elles seront lues : {line, values: {champ: valeur}}.
+// Valeurs calculées par le serveur quand c'est possible (normalisées), sinon lues dans le fichier brut.
+function sampleRows(P) {
+  if (P.result && P.result.lines.length) {
+    return P.result.lines.slice(0, DEMO_ROWS).map((l) => ({ line: l.line, values: l.values || {} }));
+  }
+  const idx = Object.fromEntries(Object.entries(P.columns).map(([k, h]) => [k, P.headers.indexOf(h)]));
+  return P.rows.map((r, i) => ({ line: i + 1, r })).filter(({ line, r }) => line > P.header_row && r.some((c) => c.trim()))
+    .slice(0, DEMO_ROWS).map(({ line, r }) => ({ line, values: Object.fromEntries(Object.entries(idx).map(([k, j]) => [k, r[j] || ""])) }));
+}
+
+// Après un changement d'attribution : les 3 premières lignes, champs modifiés en « avant → après »
+function renderChangeDemo() {
+  const box = $("#mapDemo"), P = mapCtx.preview, B = mapCtx.before;
+  const changed = B ? P.fields.filter((f) => (B.columns[f.key] || "") !== (P.columns[f.key] || "")) : [];
+  box.hidden = !changed.length;
+  if (!changed.length) { box.innerHTML = ""; return; }
+  const after = sampleRows(P);
+  const shownFields = P.fields.filter((f) => P.columns[f.key] || changed.includes(f));
+  const col = (h) => h ? `« ${esc(h)} »` : "aucune colonne";
+  const val = (f, v) => cellValue(f.key, v ?? "");
+  const rows = after.length ? after : B.samples;
+  const prevByLine = Object.fromEntries(B.samples.map((r) => [r.line, r.values]));
+  box.innerHTML = `<div class="mapdemo-head"><b>Effet du changement</b> sur les ${rows.length} premières lignes : ` +
+    changed.map((f) => `${esc(f.label)} ${col(B.columns[f.key])} → ${col(P.columns[f.key])}`).join(" · ") +
+    `<button type="button" class="linkbtn" id="mapDemoClose">Masquer</button></div>` +
+    `<div class="tablewrap"><table class="grid"><thead><tr><th class="rownum">Ligne</th>${shownFields.map((f) =>
+      `<th class="${changed.includes(f) ? "changed" : ""}">${esc(f.label)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((row) => {
+      const prev = prevByLine[row.line] || {}; // même ligne du fichier, avant le changement
+      return `<tr><td class="rownum">${row.line}</td>${shownFields.map((f) => {
+        if (!changed.includes(f)) return `<td>${val(f, row.values[f.key])}</td>`;
+        const before = prev[f.key] ?? "", now = row.values[f.key] ?? "";
+        return `<td class="changed">${before === now ? val(f, now) : `<span class="old">${val(f, before)}</span> → ${val(f, now)}`}</td>`;
+      }).join("")}</tr>`;
+    }).join("") + `</tbody></table></div>`;
+  $("#mapDemoClose").addEventListener("click", () => { mapCtx.before = null; box.hidden = true; });
+}
+
+// Choix manuels par rapport à la détection automatique
+function renderManualChanges() {
+  const P = mapCtx.preview;
+  const col = (h) => h ? `« ${esc(h)} »` : "aucune";
+  const changed = P.fields.filter((f) => (P.columns[f.key] || "") !== (P.detected[f.key] || ""));
+  $("#mapManual").hidden = !changed.length;
+  $("#mapManual").innerHTML = changed.length
+    ? `<b>${changed.length} choix manuel${changed.length > 1 ? "s" : ""}</b> par rapport à la détection automatique : ` +
+      changed.map((f) => `${esc(f.label)} : <s>${col(P.detected[f.key])}</s> → ${col(P.columns[f.key])}`).join(" · ")
+    : "";
+}
+
+const cellValue = (field, v) => v === "" || v == null ? `<span class="muted">—</span>` : STATUS_FIELDS.has(field) ? badge(v) : esc(v);
+
+function renderMapResult() {
+  const P = mapCtx.preview, R = P.result, C = R.counts;
+  const roles = P.fields.filter((f) => P.columns[f.key]);
+  const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+  if (!P.columns.mpn) {
+    $("#mapSummary").innerHTML = "";
+    $("#mapResult").innerHTML = `<tbody><tr><td class="emptyrow">Choisissez la colonne de la référence fabricant pour voir comment le fichier sera lu.</td></tr></tbody>`;
+    $("#mapFoot").textContent = "";
+    return;
+  }
+  if (mapCtx.kind === "bom") {
+    $("#mapSummary").innerHTML = [
+      `<span class="stat"><b>${C.lines}</b> ligne${C.lines > 1 ? "s" : ""} de composants</span>`,
+      `<span class="stat ok"><b>${C.in_base}</b> trouvée${C.in_base > 1 ? "s" : ""} en base</span>`,
+      C.lines - C.in_base ? `<span class="stat chk"><b>${C.lines - C.in_base}</b> absente${C.lines - C.in_base > 1 ? "s" : ""} de la base</span>` : "",
+      C.dnp ? `<span class="stat"><b>${C.dnp}</b> non montée${C.dnp > 1 ? "s" : ""}</span>` : "",
+    ].join("");
+  } else {
+    $("#mapSummary").innerHTML = ["create", "update", "unchanged", "error"].filter((a) => C[a]).map((a) =>
+      `<span class="stat"><span class="badge ${ACTION[a][1]}">${ACTION[a][0]}</span> <b>${C[a]}</b></span>`).join("") ||
+      `<span class="muted">Aucune ligne à importer.</span>`;
+  }
+  const status = (l) => mapCtx.kind === "bom"
+    ? (l.in_base ? `<span class="badge b-conforme">En base</span>` : `<span class="badge b-inconnu">Absente</span>`)
+    : `<span class="badge ${ACTION[l.action][1]}">${ACTION[l.action][0]}</span>` +
+      (l.error ? `<div class="small errtxt">${esc(l.error)}</div>` : "");
+  const cell = (l, f) => {
+    const ch = l.changes && l.changes[f.key];
+    if (ch) return `<td class="changed"><span class="old">${cellValue(f.key, ch[0])}</span> → ${cellValue(f.key, ch[1])}</td>`;
+    return `<td>${cellValue(f.key, l.values[f.key])}</td>`;
+  };
+  $("#mapResult").innerHTML =
+    `<thead><tr><th class="rownum">Ligne</th><th>${mapCtx.kind === "bom" ? "Base" : "Action"}</th>${roles.map((f) =>
+      `<th>${esc(f.label)}<div class="colname">${esc(P.columns[f.key])}</div></th>`).join("")}</tr></thead>` +
+    `<tbody>${R.lines.map((l) => `<tr class="${l.action || ""}"><td class="rownum">${l.line}</td><td>${status(l)}</td>${roles.map((f) => cell(l, f)).join("")}</tr>`).join("") ||
+      `<tr><td class="emptyrow" colspan="${roles.length + 2}">Aucune ligne de composant sous la ligne d'en-tête.</td></tr>`}</tbody>`;
+  const total = mapCtx.kind === "bom" ? C.lines : Object.values(C).reduce((a, b) => a + b, 0);
+  $("#mapFoot").textContent = [
+    total > R.lines.length ? `Détail des ${R.lines.length} premières lignes ; le bilan porte sur tout le fichier (${plural(total, "ligne", "lignes")}).` : "",
+    mapCtx.kind === "components" ? "Composants déjà en base : les champs sans colonne et les cellules vides gardent leur valeur actuelle." : "",
+  ].filter(Boolean).join(" ");
+}
+
+function renderMapRaw() {
+  const P = mapCtx.preview;
+  const labelOf = Object.fromEntries(P.fields.map((f) => [f.key, f.label]));
+  const fieldOf = {};
+  Object.entries(P.columns).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
+  const head = `<thead><tr><th class="rownum">Ligne</th>${P.headers.map((h) =>
+    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-conforme">${esc(fieldOf[h])}</span>` : `<span class="muted">ignorée</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
+  const body = P.rows.map((r, i) => {
+    const n = i + 1;
+    const cls = n === P.header_row ? "hdr" : n < P.header_row ? "before" : "";
+    return `<tr class="${cls}"><td class="rownum">${n}</td>${r.map((c, j) =>
+      `<td class="${fieldOf[P.headers[j]] ? "mapped" : ""}">${esc(c)}</td>`).join("")}</tr>`;
+  }).join("");
+  $("#mapPreview").innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
+function showMapTab(tab) {
+  mapCtx.tab = tab;
+  $$("[data-maptab]").forEach((b) => { const on = b.dataset.maptab === tab; b.classList.toggle("active", on); b.setAttribute("aria-selected", on); });
+  $("#mapResultWrap").hidden = tab !== "result";
+  $("#mapRawWrap").hidden = tab !== "raw";
+  ["#mapSummary", "#mapFoot"].forEach((s) => { $(s).hidden = tab !== "result"; });
+}
+$$("[data-maptab]").forEach((b) => b.addEventListener("click", () => showMapTab(b.dataset.maptab)));
+
+$("#mapFields").addEventListener("change", (ev) => {
+  const sel = ev.target.closest("select");
+  if (!sel) return;
+  // On garde l'état d'avant pour montrer l'effet du changement sur les premières lignes
+  mapCtx.before = { columns: { ...mapCtx.preview.columns }, samples: sampleRows(mapCtx.preview) };
+  // Une colonne ne sert qu'à un seul champ : on la retire des autres
+  if (sel.value) $$("#mapFields select").forEach((o) => { if (o !== sel && o.value === sel.value) o.value = ""; });
+  loadMapPreview(collectMapping()); // le serveur recalcule le résultat avec la nouvelle correspondance
 });
+
+// Nouvelle ligne d'en-tête : les noms de colonnes changent, on relance la détection sur cette ligne
+$("#mapHeaderRow").addEventListener("change", (ev) => {
+  const n = Math.max(0, Math.min(Number(ev.target.value) || 0, mapCtx.preview.total_rows));
+  mapCtx.before = null; // nouvelle ligne d'en-tête : tout est redétecté, pas de comparaison ligne à ligne
+  loadMapPreview({ _header_row: n });
+});
+
+$("#mapForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const mapping = collectMapping();
+  dlgMap.close();
+  mapCtx.onConfirm(mapping);
+});
+$("#btnMapCancel").addEventListener("click", () => dlgMap.close());
 
 /* ------------------------------------------------------------------ équivalents d'autres fabricants
    Ouvert depuis une ligne de BOM (remplacement possible) ou depuis un composant de la base. */
