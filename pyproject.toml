@@ -1,0 +1,26 @@
+[project]
+name = "electronic-environmental"
+version = "1.0.0"
+description = "Analyse de conformité RoHS 2 / RoHS 3 / REACH et contrôle export (ECCN) d'une nomenclature électronique"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+extend-exclude = [".venv", "data"]
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle, bugbear, tri des imports
+select = ["E", "F", "W", "B", "I"]
+ignore = [
+    "E501",  # longueur de ligne : gérée au cas par cas
+    "B008",  # Depends(...) en argument par défaut : motif standard de FastAPI
+    "E741",  # « l » pour une ligne de BOM : lisible dans ce contexte
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

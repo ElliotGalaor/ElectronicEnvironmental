@@ -19,8 +19,8 @@ from pydantic import BaseModel
 
 from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
 from .analyzer import analyze
-from .reports import database_csv, report_csv, report_xlsx
 from .importer import import_table
+from .reports import database_csv, report_csv, report_xlsx
 from .tables import TableError, apply_substitutions, modified_bom_csv, parse_bom
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -116,15 +116,15 @@ async def analyze_bom(
         overrides = json.loads(mapping) if mapping else None
         subs = {int(k): int(v) for k, v in (json.loads(substitutions) if substitutions else {}).items()}
     except (ValueError, TypeError, AttributeError):
-        raise HTTPException(400, "Paramètre mapping ou substitutions : JSON invalide")
+        raise HTTPException(400, "Paramètre mapping ou substitutions : JSON invalide") from None
     try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     try:
         replaced = apply_substitutions(conn, lines, subs)
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     stem = Path(file.filename or "bom").stem
     if format == "bom":
         return Response(
@@ -193,9 +193,9 @@ def register(body: RegisterIn, request: Request, response: Response, conn=Depend
     try:
         user = auth.create_user(conn, body.email, body.password, body.name)
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     except auth.AuthError as exc:
-        raise HTTPException(409, str(exc))
+        raise HTTPException(409, str(exc)) from exc
     return _open_session(conn, user, request, response)
 
 
@@ -207,7 +207,7 @@ def login(body: LoginIn, request: Request, response: Response, conn=Depends(get_
         user = auth.authenticate(conn, email, body.password)
     except auth.AuthError as exc:
         _login_failures[email].append(time.monotonic())
-        raise HTTPException(401, str(exc))
+        raise HTTPException(401, str(exc)) from exc
     _login_failures.pop(email, None)
     return _open_session(conn, user, request, response)
 
@@ -295,7 +295,7 @@ def add_equivalent(comp_id: int, body: EquivalentIn, conn=Depends(get_conn)):
     try:
         alternates.confirm(conn, comp_id, body.other_id)
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     return Response(status_code=204)
 
 
@@ -319,7 +319,7 @@ def create_component(body: ComponentIn, conn=Depends(get_conn)):
     try:
         cid = db.create(conn, body.model_dump())
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     return db.get(conn, cid)
 
 
@@ -328,7 +328,7 @@ def update_component(comp_id: int, body: ComponentIn, conn=Depends(get_conn)):
     try:
         ok = db.update(conn, comp_id, body.model_dump())
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
     if not ok:
         raise HTTPException(404, "Composant introuvable")
     return db.get(conn, comp_id)
@@ -347,7 +347,7 @@ async def import_components(file: UploadFile = File(...), conn=Depends(get_conn)
     try:
         return import_table(conn, data, file.filename or "")
     except TableError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
 
 # ---------------------------------------------------------------- Datasheet PDF
@@ -372,7 +372,7 @@ def extract_datasheet(
     try:
         heur = datasheet.extract(data, name)
     except datasheet.DatasheetError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
     use_ai = method == "ia" or (method == "auto" and datasheet_ai.available())
     if method == "ia" and not datasheet_ai.available():
@@ -438,7 +438,7 @@ def update_manufacturer(key: str, body: ManufacturerIn, conn=Depends(get_conn)):
     try:
         return manufacturers.update(conn, _mfr_key(key), body.model_dump())
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
 
 # ---------------------------------------------------------------- Exemptions RoHS
@@ -462,7 +462,7 @@ def update_exemption(code: str, body: ExemptionNotesIn, conn=Depends(get_conn)):
     try:
         return exemptions.update(conn, code, body.notes)
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
 
 # ---------------------------------------------------------------- Codes ECCN
@@ -482,7 +482,7 @@ def get_eccn(code: str, conn=Depends(get_conn)):
     try:
         return eccn.get(conn, code)
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.put("/api/eccn/{code}", dependencies=[Depends(require_admin)], summary="Modifier l'intitulé et les notes d'un code ECCN")
@@ -490,7 +490,7 @@ def update_eccn(code: str, body: EccnIn, conn=Depends(get_conn)):
     try:
         return eccn.update(conn, code, body.model_dump())
     except db.ValidationError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.get("/api/countries", summary="Codes pays ISO reconnus et leur nom")
