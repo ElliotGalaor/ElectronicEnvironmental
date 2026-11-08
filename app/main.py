@@ -19,9 +19,20 @@ from pydantic import BaseModel
 
 from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
 from .analyzer import analyze
-from .importer import import_table
+from .importer import IMPORT_FIELDS, detect_import_columns, import_table, plan_table
 from .reports import database_csv, report_csv, report_xlsx
-from .tables import TableError, apply_substitutions, modified_bom_csv, parse_bom
+from .tables import (
+    BOM_FIELDS,
+    HEADER_ROW_KEY,
+    TableError,
+    apply_substitutions,
+    bom_lines,
+    detect_columns,
+    modified_bom_csv,
+    parse_bom,
+    read_rows,
+    table_preview,
+)
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 Mo
@@ -98,12 +109,101 @@ async def _read_upload(file: UploadFile) -> bytes:
     return data
 
 
+MAPPING_DOC = ('Correspondance des colonnes, JSON : {"mpn": "Part Number", "manufacturer": "__none__", "_header_row": 3}. '
+               '« __none__ » ignore un champ ; « _header_row » est le n° de la ligne d\'en-tête (0 = pas d\'en-tête).')
+# En-tête de réponse qui signale une erreur de colonnes : l'interface ouvre alors la fenêtre de correspondance.
+COLUMNS_ERROR = {"X-Error-Kind": "columns"}
+
+
+def _parse_mapping(mapping: str) -> dict | None:
+    if not mapping:
+        return None
+    try:
+        parsed = json.loads(mapping)
+    except ValueError:
+        parsed = None
+    if not isinstance(parsed, dict):
+        raise HTTPException(400, "Paramètre mapping : un objet JSON est attendu")
+    return parsed
+
+
+# ---------------------------------------------------------------- Aperçu et correspondance des colonnes
+
+def _bom_value(line, role: str) -> str:
+    """Valeur d'un champ telle que l'analyse la comprendra (statuts normalisés quand c'est possible)."""
+    if role == "dnp":
+        return "oui" if line.dnp else ""
+    value = getattr(line, role)
+    if role in ("rohs2", "rohs3", "reach") and value:
+        try:
+            return db.clean_status(value, db.REACH_STATUSES if role == "reach" else db.ROHS_STATUSES, role)
+        except db.ValidationError:
+            return value  # non reconnu : affiché tel quel (l'analyse le signalera)
+    return value
+
+
+def _bom_result(conn, rows, mapping, sample: int = 10) -> dict:
+    """Lignes de la BOM telles qu'elles seront lues, et présence de chaque référence dans la base."""
+    lines = bom_lines(rows, mapping) if "mpn" in mapping.columns else []
+    roles = [k for k, _, _ in BOM_FIELDS if k in mapping.columns]
+
+    def in_base(mpn: str) -> bool:
+        return bool(mpn) and conn.execute(
+            "SELECT 1 FROM components WHERE mpn_norm = ? OR mpn_loose = ? LIMIT 1", (db.normalize_mpn(mpn), db.loose_mpn(mpn))
+        ).fetchone() is not None
+
+    found = [in_base(line.mpn) for line in lines]
+    detail = [
+        {
+            "line": line.line,
+            "values": {r: _bom_value(line, r) for r in roles},
+            "in_base": ok,
+        }
+        for line, ok in list(zip(lines, found, strict=True))[:sample]
+    ]
+    return {"counts": {"lines": len(lines), "in_base": sum(found), "dnp": sum(line.dnp for line in lines)}, "lines": detail}
+
+
+@app.post("/api/table/preview", summary="Aperçu d'un fichier CSV/XLSX, correspondance des colonnes et résultat")
+async def preview_table(
+    file: UploadFile = File(...),
+    kind: Literal["bom", "components"] = Query(default="bom", description="bom : analyse de BOM ; components : import en base"),
+    mapping: str = Form(default="", description=MAPPING_DOC),
+    conn=Depends(get_conn),
+):
+    """Renvoie, en plus de l'aperçu brut :
+
+    - detected : la correspondance proposée par la détection automatique (pour signaler les choix manuels) ;
+    - result : les premières lignes telles qu'elles seront interprétées et un bilan sur tout le fichier.
+      BOM : présence de chaque référence dans la base. Import : création, modification (ancienne → nouvelle
+      valeur), ligne inchangée ou erreur, sans rien écrire.
+    """
+    data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
+    try:
+        rows = read_rows(data, file.filename or "")
+        if kind == "bom":
+            m = detect_columns(rows, overrides, require_mpn=False)
+            preview = table_preview(rows, m.header_row, m.labels, m.columns, BOM_FIELDS)
+            auto = detect_columns(rows, {HEADER_ROW_KEY: m.header_row + 1}, require_mpn=False).columns
+            result = _bom_result(conn, rows, m)
+        else:
+            hr, labels, columns = detect_import_columns(rows, overrides)
+            preview = table_preview(rows, hr, labels, columns, IMPORT_FIELDS)
+            auto = detect_import_columns(rows, {HEADER_ROW_KEY: hr + 1})[2]
+            result = plan_table(conn, rows, hr, columns) if "mpn" in columns else {"counts": {}, "lines": []}
+    except TableError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    detected = {role: preview["headers"][idx] for role, idx in auto.items()}
+    return {"kind": kind, "filename": file.filename or "", **preview, "detected": detected, "result": result}
+
+
 # ---------------------------------------------------------------- Analyse BOM
 
 @app.post("/api/analyze", summary="Analyser une BOM (CSV, TXT ou XLSX)")
 async def analyze_bom(
     file: UploadFile = File(...),
-    mapping: str = Form(default="", description='Surcharge des colonnes, JSON : {"mpn": "Part Number", ...}'),
+    mapping: str = Form(default="", description=MAPPING_DOC),
     substitutions: str = Form(default="", description='Remplacements, JSON : {"<n° de ligne>": <id du composant>, ...}'),
     format: Literal["json", "xlsx", "csv", "bom"] = Query(default="json", description="bom : la nomenclature modifiée (remplacements appliqués), en CSV"),
     save: str = Form(default="", description="1 : enregistrer l'analyse dans l'historique de l'utilisateur connecté"),
@@ -112,15 +212,15 @@ async def analyze_bom(
     user=Depends(current_user),
 ):
     data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
     try:
-        overrides = json.loads(mapping) if mapping else None
         subs = {int(k): int(v) for k, v in (json.loads(substitutions) if substitutions else {}).items()}
     except (ValueError, TypeError, AttributeError):
-        raise HTTPException(400, "Paramètre mapping ou substitutions : JSON invalide") from None
+        raise HTTPException(400, "Paramètre substitutions : JSON invalide") from None
     try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc)) from exc
+        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
     try:
         replaced = apply_substitutions(conn, lines, subs)
     except db.ValidationError as exc:
@@ -342,12 +442,17 @@ def delete_component(comp_id: int, conn=Depends(get_conn)):
 
 
 @app.post("/api/components/import", summary="Importer / mettre à jour la base depuis un CSV ou XLSX", dependencies=[Depends(require_admin)])
-async def import_components(file: UploadFile = File(...), conn=Depends(get_conn)):
+async def import_components(
+    file: UploadFile = File(...),
+    mapping: str = Form(default="", description=MAPPING_DOC),
+    conn=Depends(get_conn),
+):
     data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
     try:
-        return import_table(conn, data, file.filename or "")
+        return import_table(conn, data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc)) from exc
+        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
 
 
 # ---------------------------------------------------------------- Datasheet PDF
