@@ -749,3 +749,64 @@ def test_import_une_cellule_vide_ne_remplace_pas_une_valeur():
         row = conn.execute("SELECT rohs3, eccn FROM components WHERE mpn = 'SIM-V'").fetchone()
         assert tuple(row) == ("conforme", "5A992.c")
         conn.execute("DELETE FROM components WHERE mpn = 'SIM-V'")
+
+
+# ------------------------------------------------------------------ statuts RoHS / REACH déclarés dans la BOM
+
+def test_detection_des_colonnes_rohs_et_reach_de_la_bom():
+    from app.tables import detect_columns
+
+    def detected(header):
+        rows = [header, ["X"] * len(header)]
+        return {role: header[i] for role, i in detect_columns(rows).columns.items()}
+
+    assert detected(["MPN", "RoHS 2", "RoHS 3", "REACH"]) == {"mpn": "MPN", "rohs2": "RoHS 2", "rohs3": "RoHS 3", "reach": "REACH"}
+    # « RoHS » seul vaut RoHS 3 (directive en vigueur), et ne prend pas la colonne « RoHS 2 »
+    assert detected(["Part Number", "RoHS Status", "REACH SVHC"]) == {"mpn": "Part Number", "rohs3": "RoHS Status", "reach": "REACH SVHC"}
+    assert detected(["MPN", "RoHS 2"]) == {"mpn": "MPN", "rohs2": "RoHS 2"}
+    fields = [f["key"] for f in preview("MPN;RoHS\nA;yes\n").json()["fields"]]
+    assert {"rohs2", "rohs3", "reach"} <= set(fields)
+
+
+BOM_STATUTS = (
+    "MPN;Manufacturer;RoHS 2;RoHS 3;REACH\n"
+    "ZZ-ABSENT-1;Acme;yes;yes;no\n"               # absent de la base : statuts repris de la BOM
+    "CC0603KRX7R9BB104;Yageo;;;yes\n"            # REACH inconnu en base : complété par la BOM
+    "GRM188R71H104KA93D;Murata;yes;non;yes\n"    # RoHS 3 : désaccord avec la base
+    "ZZ-ABSENT-2;Acme;peut-être;;\n"             # valeur non reconnue
+)
+
+
+def test_analyse_reprend_les_statuts_declares_dans_la_bom():
+    lines = {l["bom_mpn"]: l for l in analyze_text(BOM_STATUTS)["lines"]}
+
+    absent = lines["ZZ-ABSENT-1"]
+    assert (absent["rohs2"], absent["rohs3"], absent["reach"]) == ("conforme", "conforme", "non_conforme")
+    assert absent["from_bom"] == ["rohs2", "rohs3", "reach"]
+    assert any("Statuts repris de la BOM" in n for n in absent["notes"])
+
+    complete = lines["CC0603KRX7R9BB104"]
+    assert complete["reach"] == "conforme" and complete["from_bom"] == ["reach"]
+    assert complete["rohs3"] == "conforme"  # vient de la base
+
+    conflit = lines["GRM188R71H104KA93D"]
+    assert conflit["rohs3"] == "a_verifier" and conflit["from_bom"] == []
+    assert any("la BOM déclare « non conforme », la base indique « conforme »" in n for n in conflit["notes"])
+    assert conflit["rohs2"] == "conforme" and conflit["reach"] == "conforme"  # BOM et base d'accord
+
+    invalide = lines["ZZ-ABSENT-2"]
+    assert invalide["rohs2"] == "a_verifier" and invalide["from_bom"] == []
+    assert any("non reconnu" in n for n in invalide["notes"])
+
+
+def test_statuts_de_la_bom_dans_l_apercu_et_le_rapport():
+    p = preview(BOM_STATUTS).json()
+    assert p["result"]["lines"][0]["values"]["reach"] == "non_conforme"  # normalisé pour l'affichage
+    assert p["result"]["lines"][3]["values"]["rohs2"] == "peut-être"     # non reconnu : tel quel
+    r = client.post("/api/analyze?format=csv", files={"file": ("bom.csv", BOM_STATUTS.encode())})
+    assert "Conforme (selon la BOM)" in r.content.decode("utf-8-sig")
+
+
+def test_bom_sans_colonnes_de_statut_inchangee():
+    lines = analyze_text("MPN;Manufacturer\nZZ-ABSENT-1;Acme\n")["lines"]
+    assert (lines[0]["rohs3"], lines[0]["from_bom"]) == ("a_verifier", [])

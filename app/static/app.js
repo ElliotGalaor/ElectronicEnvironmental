@@ -329,7 +329,8 @@ function renderLines() {
     const comp = l.component;
     const matchCell = `<span class="match ${mCls}">${mLabel}</span>` +
       (comp && l.match !== "exact" ? `<div class="mono muted">${esc(comp.mpn)}</div>` : "");
-    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">déduit</span>` : "");
+    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">déduit</span>` : "") +
+      ((l.from_bom || []).includes(k) ? `<span class="inferred" title="Statut déclaré dans la BOM, pas dans la base">selon la BOM</span>` : "");
     const sugg = l.suggestions.length && !comp
       ? `<div class="sugg">Proches : ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
     const add = (l.match === "introuvable" && l.bom_mpn)

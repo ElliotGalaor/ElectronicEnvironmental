@@ -129,6 +129,19 @@ def _parse_mapping(mapping: str) -> dict | None:
 
 # ---------------------------------------------------------------- Aperçu et correspondance des colonnes
 
+def _bom_value(line, role: str) -> str:
+    """Valeur d'un champ telle que l'analyse la comprendra (statuts normalisés quand c'est possible)."""
+    if role == "dnp":
+        return "oui" if line.dnp else ""
+    value = getattr(line, role)
+    if role in ("rohs2", "rohs3", "reach") and value:
+        try:
+            return db.clean_status(value, db.REACH_STATUSES if role == "reach" else db.ROHS_STATUSES, role)
+        except db.ValidationError:
+            return value  # non reconnu : affiché tel quel (l'analyse le signalera)
+    return value
+
+
 def _bom_result(conn, rows, mapping, sample: int = 10) -> dict:
     """Lignes de la BOM telles qu'elles seront lues, et présence de chaque référence dans la base."""
     lines = bom_lines(rows, mapping) if "mpn" in mapping.columns else []
@@ -143,7 +156,7 @@ def _bom_result(conn, rows, mapping, sample: int = 10) -> dict:
     detail = [
         {
             "line": line.line,
-            "values": {r: ("oui" if line.dnp else "") if r == "dnp" else getattr(line, r) for r in roles},
+            "values": {r: _bom_value(line, r) for r in roles},
             "in_base": ok,
         }
         for line, ok in list(zip(lines, found, strict=True))[:sample]

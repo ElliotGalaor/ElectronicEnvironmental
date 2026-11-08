@@ -97,6 +97,12 @@ COLUMN_SYNONYMS: dict[str, list[str]] = {
     ],
     "value": ["value", "valeur", "val"],
     "dnp": ["dnp", "do not populate", "fitted", "populate", "monte", "non monte", "mounted", "assembly"],
+    # Statuts environnementaux déclarés dans la BOM (export de distributeur, de PLM…)
+    "rohs2": ["rohs2", "rohs 2", "rohs ii", "rohs 2011 65 ue", "rohs 2011 65 eu", "statut rohs 2", "rohs 2 status"],
+    # « RoHS » seul : depuis juillet 2019, une conformité RoHS annoncée vaut pour la directive (UE) 2015/863 (RoHS 3)
+    "rohs3": ["rohs3", "rohs 3", "rohs iii", "rohs 2015 863", "rohs 2015 863 ue", "rohs 2015 863 eu", "statut rohs 3",
+              "rohs", "rohs status", "statut rohs", "rohs compliant", "rohs compliance", "conformite rohs"],
+    "reach": ["reach", "reach status", "statut reach", "reach compliant", "reach compliance", "conformite reach", "reach svhc"],
 }
 
 _AMBIGUOUS_REFERENCE = {"reference", "ref", "references"}
@@ -136,6 +142,9 @@ BOM_FIELDS = [
     ("description", "Description", False),
     ("value", "Valeur", False),
     ("dnp", "Non monté (DNP)", False),
+    ("rohs2", "RoHS 2", False),
+    ("rohs3", "RoHS 3", False),
+    ("reach", "REACH", False),
 ]
 
 
@@ -259,13 +268,18 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
         for role, score in _match_role(h):
             candidates.setdefault(role, []).append((score, idx))
 
+    # Deux passes : les en-têtes reconnus exactement d'abord, puis les correspondances partielles
+    # (sinon « RoHS 2 » pourrait être pris par RoHS 3, qui accepte « RoHS » en début d'en-tête).
     used: set[int] = set()
-    for role in ("mpn", "manufacturer", "designator", "quantity", "description", "value", "dnp"):
-        for _score, idx in sorted(candidates.get(role, []), key=lambda t: (-t[0], t[1])):
-            if idx not in used:
-                mapping.columns[role] = idx
-                used.add(idx)
-                break
+    for min_score in (2, 1):
+        for role in ("mpn", "manufacturer", "designator", "quantity", "description", "value", "dnp", "rohs3", "rohs2", "reach"):
+            if role in mapping.columns:
+                continue
+            for score, idx in sorted(candidates.get(role, []), key=lambda t: (-t[0], t[1])):
+                if score >= min_score and idx not in used:
+                    mapping.columns[role] = idx
+                    used.add(idx)
+                    break
 
     # Correspondance manuelle : {rôle: nom de colonne}
     apply_overrides(mapping.columns, labels, overrides, COLUMN_SYNONYMS)
@@ -290,6 +304,10 @@ class BomLine:
     designator: str = ""
     value: str = ""
     dnp: bool = False
+    # Statuts déclarés dans la BOM (valeurs brutes, normalisées par l'analyse)
+    rohs2: str = ""
+    rohs3: str = ""
+    reach: str = ""
 
 
 _YES = {"yes", "oui", "y", "o", "1", "true", "x"}
@@ -347,6 +365,9 @@ def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
                 designator=cell(row, "designator"),
                 value=cell(row, "value"),
                 dnp=dnp,
+                rohs2=cell(row, "rohs2"),
+                rohs3=cell(row, "rohs3"),
+                reach=cell(row, "reach"),
             )
         )
     return lines
