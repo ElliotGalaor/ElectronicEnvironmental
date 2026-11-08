@@ -116,7 +116,7 @@ Chaque évolution passe par une pull request relue, liée à son issue.
 | | [#11](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/11) | **Livraison continue** : image Docker testée et publiée sur GitHub Container Registry, release automatique sur tag |
 | | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Fenêtre des équivalents lisible sur tous les écrans : affichage en cartes quand la place manque |
 | | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | README de présentation avec captures d'écran, guide technique séparé |
-| *prochaine* | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Correspondance manuelle des colonnes** pour les fichiers de format inconnu : aperçu du résultat et de chaque changement, import en base simulé avant écriture, statuts RoHS / REACH lus dans la BOM ; correction : une mise à jour en base n'efface plus les champs absents du fichier |
+| [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Correspondance manuelle des colonnes** pour les fichiers de format inconnu : aperçu du résultat et de chaque changement, import en base simulé avant écriture, statuts RoHS / REACH lus dans la BOM ; correction : une mise à jour en base n'efface plus les champs absents du fichier |
 
 ## Démarrage rapide
 
