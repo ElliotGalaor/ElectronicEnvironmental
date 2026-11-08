@@ -19,9 +19,18 @@ from pydantic import BaseModel
 
 from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
 from .analyzer import analyze
-from .importer import import_table
+from .importer import IMPORT_FIELDS, detect_import_columns, import_table
 from .reports import database_csv, report_csv, report_xlsx
-from .tables import TableError, apply_substitutions, modified_bom_csv, parse_bom
+from .tables import (
+    BOM_FIELDS,
+    TableError,
+    apply_substitutions,
+    detect_columns,
+    modified_bom_csv,
+    parse_bom,
+    read_rows,
+    table_preview,
+)
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 Mo
@@ -98,12 +107,53 @@ async def _read_upload(file: UploadFile) -> bytes:
     return data
 
 
+MAPPING_DOC = ('Correspondance des colonnes, JSON : {"mpn": "Part Number", "manufacturer": "__none__", "_header_row": 3}. '
+               '« __none__ » ignore un champ ; « _header_row » est le n° de la ligne d\'en-tête (0 = pas d\'en-tête).')
+# En-tête de réponse qui signale une erreur de colonnes : l'interface ouvre alors la fenêtre de correspondance.
+COLUMNS_ERROR = {"X-Error-Kind": "columns"}
+
+
+def _parse_mapping(mapping: str) -> dict | None:
+    if not mapping:
+        return None
+    try:
+        parsed = json.loads(mapping)
+    except ValueError:
+        parsed = None
+    if not isinstance(parsed, dict):
+        raise HTTPException(400, "Paramètre mapping : un objet JSON est attendu")
+    return parsed
+
+
+# ---------------------------------------------------------------- Aperçu et correspondance des colonnes
+
+@app.post("/api/table/preview", summary="Aperçu d'un fichier CSV/XLSX et correspondance des colonnes détectée")
+async def preview_table(
+    file: UploadFile = File(...),
+    kind: Literal["bom", "components"] = Query(default="bom", description="bom : analyse de BOM ; components : import en base"),
+    mapping: str = Form(default="", description=MAPPING_DOC),
+):
+    data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
+    try:
+        rows = read_rows(data, file.filename or "")
+        if kind == "bom":
+            m = detect_columns(rows, overrides, require_mpn=False)
+            preview = table_preview(rows, m.header_row, m.labels, m.columns, BOM_FIELDS)
+        else:
+            hr, labels, columns = detect_import_columns(rows, overrides)
+            preview = table_preview(rows, hr, labels, columns, IMPORT_FIELDS)
+    except TableError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"kind": kind, "filename": file.filename or "", **preview}
+
+
 # ---------------------------------------------------------------- Analyse BOM
 
 @app.post("/api/analyze", summary="Analyser une BOM (CSV, TXT ou XLSX)")
 async def analyze_bom(
     file: UploadFile = File(...),
-    mapping: str = Form(default="", description='Surcharge des colonnes, JSON : {"mpn": "Part Number", ...}'),
+    mapping: str = Form(default="", description=MAPPING_DOC),
     substitutions: str = Form(default="", description='Remplacements, JSON : {"<n° de ligne>": <id du composant>, ...}'),
     format: Literal["json", "xlsx", "csv", "bom"] = Query(default="json", description="bom : la nomenclature modifiée (remplacements appliqués), en CSV"),
     save: str = Form(default="", description="1 : enregistrer l'analyse dans l'historique de l'utilisateur connecté"),
@@ -112,15 +162,15 @@ async def analyze_bom(
     user=Depends(current_user),
 ):
     data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
     try:
-        overrides = json.loads(mapping) if mapping else None
         subs = {int(k): int(v) for k, v in (json.loads(substitutions) if substitutions else {}).items()}
     except (ValueError, TypeError, AttributeError):
-        raise HTTPException(400, "Paramètre mapping ou substitutions : JSON invalide") from None
+        raise HTTPException(400, "Paramètre substitutions : JSON invalide") from None
     try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc)) from exc
+        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
     try:
         replaced = apply_substitutions(conn, lines, subs)
     except db.ValidationError as exc:
@@ -342,12 +392,17 @@ def delete_component(comp_id: int, conn=Depends(get_conn)):
 
 
 @app.post("/api/components/import", summary="Importer / mettre à jour la base depuis un CSV ou XLSX", dependencies=[Depends(require_admin)])
-async def import_components(file: UploadFile = File(...), conn=Depends(get_conn)):
+async def import_components(
+    file: UploadFile = File(...),
+    mapping: str = Form(default="", description=MAPPING_DOC),
+    conn=Depends(get_conn),
+):
     data = await _read_upload(file)
+    overrides = _parse_mapping(mapping)
     try:
-        return import_table(conn, data, file.filename or "")
+        return import_table(conn, data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc)) from exc
+        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
 
 
 # ---------------------------------------------------------------- Datasheet PDF

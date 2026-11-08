@@ -66,8 +66,6 @@ main { padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
-.mapping { margin-bottom: 14px; }
-.mapping p { margin: 0 0 10px; }
 .mapgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .mapgrid label, .formgrid label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
 
@@ -260,6 +258,24 @@ a.mpn-link { color: inherit; text-decoration: underline dotted; text-underline-o
 a.mpn-link:hover { color: var(--accent); }
 #lines tr.swapped td { background: color-mix(in srgb, var(--ex-bg) 55%, transparent); }
 .swapbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--ex-bg); color: var(--ex); font-weight: 600; }
+
+/* Correspondance des colonnes */
+.maphead { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 4px 0 14px; }
+.maphead label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.maphead input { width: 90px; }
+#mapFields select { width: 100%; min-width: 0; }
+#mapFields select.missing { border-color: var(--ko); outline: 1px solid var(--ko); }
+.mappreview { max-height: 340px; overflow: auto; }
+#mapPreview { font-size: 12.5px; }
+#mapPreview th { vertical-align: bottom; white-space: nowrap; }
+#mapPreview th .colname { font-weight: 400; margin-top: 3px; color: var(--muted); }
+#mapPreview th.mapped .colname { color: var(--text); font-weight: 600; }
+#mapPreview td { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+#mapPreview td.mapped { background: color-mix(in srgb, var(--ok-bg) 45%, transparent); }
+#mapPreview .rownum { color: var(--muted); text-align: right; width: 1%; font-variant-numeric: tabular-nums; }
+#mapPreview tr.hdr td { font-weight: 600; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+#mapPreview tr.before td { opacity: .45; }
+#mapStatus.warn { color: var(--ko); font-weight: 600; }
 
 @media (max-width: 640px) {
   .mfrinfo { grid-template-columns: 1fr; }

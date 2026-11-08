@@ -17,7 +17,6 @@ const MATCH = {
   mpn_autre_fabricant: ["Autre fabricant", "warn"], partiel: ["Partielle", "warn"],
   ambigu: ["Ambiguë", "warn"], introuvable: ["Introuvable", "bad"], "-": ["—", ""],
 };
-const ROLES = { mpn: "Référence fabricant *", manufacturer: "Fabricant", designator: "Repères", quantity: "Quantité", description: "Description", value: "Valeur", dnp: "Non monté (DNP)" };
 const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", "Directive (UE) 2015/863"], ["reach", "REACH", "Règlement (CE) 1907/2006"]];
 
 let COUNTRIES = {};
@@ -41,7 +40,7 @@ async function api(url, opts = {}) {
   if (!r.ok) {
     let msg = r.statusText;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: r.status, kind: r.headers.get("X-Error-Kind") || "" });
   }
   return r.status === 204 ? null : r;
 }
@@ -164,31 +163,39 @@ async function runAnalysis(format = "json") {
     renderSwapBar();
     if (state.user) loadHistory();
   } catch (e) {
+    if (format === "json" && e.kind === "columns") {
+      // Message laissé sous la fenêtre, au cas où l'utilisateur l'annule
+      $("#error").textContent = "Colonnes à préciser : " + e.message;
+      $("#error").hidden = false;
+      $("#result").hidden = true;
+      openBomMapping(e.message);
+      return;
+    }
     $("#error").textContent = "Erreur : " + e.message;
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
   }
 }
 
+// Correspondance des colonnes de la BOM : ouverte par « Colonnes… » ou quand la détection échoue
+function openBomMapping(problem = "") {
+  openMapping({
+    kind: "bom", file: state.file, mapping: state.overrides, problem,
+    intro: "Choisissez la colonne du fichier qui correspond à chaque champ. Seule la référence fabricant est obligatoire ; " +
+      "le fabricant et la description améliorent la recherche dans la base.",
+    okLabel: "Analyser",
+    onConfirm: (mapping) => { state.overrides = mapping; runAnalysis(); },
+  });
+}
+
 $$("[data-export]").forEach((b) => b.addEventListener("click", () => runAnalysis(b.dataset.export)));
-$("#btnMapping").addEventListener("click", () => { $("#mapping").hidden = !$("#mapping").hidden; });
-$("#btnRerun").addEventListener("click", () => {
-  state.overrides = {};
-  $$("#mapgrid select").forEach((s) => { state.overrides[s.name] = s.value || "__none__"; });
-  runAnalysis();
-});
+$("#btnMapping").addEventListener("click", () => openBomMapping());
 
 function renderReport() {
   const R = state.report, S = R.summary;
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
   $("#fmeta").textContent = `— ${S.lines} lignes, analysé avec ${R.database_size} composants en base`;
-
-  // Colonnes
-  $("#hdrRow").textContent = R.mapping.header_row;
-  const opts = (sel) => `<option value="">— aucune —</option>` + R.mapping.headers.map((h) => h && `<option ${h === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
-  $("#mapgrid").innerHTML = Object.entries(ROLES).map(([role, label]) =>
-    `<label>${label}<select name="${role}">${opts(R.mapping.columns[role])}</select></label>`).join("");
 
   // Verdicts
   const detail = (c) => [
@@ -613,12 +620,23 @@ function afterDbChange() {
 
 /* ------------------------------------------------------------------ import */
 $("#btnImport").addEventListener("click", () => $("#importFile").click());
-$("#importFile").addEventListener("change", async (ev) => {
+$("#importFile").addEventListener("change", (ev) => {
   const f = ev.target.files[0];
   ev.target.value = "";
   if (!f) return;
+  openMapping({
+    kind: "components", file: f,
+    intro: "Vérifiez la colonne utilisée pour chaque champ avant l'import. Les lignes existantes (même référence et même fabricant) " +
+      "sont mises à jour ; les champs sans colonne ne sont pas modifiés pour les nouvelles lignes.",
+    okLabel: "Importer",
+    onConfirm: (mapping) => importComponents(f, mapping),
+  });
+});
+
+async function importComponents(f, mapping) {
   const fd = new FormData();
   fd.append("file", f);
+  fd.append("mapping", JSON.stringify(mapping));
   const box = $("#importMsg");
   try {
     const r = await (await api("/api/components/import", { method: "POST", body: fd })).json();
@@ -628,7 +646,113 @@ $("#importFile").addEventListener("change", async (ev) => {
     afterDbChange();
   } catch (e) { box.className = "alert error"; box.textContent = "Import impossible : " + e.message; }
   box.hidden = false;
+}
+
+/* ------------------------------------------------------------------ correspondance des colonnes
+   Fenêtre commune à l'analyse de BOM et à l'import en base : aperçu du fichier, ligne d'en-tête,
+   et pour chaque champ la colonne à utiliser (préremplie par la détection automatique). */
+const dlgMap = $("#dlgMap");
+let mapCtx = null; // { kind, file, onConfirm, preview, headerRow }
+
+async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Valider", onConfirm }) {
+  mapCtx = { kind, file, onConfirm, preview: null };
+  $("#mapFile").textContent = "— " + file.name;
+  $("#mapIntro").textContent = intro;
+  $("#btnMapOk").textContent = okLabel;
+  const alert = $("#mapAlert");
+  alert.hidden = !problem;
+  alert.className = "alert error";
+  alert.textContent = problem;
+  $("#mapFields").innerHTML = "";
+  $("#mapPreview").innerHTML = "";
+  if (!dlgMap.open) dlgMap.showModal();
+  await loadMapPreview(mapping);
+}
+
+async function loadMapPreview(mapping) {
+  const fd = new FormData();
+  fd.append("file", mapCtx.file);
+  fd.append("mapping", JSON.stringify(mapping || {}));
+  $("#mapStatus").textContent = "Lecture du fichier…";
+  try {
+    mapCtx.preview = await (await api(`/api/table/preview?kind=${mapCtx.kind}`, { method: "POST", body: fd })).json();
+  } catch (e) {
+    // Correspondance enregistrée devenue invalide (colonne renommée…) : on repart de la détection automatique
+    if (mapping && Object.keys(mapping).length) return loadMapPreview({});
+    $("#mapAlert").className = "alert error";
+    $("#mapAlert").textContent = "Fichier illisible : " + e.message;
+    $("#mapAlert").hidden = false;
+    $("#mapStatus").textContent = "";
+    $("#btnMapOk").disabled = true;
+    return;
+  }
+  renderMapFields();
+}
+
+function renderMapFields() {
+  const P = mapCtx.preview;
+  const hr = $("#mapHeaderRow");
+  hr.value = P.header_row;
+  hr.max = P.total_rows;
+  const opts = (sel) => `<option value="">— aucune —</option>` +
+    P.headers.map((h) => `<option ${h === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
+  $("#mapFields").innerHTML = P.fields.map((f) =>
+    `<label>${esc(f.label)}${f.required ? " *" : ""}<select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`).join("");
+  renderMapPreview();
+}
+
+// Correspondance affichée : {champ: nom de colonne}, d'après les listes déroulantes
+function currentColumns() {
+  const cols = {};
+  $$("#mapFields select").forEach((s) => { if (s.value) cols[s.name] = s.value; });
+  return cols;
+}
+
+function renderMapPreview() {
+  const P = mapCtx.preview, cols = currentColumns();
+  const labelOf = Object.fromEntries(P.fields.map((f) => [f.key, f.label]));
+  const fieldOf = {};
+  Object.entries(cols).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
+  const head = `<thead><tr><th class="rownum">Ligne</th>${P.headers.map((h) =>
+    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-conforme">${esc(fieldOf[h])}</span>` : `<span class="muted">ignorée</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
+  const body = P.rows.map((r, i) => {
+    const n = i + 1;
+    const cls = n === P.header_row ? "hdr" : n < P.header_row ? "before" : "";
+    return `<tr class="${cls}"><td class="rownum">${n}</td>${r.map((c, j) =>
+      `<td class="${fieldOf[P.headers[j]] ? "mapped" : ""}">${esc(c)}</td>`).join("")}</tr>`;
+  }).join("");
+  $("#mapPreview").innerHTML = head + `<tbody>${body}</tbody>`;
+  const missing = P.fields.filter((f) => f.required && !cols[f.key]).map((f) => f.label);
+  const shown = P.rows.length < P.total_rows ? ` (${P.rows.length} premières lignes sur ${P.total_rows})` : "";
+  $("#mapStatus").textContent = missing.length ? `Champ obligatoire à renseigner : ${missing.join(", ")}` : `Ligne d'en-tête ${P.header_row || "absente"}${shown}`;
+  $("#mapStatus").classList.toggle("warn", missing.length > 0);
+  $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
+  $("#btnMapOk").disabled = missing.length > 0;
+}
+
+$("#mapFields").addEventListener("change", (ev) => {
+  const sel = ev.target.closest("select");
+  if (!sel) return;
+  // Une colonne ne sert qu'à un seul champ : on la retire des autres
+  if (sel.value) $$("#mapFields select").forEach((o) => { if (o !== sel && o.value === sel.value) o.value = ""; });
+  renderMapPreview();
 });
+
+// Nouvelle ligne d'en-tête : les noms de colonnes changent, on relance la détection sur cette ligne
+$("#mapHeaderRow").addEventListener("change", (ev) => {
+  const n = Math.max(0, Math.min(Number(ev.target.value) || 0, mapCtx.preview.total_rows));
+  loadMapPreview({ _header_row: n });
+});
+
+$("#mapForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const cols = currentColumns();
+  const mapping = { _header_row: mapCtx.preview.header_row };
+  mapCtx.preview.fields.forEach((f) => { mapping[f.key] = cols[f.key] || "__none__"; });
+  dlgMap.close();
+  mapCtx.onConfirm(mapping);
+});
+$("#btnMapCancel").addEventListener("click", () => dlgMap.close());
 
 /* ------------------------------------------------------------------ équivalents d'autres fabricants
    Ouvert depuis une ligne de BOM (remplacement possible) ou depuis un composant de la base. */

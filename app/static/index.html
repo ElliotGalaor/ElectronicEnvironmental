@@ -56,16 +56,10 @@
       <div class="fileline">
         <div><strong id="fname"></strong> <span class="muted" id="fmeta"></span></div>
         <div class="actions">
-          <button class="btn" id="btnMapping">Colonnes…</button>
+          <button class="btn" id="btnMapping" title="Choisir quelle colonne du fichier correspond à chaque champ">Colonnes…</button>
           <button class="btn" data-export="csv">Export CSV</button>
           <button class="btn primary" data-export="xlsx">Export Excel</button>
         </div>
-      </div>
-
-      <div id="mapping" class="card mapping" hidden>
-        <p class="muted">Colonnes utilisées (ligne d'en-tête <span id="hdrRow"></span>). Corrigez si besoin puis relancez.</p>
-        <div class="mapgrid" id="mapgrid"></div>
-        <button class="btn primary" id="btnRerun">Relancer l'analyse</button>
       </div>
 
       <div id="swapBar" class="swapbar" hidden>
@@ -303,6 +297,30 @@
     <div class="dlgactions"><span class="spacer"></span>
       <button type="button" class="btn" id="btnEccnCancel">Annuler</button>
       <button type="submit" class="btn primary">Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============================== MODALE CORRESPONDANCE DES COLONNES ============================== -->
+<dialog id="dlgMap" class="wide">
+  <form id="mapForm" method="dialog">
+    <h2>Correspondance des colonnes <span class="muted" id="mapFile"></span></h2>
+    <div id="mapAlert" class="alert" hidden></div>
+    <p class="muted small" id="mapIntro"></p>
+    <div class="maphead">
+      <label>Ligne d'en-tête
+        <input type="number" id="mapHeaderRow" min="0" step="1" inputmode="numeric">
+      </label>
+      <span class="muted small">Numéro de la ligne qui contient les noms de colonnes (0 si le fichier n'en a pas).</span>
+    </div>
+    <div class="mapgrid" id="mapFields"></div>
+    <h3 class="section">Aperçu du fichier</h3>
+    <div class="tablewrap mappreview"><table class="grid" id="mapPreview"></table></div>
+    <div class="dlgactions">
+      <span class="muted small" id="mapStatus"></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="btnMapCancel">Annuler</button>
+      <button type="submit" class="btn primary" id="btnMapOk">Valider</button>
     </div>
   </form>
 </dialog>
