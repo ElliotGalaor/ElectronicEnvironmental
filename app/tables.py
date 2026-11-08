@@ -105,16 +105,110 @@ _DESIGNATOR_VALUE_RE = re.compile(r"^\s*[A-Z]{1,4}\d+[A-Z]?(\s*[,;/ -]\s*[A-Z]{1
 
 @dataclass
 class ColumnMapping:
-    header_row: int
-    headers: list[str]
+    header_row: int  # index de la ligne d'en-tête (0 = première ligne, -1 = fichier sans en-tête)
+    headers: list[str]  # en-têtes tels qu'écrits dans le fichier
     columns: dict[str, int] = field(default_factory=dict)  # rôle -> index de colonne
+    labels: list[str] = field(default_factory=list)  # noms uniques des colonnes (voir column_labels)
 
     def to_dict(self) -> dict:
+        labels = self.labels or self.headers
         return {
             "header_row": self.header_row + 1,
-            "headers": self.headers,
-            "columns": {role: self.headers[idx] for role, idx in self.columns.items()},
+            "headers": labels,
+            "columns": {role: labels[idx] for role, idx in self.columns.items()},
         }
+
+
+# ------------------------------------------------------------------ correspondance manuelle des colonnes
+# La correspondance envoyée par l'interface est un dictionnaire {champ: nom de colonne}.
+# « __none__ » retire un champ détecté à tort ; la clé HEADER_ROW_KEY fixe la ligne d'en-tête
+# (numéro de ligne du fichier, 1 = première ligne ; 0 = le fichier n'a pas de ligne d'en-tête).
+
+HEADER_ROW_KEY = "_header_row"
+NO_COLUMN = "__none__"
+
+# Champs proposés dans la fenêtre de correspondance pour une BOM : (clé, libellé, obligatoire)
+BOM_FIELDS = [
+    ("mpn", "Référence fabricant", True),
+    ("manufacturer", "Fabricant", False),
+    ("designator", "Repères", False),
+    ("quantity", "Quantité", False),
+    ("description", "Description", False),
+    ("value", "Valeur", False),
+    ("dnp", "Non monté (DNP)", False),
+]
+
+
+def column_labels(headers: list[str]) -> list[str]:
+    """Nom unique de chaque colonne : l'en-tête, « Colonne N » s'il est vide, numéroté s'il est en double."""
+    labels: list[str] = []
+    for i, h in enumerate(headers):
+        label = (h or "").strip() or f"Colonne {i + 1}"
+        if label in labels:
+            label = f"{label} (colonne {i + 1})"
+        labels.append(label)
+    return labels
+
+
+def resolve_header_row(rows: list[list[str]], overrides: dict | None, detect) -> int:
+    """Ligne d'en-tête choisie par l'utilisateur, sinon détectée. Retourne un index (-1 = pas d'en-tête)."""
+    raw = (overrides or {}).get(HEADER_ROW_KEY)
+    if raw is None or raw == "":
+        return detect(rows)
+    try:
+        n = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise TableError(f"Ligne d'en-tête invalide : {raw!r}") from exc
+    if not 0 <= n <= len(rows):
+        raise TableError(f"Ligne d'en-tête {n} hors du fichier (1 à {len(rows)}, ou 0 s'il n'y a pas d'en-tête)")
+    return n - 1
+
+
+def table_headers(rows: list[list[str]], header_row: int) -> tuple[list[str], list[str]]:
+    """En-têtes bruts (complétés à la largeur du tableau) et noms uniques des colonnes."""
+    width = max((len(r) for r in rows[: max(header_row, 0) + 200]), default=0)
+    headers = [h.strip() for h in rows[header_row]] if header_row >= 0 else []
+    headers += [""] * (width - len(headers))
+    return headers, column_labels(headers)
+
+
+def apply_overrides(columns: dict[str, int], labels: list[str], overrides: dict | None, allowed) -> None:
+    """Applique la correspondance manuelle {champ: nom de colonne} sur les colonnes détectées."""
+    allowed = set(allowed)
+    for role, name in (overrides or {}).items():
+        if role == HEADER_ROW_KEY or not name:
+            continue
+        if role not in allowed:
+            raise TableError(f"Champ inconnu dans la correspondance des colonnes : {role!r}")
+        if not isinstance(name, str):
+            raise TableError(f"Correspondance des colonnes : nom de colonne invalide pour {role!r}")
+        if name == NO_COLUMN:
+            columns.pop(role, None)
+            continue
+        try:
+            idx = labels.index(name)
+        except ValueError as exc:
+            raise TableError(f"Colonne {name!r} introuvable dans le fichier") from exc
+        for other, i in list(columns.items()):
+            if i == idx and other != role:
+                columns.pop(other)
+        columns[role] = idx
+
+
+def table_preview(rows: list[list[str]], header_row: int, labels: list[str], columns: dict[str, int],
+                  fields: list[tuple[str, str, bool]], max_rows: int = 12) -> dict:
+    """Aperçu du fichier pour la fenêtre de correspondance des colonnes."""
+    width = len(labels)
+    shown = max(max_rows, header_row + 6)
+    return {
+        "header_row": header_row + 1,
+        "total_rows": len(rows),
+        "headers": labels,
+        "rows": [(r + [""] * (width - len(r)))[:width] for r in rows[:shown]],
+        "columns": {role: labels[idx] for role, idx in columns.items()},
+        "fields": [{"key": k, "label": label, "required": req} for k, label, req in fields],
+        "missing": [k for k, _, req in fields if req and k not in columns],
+    }
 
 
 def _match_role(header: str) -> list[tuple[str, int]]:
@@ -144,13 +238,13 @@ def detect_header_row(rows: list[list[str]], max_scan: int = 25) -> int:
     return best
 
 
-def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = None) -> ColumnMapping:
+def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = None, require_mpn: bool = True) -> ColumnMapping:
     if not rows:
         raise TableError("Le fichier est vide")
-    hr = detect_header_row(rows)
-    headers = [h.strip() for h in rows[hr]]
+    hr = resolve_header_row(rows, overrides, detect_header_row)
+    headers, labels = table_headers(rows, hr)
     data = rows[hr + 1 : hr + 51]
-    mapping = ColumnMapping(header_row=hr, headers=headers)
+    mapping = ColumnMapping(header_row=hr, headers=headers, labels=labels)
 
     # Scores par rôle
     candidates: dict[str, list[tuple[int, int]]] = {}
@@ -173,26 +267,13 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
                 used.add(idx)
                 break
 
-    # Surcharges manuelles : {rôle: nom d'en-tête}
-    for role, header_name in (overrides or {}).items():
-        if not header_name:
-            continue
-        if header_name == "__none__":
-            mapping.columns.pop(role, None)
-            continue
-        try:
-            idx = headers.index(header_name)
-        except ValueError as exc:
-            raise TableError(f"Colonne {header_name!r} introuvable dans le fichier") from exc
-        for r, i in list(mapping.columns.items()):
-            if i == idx and r != role:
-                mapping.columns.pop(r)
-        mapping.columns[role] = idx
+    # Correspondance manuelle : {rôle: nom de colonne}
+    apply_overrides(mapping.columns, labels, overrides, COLUMN_SYNONYMS)
 
-    if "mpn" not in mapping.columns:
+    if require_mpn and "mpn" not in mapping.columns:
         raise TableError(
             "Impossible de trouver la colonne « référence fabricant » (MPN). "
-            "Colonnes détectées : " + ", ".join(h for h in headers if h)
+            "Indiquez-la dans la correspondance des colonnes. Colonnes du fichier : " + ", ".join(labels)
         )
     return mapping
 
@@ -300,6 +381,8 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
     c = mapping.columns
     out = io.StringIO()
     w = csv.writer(out, delimiter=";")
+    if mapping.header_row < 0:  # fichier sans en-tête : on en ajoute un
+        w.writerow((mapping.labels or mapping.headers) + ["Remplace"])
     for idx, row in enumerate(rows, start=1):
         row = list(row) + [""] * (len(mapping.headers) - len(row))
         if idx - 1 < mapping.header_row:

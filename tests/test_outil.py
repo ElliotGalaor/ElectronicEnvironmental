@@ -583,3 +583,110 @@ def test_api_exemptions():
     assert "RC0603FR-0710KL" in [c["mpn"] for c in d["components"]]
     r = client.put("/api/exemptions/7(c)-I", json={"notes": "Renouvellement demandé par le fabricant"})
     assert r.status_code == 200 and r.json()["notes"].startswith("Renouvellement")
+
+
+# ------------------------------------------------------------------ correspondance manuelle des colonnes (#15)
+
+BOM_EXOTIQUE = (
+    "Nomenclature carte capteur;;\n"
+    "Révision B;;\n"
+    "Code article fournisseur;Société;Libellé\n"
+    "GRM188R71H104KA93D;Murata;Condensateur 100 nF\n"
+    "RC0603FR-0710KL;Yageo;Résistance 10 k\n"
+)
+
+
+def preview(text: str, kind="bom", mapping=None, name="fichier.csv"):
+    data = {"mapping": json.dumps(mapping)} if mapping is not None else {}
+    return client.post(f"/api/table/preview?kind={kind}", files={"file": (name, text.encode("utf-8"))}, data=data)
+
+
+def test_bom_entetes_inconnus_signale_une_erreur_de_colonnes():
+    r = client.post("/api/analyze", files={"file": ("bom.csv", BOM_EXOTIQUE.encode())})
+    assert r.status_code == 422
+    assert r.headers["X-Error-Kind"] == "columns"  # l'interface ouvre la fenêtre de correspondance
+    assert "correspondance des colonnes" in r.json()["detail"]
+
+
+def test_apercu_bom_propose_les_champs_et_signale_le_mpn_manquant():
+    r = preview(BOM_EXOTIQUE, mapping={"_header_row": 3})
+    assert r.status_code == 200, r.text
+    p = r.json()
+    assert p["header_row"] == 3 and p["total_rows"] == 5
+    assert p["headers"] == ["Code article fournisseur", "Société", "Libellé"]
+    assert p["missing"] == ["mpn"]
+    assert [f["key"] for f in p["fields"] if f["required"]] == ["mpn"]
+    assert p["rows"][3] == ["GRM188R71H104KA93D", "Murata", "Condensateur 100 nF"]
+
+
+def test_bom_analysee_avec_la_correspondance_manuelle():
+    mapping = {"_header_row": 3, "mpn": "Code article fournisseur", "manufacturer": "Société", "description": "Libellé"}
+    rep = analyze_text(BOM_EXOTIQUE, mapping=json.dumps(mapping))
+    assert rep["mapping"]["header_row"] == 3
+    assert rep["mapping"]["columns"]["mpn"] == "Code article fournisseur"
+    by_mpn = {l["bom_mpn"]: l for l in rep["lines"]}
+    assert by_mpn["GRM188R71H104KA93D"]["component"]["manufacturer"] == "Murata"
+    assert by_mpn["RC0603FR-0710KL"]["line"] == 5  # numéros de ligne du fichier conservés
+
+
+def test_bom_sans_ligne_d_entete():
+    text = "GRM188R71H104KA93D;Murata;2\nRC0603FR-0710KL;Yageo;4\n"
+    p = preview(text, mapping={"_header_row": 0}).json()
+    assert p["header_row"] == 0 and p["headers"] == ["Colonne 1", "Colonne 2", "Colonne 3"]
+    mapping = {"_header_row": 0, "mpn": "Colonne 1", "manufacturer": "Colonne 2", "quantity": "Colonne 3"}
+    rep = analyze_text(text, mapping=json.dumps(mapping))
+    assert [l["line"] for l in rep["lines"]] == [1, 2]
+    # BOM modifiée : une ligne d'en-tête est ajoutée
+    r = client.post("/api/analyze?format=bom", files={"file": ("bom.csv", text.encode())}, data={"mapping": json.dumps(mapping)})
+    assert r.content.decode("utf-8-sig").splitlines()[0] == "Colonne 1;Colonne 2;Colonne 3;Remplace"
+
+
+def test_colonnes_vides_ou_en_double_ont_un_nom_unique():
+    text = "Ref;;Ref\nGRM188R71H104KA93D;x;y\n"
+    p = preview(text, mapping={"_header_row": 1}).json()
+    assert p["headers"] == ["Ref", "Colonne 2", "Ref (colonne 3)"]
+    rep = analyze_text(text, mapping=json.dumps({"_header_row": 1, "mpn": "Ref (colonne 3)"}))
+    assert rep["lines"][0]["bom_mpn"] == "y"
+
+
+def test_correspondance_invalide():
+    files = {"file": ("bom.csv", BOM_EXOTIQUE.encode())}
+    assert client.post("/api/analyze", files=files, data={"mapping": "[1, 2]"}).status_code == 400
+    r = client.post("/api/analyze", files=files, data={"mapping": json.dumps({"couleur": "Société"})})
+    assert r.status_code == 422 and "Champ inconnu" in r.json()["detail"]
+    r = client.post("/api/analyze", files=files, data={"mapping": json.dumps({"_header_row": 99})})
+    assert r.status_code == 422 and "hors du fichier" in r.json()["detail"]
+    r = client.post("/api/analyze", files=files, data={"mapping": json.dumps({"_header_row": 3, "mpn": "Inexistante"})})
+    assert r.status_code == 422 and "introuvable" in r.json()["detail"]
+
+
+def test_un_champ_detecte_peut_etre_ignore():
+    text = "MPN;Manufacturer\nGRM188R71H104KA93D;Mauvais Fabricant\n"
+    rep = analyze_text(text, mapping=json.dumps({"manufacturer": "__none__"}))
+    assert "manufacturer" not in rep["mapping"]["columns"]
+    assert rep["lines"][0]["bom_manufacturer"] == ""
+
+
+def test_import_base_avec_correspondance_manuelle():
+    text = "Export ERP du 08/11/2026\nCode article;Société;Statut RoHS 3;Classification\nMAP-IMP-1;Acme;conforme;EAR99\n"
+    p = preview(text, kind="components").json()
+    assert p["header_row"] == 1 and p["missing"] == ["mpn"]  # aucun en-tête reconnu : tout est à indiquer
+    files = {"file": ("erp.csv", text.encode())}
+    r = client.post("/api/components/import", files=files)
+    assert r.status_code == 422 and r.headers["X-Error-Kind"] == "columns"
+    mapping = {"_header_row": 2, "mpn": "Code article", "manufacturer": "Société", "rohs3": "Statut RoHS 3", "eccn": "Classification"}
+    r = client.post("/api/components/import", files=files, data={"mapping": json.dumps(mapping)})
+    assert r.status_code == 200, r.text
+    assert r.json()["created"] == 1 and r.json()["error_count"] == 0
+    comp = client.get("/api/components?q=MAP-IMP-1").json()["items"][0]
+    assert (comp["manufacturer"], comp["rohs3"], comp["eccn"]) == ("Acme", "conforme", "EAR99")
+    client.delete(f"/api/components/{comp['id']}")
+
+
+def test_import_base_detecte_l_entete_apres_un_titre():
+    text = "Base composants\nmpn;manufacturer;rohs2\nMAP-IMP-2;Acme;conforme\n"
+    p = preview(text, kind="components").json()
+    assert p["header_row"] == 2 and p["columns"] == {"mpn": "mpn", "manufacturer": "manufacturer", "rohs2": "rohs2"}
+    with db.session() as conn:
+        assert import_table(conn, text.encode(), "base.csv")["created"] == 1
+        conn.execute("DELETE FROM components WHERE mpn = 'MAP-IMP-2'")
