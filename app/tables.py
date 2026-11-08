@@ -313,6 +313,14 @@ def _is_dnp(header: str, value: str) -> bool:
 def parse_bom(data: bytes, filename: str, overrides: dict[str, str] | None = None) -> tuple[list[BomLine], ColumnMapping]:
     rows = read_rows(data, filename)
     mapping = detect_columns(rows, overrides)
+    lines = bom_lines(rows, mapping)
+    if not lines:
+        raise TableError("Aucune ligne de composant trouvée sous l'en-tête")
+    return lines, mapping
+
+
+def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
+    """Lignes de composants lues sous l'en-tête, selon la correspondance des colonnes."""
     c = mapping.columns
 
     def cell(row: list[str], role: str) -> str:
@@ -341,9 +349,7 @@ def parse_bom(data: bytes, filename: str, overrides: dict[str, str] | None = Non
                 dnp=dnp,
             )
         )
-    if not lines:
-        raise TableError("Aucune ligne de composant trouvée sous l'en-tête")
-    return lines, mapping
+    return lines
 
 
 # ------------------------------------------------------------------ remplacements par des équivalents
