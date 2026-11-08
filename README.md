@@ -9,7 +9,8 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-52%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-70%20pytest-success)
+[![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analyse.png" alt="Analyse d'une BOM : verdicts RoHS 2, RoHS 3 et REACH avec la répartition des statuts" width="100%">
 
@@ -26,12 +27,22 @@
 ## Fonctionnalités
 
 ### 📋 Analyse d'une nomenclature
-Dépôt d'un fichier **CSV ou Excel** exporté de n'importe quel outil de CAO : la ligne d'en-tête et les colonnes (référence fabricant, fabricant, repères, quantité, non monté…) sont détectées automatiquement, en français comme en anglais. Chaque ligne est rapprochée de la base (exacte, approchante, partielle) et reçoit un statut **RoHS 2**, **RoHS 3** et **REACH**. Résultat : un verdict global, un camembert par norme et un rapport **Excel** téléchargeable.
+Dépôt d'un fichier **CSV ou Excel** exporté de n'importe quel outil de CAO, ERP ou distributeur : la ligne d'en-tête et les colonnes (référence fabricant, fabricant, repères, quantité, non monté, statuts RoHS / REACH déclarés…) sont détectées automatiquement, en français comme en anglais. Chaque ligne est rapprochée de la base (exacte, approchante, partielle) et reçoit un statut **RoHS 2**, **RoHS 3** et **REACH**. Résultat : un verdict global, un camembert par norme et un rapport **Excel** téléchargeable.
 
 <img src="docs/images/lignes.png" alt="Tableau des lignes de la BOM avec statut par norme, ECCN et remarques" width="100%">
 
+### 🧩 Fichiers de tout format : correspondance des colonnes
+Quand un fichier ne ressemble à aucun format connu, par exemple un export d'ERP avec un cartouche et des en-têtes maison, une fenêtre permet d'**indiquer à la main quelle colonne correspond à chaque champ**. On peut aussi choisir la ligne d'en-tête, ou indiquer que le fichier n'en a pas. Avant de valider, on voit :
+- **l'effet de chaque changement** sur les premières lignes (ancienne valeur barrée → nouvelle) ;
+- **le résultat**, ligne par ligne : référence trouvée ou absente de la base, ou, pour l'import en base, ce qui sera **créé, modifié ou refusé**, simulé sans rien écrire ;
+- les **choix manuels** par rapport à la détection automatique.
+
+Les statuts RoHS / REACH présents dans la BOM sont utilisés. Si le composant est en base, c'est la base qui fait foi : un désaccord passe la ligne en « à vérifier ». S'il est absent, le statut de la BOM est repris et marqué « selon la BOM ».
+
+<img src="docs/images/correspondance.png" alt="Fenêtre de correspondance des colonnes : choix manuels, effet du changement sur les 3 premières lignes et résultat de la lecture" width="100%">
+
 ### 🔁 Équivalents d'autres fabricants et remplacement dans la BOM
-Pour un composant non conforme ou bientôt sans exemption, l'outil propose des **composants similaires d'autres fabricants** (même valeur, boîtier, tension…) avec leur statut de conformité, explique ce qui correspond et ce qui diffère, et permet de **les substituer dans la BOM** en un clic. La BOM modifiée se télécharge avec la trace des remplacements.
+Pour un composant non conforme ou bientôt sans exemption, l'outil propose des **composants similaires d'autres fabricants** (même valeur, boîtier, tension…) avec leur statut de conformité, explique ce qui correspond et ce qui diffère, et permet de **les substituer dans la BOM** en un clic. La BOM modifiée se télécharge avec la trace des remplacements. Sur un écran étroit (portable, tablette, mobile), chaque suggestion s'affiche en carte : les boutons restent toujours visibles.
 
 <img src="docs/images/equivalents.png" alt="Fenêtre des équivalents : composants similaires d'autres fabricants avec leur statut RoHS et REACH" width="100%">
 
@@ -51,7 +62,7 @@ Chaque code ECCN est décomposé (catégorie, groupe de produits, motif de contr
 - **Fiches fabricants** : site web, siège, statistiques de conformité et liste des composants en base.
 - **Import de datasheet PDF** : extraction de la référence, du fabricant, des statuts RoHS/REACH, de l'ECCN et du pays d'origine (par règles, ou par l'**API Claude** si une clé est configurée), avec les extraits justificatifs.
 - **Comptes utilisateurs** : historique des dernières BOM analysées, rouvertes avec la base à jour.
-- **Pays d'origine**, **base de composants** éditable, import/export CSV et Excel, API REST documentée (`/docs`).
+- **Pays d'origine**, **base de composants** éditable, import/export CSV et Excel (une mise à jour ne modifie que les colonnes fournies), API REST documentée (`/docs`).
 
 <details>
 <summary>Voir la fiche fabricant</summary>
@@ -64,10 +75,10 @@ Chaque code ECCN est décomposé (catégorie, groupe de produits, motif de contr
 | Domaine | Technologies |
 |---|---|
 | Back-end | **Python 3.12+**, **FastAPI**, Pydantic, SQLite (migrations au démarrage) |
-| Front-end | HTML / CSS / **JavaScript sans framework**, graphiques SVG faits main, thème clair et sombre |
+| Front-end | HTML / CSS / **JavaScript sans framework**, graphiques SVG faits main, thème clair et sombre, affichage adaptatif jusqu'au mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), API **Claude** (extraction optionnelle, sorties structurées) |
 | Sécurité | Mots de passe hachés **scrypt**, sessions par cookie `HttpOnly` / `SameSite`, limitation des tentatives de connexion |
-| Qualité | **pytest** (52 tests), **ruff** (lint), captures d'écran automatisées (Playwright) |
+| Qualité | **pytest** (70 tests), **ruff** (lint), captures d'écran automatisées (Playwright) |
 | DevOps | **GitHub Actions** : CI (lint + tests sur 3 versions de Python) et CD (image **Docker** publiée sur GHCR, test de fumée, release automatique) |
 
 ## Architecture
@@ -75,7 +86,7 @@ Chaque code ECCN est décomposé (catégorie, groupe de produits, motif de contr
 ```mermaid
 flowchart LR
     U["Navigateur<br/>interface web"] -->|"HTTP / JSON"| API["API FastAPI<br/>app/main.py"]
-    API --> AN["Analyse de BOM<br/>tables.py · analyzer.py"]
+    API --> AN["Lecture et analyse<br/>tables.py · analyzer.py · importer.py"]
     API --> ALT["Équivalents<br/>alternates.py"]
     API --> DS["Datasheets PDF<br/>datasheet.py"]
     API --> REF["Référentiels<br/>exemptions.py · eccn.py"]
@@ -95,6 +106,18 @@ Le projet suit un fonctionnement d'équipe sur GitHub :
 - **intégration continue** obligatoire sur chaque PR (lint + tests sur Python 3.12, 3.13, 3.14) ;
 - **livraison continue** : chaque fusion sur `main` publie une image Docker testée ; chaque tag `v*` crée une release.
 
+## Historique des versions
+
+Chaque évolution passe par une pull request relue, liée à son issue.
+
+| Version | Pull request | Contenu |
+|---|---|---|
+| [**v1.0.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.0.0) | [#10](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/10) | **Intégration continue** : lint `ruff` et tests sur Python 3.12, 3.13 et 3.14 à chaque push et pull request |
+| | [#11](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/11) | **Livraison continue** : image Docker testée et publiée sur GitHub Container Registry, release automatique sur tag |
+| | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Fenêtre des équivalents lisible sur tous les écrans : affichage en cartes quand la place manque |
+| | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | README de présentation avec captures d'écran, guide technique séparé |
+| *prochaine* | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Correspondance manuelle des colonnes** pour les fichiers de format inconnu : aperçu du résultat et de chaque changement, import en base simulé avant écriture, statuts RoHS / REACH lus dans la BOM ; correction : une mise à jour en base n'efface plus les champs absents du fichier |
+
 ## Démarrage rapide
 
 **Avec Docker** (aucune installation de Python nécessaire) :
@@ -103,7 +126,9 @@ Le projet suit un fonctionnement d'équipe sur GitHub :
 docker run -p 8000:8000 -v rohs-data:/data ghcr.io/elliotgalaor/electronicenvironmental
 ```
 
-Puis ouvrir http://localhost:8000. La base est initialisée avec 129 composants de démonstration.
+Puis ouvrir http://localhost:8000. La base est initialisée avec 129 composants de démonstration. Pour une version précise, ajouter son numéro à l'image (`…/electronicenvironmental:1.0.0`).
+
+Pour essayer : déposer [`exemples/bom_exemple.csv`](exemples/bom_exemple.csv) (format CAO, colonnes reconnues automatiquement) puis [`exemples/bom_format_erp.csv`](exemples/bom_format_erp.csv) (format inconnu : la fenêtre de correspondance s'ouvre).
 
 **En local** :
 

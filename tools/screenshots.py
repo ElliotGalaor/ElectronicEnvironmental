@@ -93,6 +93,21 @@ def main(base: str) -> None:
         page.wait_for_timeout(300)
         shot(page, "fabricant", clip=clip_between(page, "#mfrDetail .back", "#mfrComps", max_height=1100), full_page=True)
 
+        # 8. Correspondance des colonnes d'un fichier au format inconnu (export ERP avec cartouche)
+        page.set_viewport_size({"width": 1440, "height": 1500})
+        page.goto(f"{base}/#analyse")
+        page.set_input_files("#bomFile", str(ROOT / "exemples" / "bom_format_erp.csv"))
+        page.wait_for_selector("#dlgMap[open] #mapFields select")
+        for field, column in (("mpn", "Code article fournisseur"), ("manufacturer", "Société"),
+                              ("rohs3", "Directive 2015/863"), ("reach", "Règlement 1907/2006")):
+            page.select_option(f"#mapFields select[name={field}]", column)
+            page.wait_for_function("f => document.querySelector(`#mapFields select[name=${f}]`)?.value", arg=field)
+            page.wait_for_load_state("networkidle")
+        page.wait_for_selector("#mapDemo:not([hidden])")
+        page.wait_for_timeout(400)
+        page.locator("#dlgMap").screenshot(path=str(OUT / "correspondance.png"))
+        print("capture : docs/images/correspondance.png")
+
         browser.close()
 
 

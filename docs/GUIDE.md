@@ -30,7 +30,11 @@ Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:800
    La ligne d'en-tête et les colonnes sont détectées automatiquement (noms français et anglais :
    *Manufacturer Part Number*, *Référence fabricant*, *MPN*, *Fabricant*, *Repères*, *Qté*, *DNP*…).
    La colonne « Reference » de KiCad est reconnue comme repère si elle contient des `R1, C2…`.
-   Les colonnes peuvent être corrigées dans l'interface (bouton « Colonnes… »).
+   Les statuts RoHS 2, RoHS 3 et REACH déclarés dans la BOM sont aussi reconnus (« RoHS » seul = RoHS 3).
+   **Correspondance des colonnes** : si la référence fabricant n'est pas détectée, une fenêtre s'ouvre pour
+   choisir la colonne de chaque champ et la ligne d'en-tête (`0` = fichier sans en-tête) ; le bouton
+   « Colonnes… » l'ouvre aussi. Elle montre l'effet de chaque changement sur les 3 premières lignes et le
+   résultat de la lecture (référence trouvée ou non en base). Le choix est conservé dans l'historique.
 2. **Rapprochement avec la base**, par ordre de fiabilité :
    | Correspondance | Règle | Statut retenu |
    |---|---|---|
@@ -39,6 +43,10 @@ Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:800
    | Approchante | identique hors ponctuation (`LM358-DR` = `LM358DR`) | statut de la base |
    | Autre fabricant / Partielle (suffixe d'emballage) / Ambiguë | | **À vérifier** |
    | Introuvable | + suggestions de références proches | **À vérifier** |
+
+   Statuts déclarés dans la BOM : la base fait foi. Un statut inconnu en base est complété par la BOM,
+   un désaccord donne **À vérifier** (avec les deux valeurs en remarque), et un composant absent ou ambigu
+   reprend les statuts de la BOM. Ces statuts sont marqués « selon la BOM » à l'écran et dans les exports.
 3. **Verdict** par norme : *Non conforme* si une ligne l'est, sinon *À vérifier* s'il manque une information,
    sinon *Conforme* (en signalant les exemptions RoHS et les SVHC REACH > 0,1 %).
    Les composants non montés (DNP) sont exclus.
@@ -201,8 +209,11 @@ Règles de prudence appliquées dans les deux cas :
 
 Variables : `ANTHROPIC_API_KEY` (active l'IA), `RRC_AI=off` (désactive l'IA), `RRC_AI_MODEL`
 (modèle, défaut `claude-opus-5-5`). Avec l'IA, le PDF est envoyé à l'API Anthropic.
-- **Import en masse** : un CSV/XLSX avec les colonnes ci-dessus (première ligne = en-têtes). Clé d'unicité :
-  référence + fabricant (mise à jour si existe déjà).
+- **Import en masse** : un CSV/XLSX avec les colonnes ci-dessus. Dans l'interface, la fenêtre de
+  correspondance s'ouvre avant l'import : colonnes à utiliser, ligne d'en-tête, et simulation ligne par ligne
+  (nouveau, modifié avec l'ancienne et la nouvelle valeur, inchangé, erreur), sans rien écrire.
+  Clé d'unicité : référence + fabricant. Sur un composant existant, seuls les champs associés à une colonne
+  et renseignés sont modifiés (une colonne absente ou une cellule vide ne remplace pas la valeur en base).
   ```bash
   .venv\Scripts\python cli.py import ma_base.xlsx
   ```
@@ -216,6 +227,9 @@ Variables : `ANTHROPIC_API_KEY` (active l'IA), `RRC_AI=off` (désactive l'IA), `
 ```
 Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en intégration continue).
 
+Format de `mapping` (API et ligne de commande) : `{"mpn": "Code article", "manufacturer": "__none__", "_header_row": 3}`.
+`__none__` ignore un champ détecté à tort ; `_header_row` est le numéro de la ligne d'en-tête (`0` = pas d'en-tête).
+
 ## API REST
 
 | Méthode | Route | Rôle |
@@ -223,7 +237,8 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 | POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse d'une BOM (`file`, `mapping` et `substitutions` optionnels ; `save=1` ou `history_id` pour l'historique si connecté) ; `bom` renvoie la BOM modifiée |
 | GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
 | GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
-| POST | `/api/components/import` | import en masse |
+| POST | `/api/components/import` | import en masse (`file`, `mapping` optionnel) |
+| POST | `/api/table/preview?kind=bom\|components` | aperçu d'un fichier : colonnes détectées, champs proposés, résultat de la lecture (BOM) ou simulation de l'import (n'enregistre rien) |
 | POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
 | GET | `/api/components/export` | export CSV de la base |
 | GET | `/api/components/{id}/alternatives` | équivalents d'autres fabricants pour un composant |
@@ -258,10 +273,10 @@ Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en
 
 ```
 app/db.py         base SQLite, normalisation des références et fabricants
-app/tables.py     lecture CSV/XLSX, détection de l'en-tête et des colonnes
+app/tables.py     lecture CSV/XLSX, détection de l'en-tête et des colonnes, correspondance manuelle
 app/analyzer.py   rapprochement et calcul des verdicts
 app/reports.py    exports Excel / CSV
-app/importer.py   import en masse de la base
+app/importer.py   import en masse de la base (simulation, mise à jour partielle)
 app/datasheet.py  extraction des datasheets PDF par règles
 app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
 app/manufacturers.py fiches fabricants (infos, statistiques, composants)
