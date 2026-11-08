@@ -298,6 +298,15 @@ a.mpn-link:hover { color: var(--accent); }
 #mapResult tr.unchanged td { color: var(--muted); }
 #mapResult .errtxt { color: var(--ko); margin-top: 3px; white-space: normal; min-width: 180px; }
 #mapResultWrap[hidden], #mapRawWrap[hidden] { display: none; }
+.mapdemo { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--ex); border-radius: 10px; background: color-mix(in srgb, var(--ex-bg) 45%, var(--surface)); }
+.mapdemo[hidden] { display: none; }
+.mapdemo-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 12.5px; margin-bottom: 8px; }
+.mapdemo-head .linkbtn { margin-left: auto; font-size: 12px; }
+.mapdemo .tablewrap { box-shadow: none; }
+.mapdemo table { font-size: 12.5px; }
+.mapdemo th.changed { color: var(--ex); }
+.mapdemo td.changed { background: color-mix(in srgb, var(--ex-bg) 70%, transparent); font-weight: 600; }
+.mapdemo .old { text-decoration: line-through; opacity: .65; font-weight: 400; }
 
 @media (max-width: 640px) {
   .mfrinfo { grid-template-columns: 1fr; }

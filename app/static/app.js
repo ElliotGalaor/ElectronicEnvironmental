@@ -662,7 +662,7 @@ const ACTION = {
 };
 
 async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Valider", onConfirm }) {
-  mapCtx = { kind, file, onConfirm, preview: null, tab: mapCtx?.tab || "result", seq: 0 };
+  mapCtx = { kind, file, onConfirm, preview: null, tab: mapCtx?.tab || "result", seq: 0, before: null };
   $("#mapFile").textContent = "— " + file.name;
   $("#mapIntro").textContent = intro;
   $("#btnMapOk").textContent = okLabel;
@@ -714,8 +714,9 @@ function renderMapping() {
   const hr = $("#mapHeaderRow");
   hr.value = P.header_row;
   hr.max = P.total_rows;
+  const examples = columnExamples(P);
   const opts = (sel) => `<option value="">— aucune —</option>` +
-    P.headers.map((h) => `<option ${h === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
+    P.headers.map((h) => `<option value="${esc(h)}" ${h === sel ? "selected" : ""}>${esc(h)}${examples[h] ? ` — ex. ${esc(examples[h])}` : ""}</option>`).join("");
   $("#mapFields").innerHTML = P.fields.map((f) => {
     const manual = (P.columns[f.key] || "") !== (P.detected[f.key] || "");
     return `<label class="${manual ? "manual" : ""}"><span>${esc(f.label)}${f.required ? " *" : ""}${manual
@@ -723,6 +724,7 @@ function renderMapping() {
       <select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`;
   }).join("");
   renderManualChanges();
+  renderChangeDemo();
   renderMapResult();
   renderMapRaw();
   const missing = P.fields.filter((f) => f.required && !P.columns[f.key]).map((f) => f.label);
@@ -731,6 +733,63 @@ function renderMapping() {
   $("#mapStatus").classList.toggle("warn", missing.length > 0);
   $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
   $("#btnMapOk").disabled = missing.length > 0;
+}
+
+const DEMO_ROWS = 3;
+
+// Premières valeurs non vides de chaque colonne, sous la ligne d'en-tête (pour les listes déroulantes)
+function columnExamples(P) {
+  const out = {};
+  const data = P.rows.slice(Math.max(P.header_row, 0));
+  P.headers.forEach((h, j) => {
+    const vals = [];
+    for (const r of data) {
+      const v = (r[j] || "").trim();
+      if (v && !vals.includes(v)) vals.push(v.length > 24 ? v.slice(0, 23) + "…" : v);
+      if (vals.length === 2) break;
+    }
+    out[h] = vals.join(", ");
+  });
+  return out;
+}
+
+// Les premières lignes telles qu'elles seront lues : {line, values: {champ: valeur}}.
+// Valeurs calculées par le serveur quand c'est possible (normalisées), sinon lues dans le fichier brut.
+function sampleRows(P) {
+  if (P.result && P.result.lines.length) {
+    return P.result.lines.slice(0, DEMO_ROWS).map((l) => ({ line: l.line, values: l.values || {} }));
+  }
+  const idx = Object.fromEntries(Object.entries(P.columns).map(([k, h]) => [k, P.headers.indexOf(h)]));
+  return P.rows.map((r, i) => ({ line: i + 1, r })).filter(({ line, r }) => line > P.header_row && r.some((c) => c.trim()))
+    .slice(0, DEMO_ROWS).map(({ line, r }) => ({ line, values: Object.fromEntries(Object.entries(idx).map(([k, j]) => [k, r[j] || ""])) }));
+}
+
+// Après un changement d'attribution : les 3 premières lignes, champs modifiés en « avant → après »
+function renderChangeDemo() {
+  const box = $("#mapDemo"), P = mapCtx.preview, B = mapCtx.before;
+  const changed = B ? P.fields.filter((f) => (B.columns[f.key] || "") !== (P.columns[f.key] || "")) : [];
+  box.hidden = !changed.length;
+  if (!changed.length) { box.innerHTML = ""; return; }
+  const after = sampleRows(P);
+  const shownFields = P.fields.filter((f) => P.columns[f.key] || changed.includes(f));
+  const col = (h) => h ? `« ${esc(h)} »` : "aucune colonne";
+  const val = (f, v) => cellValue(f.key, v ?? "");
+  const rows = after.length ? after : B.samples;
+  const prevByLine = Object.fromEntries(B.samples.map((r) => [r.line, r.values]));
+  box.innerHTML = `<div class="mapdemo-head"><b>Effet du changement</b> sur les ${rows.length} premières lignes : ` +
+    changed.map((f) => `${esc(f.label)} ${col(B.columns[f.key])} → ${col(P.columns[f.key])}`).join(" · ") +
+    `<button type="button" class="linkbtn" id="mapDemoClose">Masquer</button></div>` +
+    `<div class="tablewrap"><table class="grid"><thead><tr><th class="rownum">Ligne</th>${shownFields.map((f) =>
+      `<th class="${changed.includes(f) ? "changed" : ""}">${esc(f.label)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((row) => {
+      const prev = prevByLine[row.line] || {}; // même ligne du fichier, avant le changement
+      return `<tr><td class="rownum">${row.line}</td>${shownFields.map((f) => {
+        if (!changed.includes(f)) return `<td>${val(f, row.values[f.key])}</td>`;
+        const before = prev[f.key] ?? "", now = row.values[f.key] ?? "";
+        return `<td class="changed">${before === now ? val(f, now) : `<span class="old">${val(f, before)}</span> → ${val(f, now)}`}</td>`;
+      }).join("")}</tr>`;
+    }).join("") + `</tbody></table></div>`;
+  $("#mapDemoClose").addEventListener("click", () => { mapCtx.before = null; box.hidden = true; });
 }
 
 // Choix manuels par rapport à la détection automatique
@@ -818,6 +877,8 @@ $$("[data-maptab]").forEach((b) => b.addEventListener("click", () => showMapTab(
 $("#mapFields").addEventListener("change", (ev) => {
   const sel = ev.target.closest("select");
   if (!sel) return;
+  // On garde l'état d'avant pour montrer l'effet du changement sur les premières lignes
+  mapCtx.before = { columns: { ...mapCtx.preview.columns }, samples: sampleRows(mapCtx.preview) };
   // Une colonne ne sert qu'à un seul champ : on la retire des autres
   if (sel.value) $$("#mapFields select").forEach((o) => { if (o !== sel && o.value === sel.value) o.value = ""; });
   loadMapPreview(collectMapping()); // le serveur recalcule le résultat avec la nouvelle correspondance
@@ -826,6 +887,7 @@ $("#mapFields").addEventListener("change", (ev) => {
 // Nouvelle ligne d'en-tête : les noms de colonnes changent, on relance la détection sur cette ligne
 $("#mapHeaderRow").addEventListener("change", (ev) => {
   const n = Math.max(0, Math.min(Number(ev.target.value) || 0, mapCtx.preview.total_rows));
+  mapCtx.before = null; // nouvelle ligne d'en-tête : tout est redétecté, pas de comparaison ligne à ligne
   loadMapPreview({ _header_row: n });
 });
 
