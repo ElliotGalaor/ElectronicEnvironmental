@@ -626,8 +626,8 @@ $("#importFile").addEventListener("change", (ev) => {
   if (!f) return;
   openMapping({
     kind: "components", file: f,
-    intro: "Vérifiez la colonne utilisée pour chaque champ avant l'import. Les lignes existantes (même référence et même fabricant) " +
-      "sont mises à jour ; les champs sans colonne ne sont pas modifiés pour les nouvelles lignes.",
+    intro: "Vérifiez la colonne utilisée pour chaque champ : l'onglet Résultat montre, avant d'écrire quoi que ce soit, les composants " +
+      "qui seront créés et les valeurs qui seront modifiées (même référence et même fabricant = composant existant).",
     okLabel: "Importer",
     onConfirm: (mapping) => importComponents(f, mapping),
   });
@@ -641,7 +641,7 @@ async function importComponents(f, mapping) {
   try {
     const r = await (await api("/api/components/import", { method: "POST", body: fd })).json();
     box.className = "alert " + (r.error_count ? "" : "success");
-    box.innerHTML = `Import de <b>${esc(f.name)}</b> : ${r.created} créés, ${r.updated} mis à jour, ${r.error_count} erreurs.` +
+    box.innerHTML = `Import de <b>${esc(f.name)}</b> : ${r.created} créés, ${r.updated} modifiés, ${r.unchanged} inchangés, ${r.error_count} erreurs.` +
       (r.errors.length ? "<br>" + r.errors.slice(0, 10).map(esc).join("<br>") : "");
     afterDbChange();
   } catch (e) { box.className = "alert error"; box.textContent = "Import impossible : " + e.message; }
@@ -649,13 +649,20 @@ async function importComponents(f, mapping) {
 }
 
 /* ------------------------------------------------------------------ correspondance des colonnes
-   Fenêtre commune à l'analyse de BOM et à l'import en base : aperçu du fichier, ligne d'en-tête,
-   et pour chaque champ la colonne à utiliser (préremplie par la détection automatique). */
+   Fenêtre commune à l'analyse de BOM et à l'import en base : ligne d'en-tête, colonne à utiliser pour
+   chaque champ (préremplie par la détection automatique), et deux vues :
+   - Résultat : les lignes telles qu'elles seront lues, avec ce qui va changer (calculé par le serveur) ;
+   - Fichier d'origine : le fichier brut, colonnes utilisées surlignées. */
 const dlgMap = $("#dlgMap");
-let mapCtx = null; // { kind, file, onConfirm, preview, headerRow }
+let mapCtx = null; // { kind, file, onConfirm, preview, tab, seq }
+const STATUS_FIELDS = new Set(["rohs2", "rohs3", "reach"]);
+const ACTION = {
+  create: ["Nouveau", "b-conforme"], update: ["Modifié", "b-exemption"],
+  unchanged: ["Inchangé", "b-non_monte"], error: ["Erreur", "b-non_conforme"],
+};
 
 async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Valider", onConfirm }) {
-  mapCtx = { kind, file, onConfirm, preview: null };
+  mapCtx = { kind, file, onConfirm, preview: null, tab: mapCtx?.tab || "result", seq: 0 };
   $("#mapFile").textContent = "— " + file.name;
   $("#mapIntro").textContent = intro;
   $("#btnMapOk").textContent = okLabel;
@@ -663,56 +670,131 @@ async function openMapping({ kind, file, mapping = {}, problem = "", intro = "",
   alert.hidden = !problem;
   alert.className = "alert error";
   alert.textContent = problem;
-  $("#mapFields").innerHTML = "";
-  $("#mapPreview").innerHTML = "";
+  ["#mapFields", "#mapPreview", "#mapResult", "#mapSummary", "#mapFoot"].forEach((s) => { $(s).innerHTML = ""; });
+  $("#mapManual").hidden = true;
+  showMapTab(mapCtx.tab);
   if (!dlgMap.open) dlgMap.showModal();
   await loadMapPreview(mapping);
 }
 
 async function loadMapPreview(mapping) {
+  const seq = ++mapCtx.seq; // seule la dernière réponse compte (choix successifs rapides)
   const fd = new FormData();
   fd.append("file", mapCtx.file);
   fd.append("mapping", JSON.stringify(mapping || {}));
   $("#mapStatus").textContent = "Lecture du fichier…";
+  $("#btnMapOk").disabled = true;
+  let preview;
   try {
-    mapCtx.preview = await (await api(`/api/table/preview?kind=${mapCtx.kind}`, { method: "POST", body: fd })).json();
+    preview = await (await api(`/api/table/preview?kind=${mapCtx.kind}`, { method: "POST", body: fd })).json();
   } catch (e) {
+    if (seq !== mapCtx.seq) return;
     // Correspondance enregistrée devenue invalide (colonne renommée…) : on repart de la détection automatique
     if (mapping && Object.keys(mapping).length) return loadMapPreview({});
     $("#mapAlert").className = "alert error";
     $("#mapAlert").textContent = "Fichier illisible : " + e.message;
     $("#mapAlert").hidden = false;
     $("#mapStatus").textContent = "";
-    $("#btnMapOk").disabled = true;
     return;
   }
-  renderMapFields();
+  if (seq !== mapCtx.seq) return;
+  mapCtx.preview = preview;
+  renderMapping();
 }
 
-function renderMapFields() {
+// Correspondance à envoyer : ligne d'en-tête + chaque champ (« __none__ » = ignoré)
+function collectMapping() {
+  const mapping = { _header_row: mapCtx.preview.header_row };
+  $$("#mapFields select").forEach((s) => { mapping[s.name] = s.value || "__none__"; });
+  return mapping;
+}
+
+function renderMapping() {
   const P = mapCtx.preview;
   const hr = $("#mapHeaderRow");
   hr.value = P.header_row;
   hr.max = P.total_rows;
   const opts = (sel) => `<option value="">— aucune —</option>` +
     P.headers.map((h) => `<option ${h === sel ? "selected" : ""}>${esc(h)}</option>`).join("");
-  $("#mapFields").innerHTML = P.fields.map((f) =>
-    `<label>${esc(f.label)}${f.required ? " *" : ""}<select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`).join("");
-  renderMapPreview();
+  $("#mapFields").innerHTML = P.fields.map((f) => {
+    const manual = (P.columns[f.key] || "") !== (P.detected[f.key] || "");
+    return `<label class="${manual ? "manual" : ""}"><span>${esc(f.label)}${f.required ? " *" : ""}${manual
+      ? ` <span class="tag" title="Détection automatique : ${esc(P.detected[f.key] || "aucune")}">modifié</span>` : ""}</span>
+      <select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`;
+  }).join("");
+  renderManualChanges();
+  renderMapResult();
+  renderMapRaw();
+  const missing = P.fields.filter((f) => f.required && !P.columns[f.key]).map((f) => f.label);
+  const shown = P.rows.length < P.total_rows ? ` · ${P.rows.length} premières lignes affichées sur ${P.total_rows}` : "";
+  $("#mapStatus").textContent = missing.length ? `Champ obligatoire à renseigner : ${missing.join(", ")}` : `Ligne d'en-tête ${P.header_row || "absente"}${shown}`;
+  $("#mapStatus").classList.toggle("warn", missing.length > 0);
+  $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
+  $("#btnMapOk").disabled = missing.length > 0;
 }
 
-// Correspondance affichée : {champ: nom de colonne}, d'après les listes déroulantes
-function currentColumns() {
-  const cols = {};
-  $$("#mapFields select").forEach((s) => { if (s.value) cols[s.name] = s.value; });
-  return cols;
+// Choix manuels par rapport à la détection automatique
+function renderManualChanges() {
+  const P = mapCtx.preview;
+  const col = (h) => h ? `« ${esc(h)} »` : "aucune";
+  const changed = P.fields.filter((f) => (P.columns[f.key] || "") !== (P.detected[f.key] || ""));
+  $("#mapManual").hidden = !changed.length;
+  $("#mapManual").innerHTML = changed.length
+    ? `<b>${changed.length} choix manuel${changed.length > 1 ? "s" : ""}</b> par rapport à la détection automatique : ` +
+      changed.map((f) => `${esc(f.label)} : <s>${col(P.detected[f.key])}</s> → ${col(P.columns[f.key])}`).join(" · ")
+    : "";
 }
 
-function renderMapPreview() {
-  const P = mapCtx.preview, cols = currentColumns();
+const cellValue = (field, v) => v === "" || v == null ? `<span class="muted">—</span>` : STATUS_FIELDS.has(field) ? badge(v) : esc(v);
+
+function renderMapResult() {
+  const P = mapCtx.preview, R = P.result, C = R.counts;
+  const roles = P.fields.filter((f) => P.columns[f.key]);
+  const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+  if (!P.columns.mpn) {
+    $("#mapSummary").innerHTML = "";
+    $("#mapResult").innerHTML = `<tbody><tr><td class="emptyrow">Choisissez la colonne de la référence fabricant pour voir comment le fichier sera lu.</td></tr></tbody>`;
+    $("#mapFoot").textContent = "";
+    return;
+  }
+  if (mapCtx.kind === "bom") {
+    $("#mapSummary").innerHTML = [
+      `<span class="stat"><b>${C.lines}</b> ligne${C.lines > 1 ? "s" : ""} de composants</span>`,
+      `<span class="stat ok"><b>${C.in_base}</b> trouvée${C.in_base > 1 ? "s" : ""} en base</span>`,
+      C.lines - C.in_base ? `<span class="stat chk"><b>${C.lines - C.in_base}</b> absente${C.lines - C.in_base > 1 ? "s" : ""} de la base</span>` : "",
+      C.dnp ? `<span class="stat"><b>${C.dnp}</b> non montée${C.dnp > 1 ? "s" : ""}</span>` : "",
+    ].join("");
+  } else {
+    $("#mapSummary").innerHTML = ["create", "update", "unchanged", "error"].filter((a) => C[a]).map((a) =>
+      `<span class="stat"><span class="badge ${ACTION[a][1]}">${ACTION[a][0]}</span> <b>${C[a]}</b></span>`).join("") ||
+      `<span class="muted">Aucune ligne à importer.</span>`;
+  }
+  const status = (l) => mapCtx.kind === "bom"
+    ? (l.in_base ? `<span class="badge b-conforme">En base</span>` : `<span class="badge b-inconnu">Absente</span>`)
+    : `<span class="badge ${ACTION[l.action][1]}">${ACTION[l.action][0]}</span>` +
+      (l.error ? `<div class="small errtxt">${esc(l.error)}</div>` : "");
+  const cell = (l, f) => {
+    const ch = l.changes && l.changes[f.key];
+    if (ch) return `<td class="changed"><span class="old">${cellValue(f.key, ch[0])}</span> → ${cellValue(f.key, ch[1])}</td>`;
+    return `<td>${cellValue(f.key, l.values[f.key])}</td>`;
+  };
+  $("#mapResult").innerHTML =
+    `<thead><tr><th class="rownum">Ligne</th><th>${mapCtx.kind === "bom" ? "Base" : "Action"}</th>${roles.map((f) =>
+      `<th>${esc(f.label)}<div class="colname">${esc(P.columns[f.key])}</div></th>`).join("")}</tr></thead>` +
+    `<tbody>${R.lines.map((l) => `<tr class="${l.action || ""}"><td class="rownum">${l.line}</td><td>${status(l)}</td>${roles.map((f) => cell(l, f)).join("")}</tr>`).join("") ||
+      `<tr><td class="emptyrow" colspan="${roles.length + 2}">Aucune ligne de composant sous la ligne d'en-tête.</td></tr>`}</tbody>`;
+  const total = mapCtx.kind === "bom" ? C.lines : Object.values(C).reduce((a, b) => a + b, 0);
+  $("#mapFoot").textContent = [
+    total > R.lines.length ? `Détail des ${R.lines.length} premières lignes ; le bilan porte sur tout le fichier (${plural(total, "ligne", "lignes")}).` : "",
+    mapCtx.kind === "components" ? "Composants déjà en base : les champs sans colonne et les cellules vides gardent leur valeur actuelle." : "",
+  ].filter(Boolean).join(" ");
+}
+
+function renderMapRaw() {
+  const P = mapCtx.preview;
   const labelOf = Object.fromEntries(P.fields.map((f) => [f.key, f.label]));
   const fieldOf = {};
-  Object.entries(cols).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
+  Object.entries(P.columns).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
   const head = `<thead><tr><th class="rownum">Ligne</th>${P.headers.map((h) =>
     `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-conforme">${esc(fieldOf[h])}</span>` : `<span class="muted">ignorée</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
   const body = P.rows.map((r, i) => {
@@ -722,20 +804,23 @@ function renderMapPreview() {
       `<td class="${fieldOf[P.headers[j]] ? "mapped" : ""}">${esc(c)}</td>`).join("")}</tr>`;
   }).join("");
   $("#mapPreview").innerHTML = head + `<tbody>${body}</tbody>`;
-  const missing = P.fields.filter((f) => f.required && !cols[f.key]).map((f) => f.label);
-  const shown = P.rows.length < P.total_rows ? ` (${P.rows.length} premières lignes sur ${P.total_rows})` : "";
-  $("#mapStatus").textContent = missing.length ? `Champ obligatoire à renseigner : ${missing.join(", ")}` : `Ligne d'en-tête ${P.header_row || "absente"}${shown}`;
-  $("#mapStatus").classList.toggle("warn", missing.length > 0);
-  $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
-  $("#btnMapOk").disabled = missing.length > 0;
 }
+
+function showMapTab(tab) {
+  mapCtx.tab = tab;
+  $$("[data-maptab]").forEach((b) => { const on = b.dataset.maptab === tab; b.classList.toggle("active", on); b.setAttribute("aria-selected", on); });
+  $("#mapResultWrap").hidden = tab !== "result";
+  $("#mapRawWrap").hidden = tab !== "raw";
+  ["#mapSummary", "#mapFoot"].forEach((s) => { $(s).hidden = tab !== "result"; });
+}
+$$("[data-maptab]").forEach((b) => b.addEventListener("click", () => showMapTab(b.dataset.maptab)));
 
 $("#mapFields").addEventListener("change", (ev) => {
   const sel = ev.target.closest("select");
   if (!sel) return;
   // Une colonne ne sert qu'à un seul champ : on la retire des autres
   if (sel.value) $$("#mapFields select").forEach((o) => { if (o !== sel && o.value === sel.value) o.value = ""; });
-  renderMapPreview();
+  loadMapPreview(collectMapping()); // le serveur recalcule le résultat avec la nouvelle correspondance
 });
 
 // Nouvelle ligne d'en-tête : les noms de colonnes changent, on relance la détection sur cette ligne
@@ -746,9 +831,7 @@ $("#mapHeaderRow").addEventListener("change", (ev) => {
 
 $("#mapForm").addEventListener("submit", (ev) => {
   ev.preventDefault();
-  const cols = currentColumns();
-  const mapping = { _header_row: mapCtx.preview.header_row };
-  mapCtx.preview.fields.forEach((f) => { mapping[f.key] = cols[f.key] || "__none__"; });
+  const mapping = collectMapping();
   dlgMap.close();
   mapCtx.onConfirm(mapping);
 });

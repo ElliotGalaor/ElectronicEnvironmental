@@ -19,12 +19,14 @@ from pydantic import BaseModel
 
 from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
 from .analyzer import analyze
-from .importer import IMPORT_FIELDS, detect_import_columns, import_table
+from .importer import IMPORT_FIELDS, detect_import_columns, import_table, plan_table
 from .reports import database_csv, report_csv, report_xlsx
 from .tables import (
     BOM_FIELDS,
+    HEADER_ROW_KEY,
     TableError,
     apply_substitutions,
+    bom_lines,
     detect_columns,
     modified_bom_csv,
     parse_bom,
@@ -127,12 +129,42 @@ def _parse_mapping(mapping: str) -> dict | None:
 
 # ---------------------------------------------------------------- Aperçu et correspondance des colonnes
 
-@app.post("/api/table/preview", summary="Aperçu d'un fichier CSV/XLSX et correspondance des colonnes détectée")
+def _bom_result(conn, rows, mapping, sample: int = 10) -> dict:
+    """Lignes de la BOM telles qu'elles seront lues, et présence de chaque référence dans la base."""
+    lines = bom_lines(rows, mapping) if "mpn" in mapping.columns else []
+    roles = [k for k, _, _ in BOM_FIELDS if k in mapping.columns]
+
+    def in_base(mpn: str) -> bool:
+        return bool(mpn) and conn.execute(
+            "SELECT 1 FROM components WHERE mpn_norm = ? OR mpn_loose = ? LIMIT 1", (db.normalize_mpn(mpn), db.loose_mpn(mpn))
+        ).fetchone() is not None
+
+    found = [in_base(line.mpn) for line in lines]
+    detail = [
+        {
+            "line": line.line,
+            "values": {r: ("oui" if line.dnp else "") if r == "dnp" else getattr(line, r) for r in roles},
+            "in_base": ok,
+        }
+        for line, ok in list(zip(lines, found, strict=True))[:sample]
+    ]
+    return {"counts": {"lines": len(lines), "in_base": sum(found), "dnp": sum(line.dnp for line in lines)}, "lines": detail}
+
+
+@app.post("/api/table/preview", summary="Aperçu d'un fichier CSV/XLSX, correspondance des colonnes et résultat")
 async def preview_table(
     file: UploadFile = File(...),
     kind: Literal["bom", "components"] = Query(default="bom", description="bom : analyse de BOM ; components : import en base"),
     mapping: str = Form(default="", description=MAPPING_DOC),
+    conn=Depends(get_conn),
 ):
+    """Renvoie, en plus de l'aperçu brut :
+
+    - detected : la correspondance proposée par la détection automatique (pour signaler les choix manuels) ;
+    - result : les premières lignes telles qu'elles seront interprétées et un bilan sur tout le fichier.
+      BOM : présence de chaque référence dans la base. Import : création, modification (ancienne → nouvelle
+      valeur), ligne inchangée ou erreur, sans rien écrire.
+    """
     data = await _read_upload(file)
     overrides = _parse_mapping(mapping)
     try:
@@ -140,12 +172,17 @@ async def preview_table(
         if kind == "bom":
             m = detect_columns(rows, overrides, require_mpn=False)
             preview = table_preview(rows, m.header_row, m.labels, m.columns, BOM_FIELDS)
+            auto = detect_columns(rows, {HEADER_ROW_KEY: m.header_row + 1}, require_mpn=False).columns
+            result = _bom_result(conn, rows, m)
         else:
             hr, labels, columns = detect_import_columns(rows, overrides)
             preview = table_preview(rows, hr, labels, columns, IMPORT_FIELDS)
+            auto = detect_import_columns(rows, {HEADER_ROW_KEY: hr + 1})[2]
+            result = plan_table(conn, rows, hr, columns) if "mpn" in columns else {"counts": {}, "lines": []}
     except TableError as exc:
         raise HTTPException(422, str(exc)) from exc
-    return {"kind": kind, "filename": file.filename or "", **preview}
+    detected = {role: preview["headers"][idx] for role, idx in auto.items()}
+    return {"kind": kind, "filename": file.filename or "", **preview, "detected": detected, "result": result}
 
 
 # ---------------------------------------------------------------- Analyse BOM

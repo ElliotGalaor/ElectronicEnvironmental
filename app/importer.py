@@ -63,25 +63,77 @@ def detect_import_columns(rows: list[list[str]], mapping: dict | None = None) ->
     return hr, labels, colmap
 
 
+def _records(rows: list[list[str]], header_row: int, colmap: dict[str, int]):
+    """Lignes du fichier converties en enregistrements {champ: valeur} (seuls les champs associés à une colonne)."""
+    for n, row in enumerate(rows[header_row + 1:], start=header_row + 2):
+        rec = {f: (row[i].strip() if i < len(row) else "") for f, i in colmap.items()}
+        if rec.get("mpn"):
+            yield n, rec
+
+
+def plan_row(conn, rec: dict) -> dict:
+    """Simule l'import d'une ligne, sans rien écrire.
+
+    action : create (nouveau composant), update (champs modifiés), unchanged, error.
+    Pour un composant existant, seuls les champs associés à une colonne et renseignés sont modifiés :
+    une colonne ignorée ou une cellule vide ne doit pas effacer ce qui est déjà en base.
+    """
+    try:
+        new = db.prepare(rec)
+    except db.ValidationError as exc:
+        return {"action": "error", "error": str(exc), "values": rec, "changes": {}}
+    values = {f: new[f] for f in rec}
+    row = conn.execute(
+        "SELECT * FROM components WHERE mpn_norm = ? AND manufacturer_norm = ?",
+        (new["mpn_norm"], new["manufacturer_norm"]),
+    ).fetchone()
+    if row is None:
+        return {"action": "create", "values": values, "changes": {}}
+    old = {f: row[f] for f in db.FIELDS}
+    provided = {f for f, v in rec.items() if v}
+    values = {f: values[f] if f in provided else old[f] for f in values}
+    changes = {f: [old[f], values[f]] for f in provided if old[f] != values[f]}
+    return {"action": "update" if changes else "unchanged", "id": row["id"], "old": old, "values": values,
+            "changes": changes, "provided": sorted(provided)}
+
+
+def plan_table(conn, rows: list[list[str]], header_row: int, colmap: dict[str, int], sample: int = 10) -> dict:
+    """Bilan de l'import (toutes les lignes) et détail des premières lignes, pour l'aperçu."""
+    counts = {"create": 0, "update": 0, "unchanged": 0, "error": 0}
+    detail = []
+    for n, rec in _records(rows, header_row, colmap):
+        plan = plan_row(conn, rec)
+        counts[plan["action"]] += 1
+        if len(detail) < sample:
+            detail.append({"line": n, **{k: v for k, v in plan.items() if k not in ("id", "old", "provided")}})
+    return {"counts": counts, "lines": detail}
+
+
 def import_table(conn, data: bytes, filename: str, mapping: dict | None = None) -> dict:
     """Import / mise à jour en masse (clé : référence + fabricant).
 
     mapping : correspondance manuelle des colonnes {champ: nom de colonne}, voir tables.apply_overrides.
+    Sur les composants déjà en base, les champs sans colonne et les cellules vides ne sont pas modifiés.
     """
     rows = read_rows(data, filename)
     hr, _, colmap = detect_import_columns(rows, mapping)
     if "mpn" not in colmap:
         raise TableError("Colonne « référence fabricant » (mpn) introuvable : indiquez-la dans la correspondance des colonnes")
-    created = updated = 0
+    counts = {"create": 0, "update": 0, "unchanged": 0}
     errors = []
-    for n, row in enumerate(rows[hr + 1:], start=hr + 2):
-        rec = {f: (row[i] if i < len(row) else "") for f, i in colmap.items()}
-        if not rec.get("mpn", "").strip():
-            continue
+    for n, rec in _records(rows, hr, colmap):
+        plan = plan_row(conn, rec)
         try:
-            _, was_created = db.upsert(conn, rec)
-            created += was_created
-            updated += not was_created
+            if plan["action"] == "error":
+                raise db.ValidationError(plan["error"])
+            if plan["action"] == "create":
+                db.create(conn, rec)
+            elif plan["action"] == "update":
+                db.update(conn, plan["id"], {**plan["old"], **{f: rec[f] for f in plan["provided"]}})
+            counts[plan["action"]] += 1
         except db.ValidationError as exc:
             errors.append(f"Ligne {n} : {exc}")
-    return {"created": created, "updated": updated, "errors": errors[:100], "error_count": len(errors)}
+    return {
+        "created": counts["create"], "updated": counts["update"], "unchanged": counts["unchanged"],
+        "errors": errors[:100], "error_count": len(errors),
+    }

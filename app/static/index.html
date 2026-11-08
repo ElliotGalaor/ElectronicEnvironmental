@@ -314,8 +314,15 @@
       <span class="muted small">Numéro de la ligne qui contient les noms de colonnes (0 si le fichier n'en a pas).</span>
     </div>
     <div class="mapgrid" id="mapFields"></div>
-    <h3 class="section">Aperçu du fichier</h3>
-    <div class="tablewrap mappreview"><table class="grid" id="mapPreview"></table></div>
+    <div class="maptabs" role="tablist">
+      <button type="button" class="chip active" role="tab" data-maptab="result">Résultat</button>
+      <button type="button" class="chip" role="tab" data-maptab="raw">Fichier d'origine</button>
+    </div>
+    <div id="mapSummary" class="mapsummary"></div>
+    <div id="mapManual" class="mapmanual small" hidden></div>
+    <div class="tablewrap mappreview" id="mapResultWrap"><table class="grid" id="mapResult"></table></div>
+    <div class="tablewrap mappreview" id="mapRawWrap" hidden><table class="grid" id="mapPreview"></table></div>
+    <p class="muted small" id="mapFoot"></p>
     <div class="dlgactions">
       <span class="muted small" id="mapStatus"></span>
       <span class="spacer"></span>
