@@ -38,9 +38,9 @@ COLUMNS = [
     ("Correspondance", lambda l: MATCH_LABELS.get(l["match"], l["match"])),
     ("Réf. base", lambda l: (l["component"] or {}).get("mpn", "")),
     ("Fabricant base", lambda l: (l["component"] or {}).get("manufacturer", "")),
-    ("RoHS 2", lambda l: LABELS.get(l["rohs2"], l["rohs2"]) + (" (déduit)" if l["rohs2_inferred"] else "")),
-    ("RoHS 3", lambda l: LABELS.get(l["rohs3"], l["rohs3"]) + (" (déduit)" if l["rohs3_inferred"] else "")),
-    ("REACH", lambda l: LABELS.get(l["reach"], l["reach"])),
+    ("RoHS 2", lambda l: _status(l, "rohs2")),
+    ("RoHS 3", lambda l: _status(l, "rohs3")),
+    ("REACH", lambda l: _status(l, "reach")),
     ("Exemptions RoHS", lambda l: l["exemptions"]),
     ("SVHC", lambda l: l["svhc_list"]),
     ("ECCN", lambda l: (l["component"] or {}).get("eccn", "")),
@@ -53,6 +53,16 @@ COLUMNS = [
 
 def _country(code: str) -> str:
     return f"{code} ({country_name(code)})" if code and country_name(code) != code else code
+
+
+def _status(line: dict, norm: str) -> str:
+    """Statut d'une norme, avec sa provenance quand il ne vient pas directement de la base."""
+    text = LABELS.get(line[norm], line[norm])
+    if line.get(f"{norm}_inferred"):
+        text += " (déduit)"
+    if norm in line.get("from_bom", []):
+        text += " (selon la BOM)"
+    return text
 
 
 FILLS = {

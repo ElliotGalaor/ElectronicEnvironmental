@@ -8,10 +8,23 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
-from .db import eccn_is_controlled, loose_mpn, normalize_manufacturer, normalize_mpn, row_to_dict
+from .db import (
+    REACH_STATUSES,
+    ROHS_STATUSES,
+    ValidationError,
+    clean_status,
+    eccn_is_controlled,
+    loose_mpn,
+    normalize_manufacturer,
+    normalize_mpn,
+    row_to_dict,
+)
 from .tables import BomLine, ColumnMapping
 
 NORMS = ("rohs2", "rohs3", "reach")
+NORM_LABELS = {"rohs2": "RoHS 2", "rohs3": "RoHS 3", "reach": "REACH"}
+STATUS_LABELS = {"conforme": "conforme", "exemption": "conforme avec exemption", "svhc": "SVHC > 0,1 %",
+                 "non_conforme": "non conforme", "inconnu": "inconnu"}
 
 # Qualité du rapprochement
 MATCH_EXACT = "exact"            # MPN + fabricant identiques
@@ -55,6 +68,24 @@ class LineResult:
     notes: list[str] = field(default_factory=list)
     original_mpn: str = ""
     original_manufacturer: str = ""
+    from_bom: list[str] = field(default_factory=list)  # normes dont le statut vient de la BOM
+
+
+def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
+    """Statuts RoHS / REACH déclarés dans la BOM, normalisés. Retourne (statuts connus, notes d'erreur)."""
+    declared, notes = {}, []
+    for n in NORMS:
+        raw = getattr(line, n, "")
+        if not raw:
+            continue
+        try:
+            status = clean_status(raw, REACH_STATUSES if n == "reach" else ROHS_STATUSES, n)
+        except ValidationError:
+            notes.append(f"{NORM_LABELS[n]} déclaré dans la BOM non reconnu : « {raw} »")
+            continue
+        if status != "inconnu":
+            declared[n] = status
+    return declared, notes
 
 
 def _candidates(conn: sqlite3.Connection, line: BomLine) -> tuple[str, list[dict]]:
@@ -167,19 +198,40 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
     res.match = match
     for c in cands:
         c.pop("_mfr_norm", None)
+    declared, declared_notes = declared_statuses(line)
+    res.notes.extend(declared_notes)
+
+    def use_declared(reason: str) -> None:
+        for n, status in declared.items():
+            setattr(res, n, _line_status(status, n))
+            res.from_bom.append(n)
+        if declared:
+            res.notes.append(f"Statuts repris de la BOM ({reason}) : " + ", ".join(NORM_LABELS[n] for n in declared))
 
     if match == MATCH_NONE:
         res.notes.append("Référence absente de la base")
         res.suggestions = _suggest(conn, line.mpn, all_mpns)
+        use_declared("composant absent de la base")
         return res
     if match == MATCH_AMBIGUOUS:
         res.notes.append("Plusieurs composants correspondent : précisez le fabricant dans la BOM")
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
+        use_declared("plusieurs composants possibles en base")
         return res
 
     comp = cands[0]
     res.component = comp
     statuses = {n: comp[n] for n in NORMS}
+    conflicts = []
+    for n, status in declared.items():
+        if statuses[n] == "inconnu":
+            statuses[n] = status
+            res.from_bom.append(n)
+            res.notes.append(f"{NORM_LABELS[n]} repris de la BOM (inconnu dans la base)")
+        elif statuses[n] != status:
+            conflicts.append(n)
+            res.notes.append(f"{NORM_LABELS[n]} : la BOM déclare « {STATUS_LABELS[status]} », "
+                             f"la base indique « {STATUS_LABELS[statuses[n]]} » : à vérifier")
 
     # RoHS 3 (UE 2015/863) = RoHS 2 (2011/65/UE) + 4 phtalates : on peut déduire certains statuts.
     if statuses["rohs2"] == "inconnu" and statuses["rohs3"] in ("conforme", "exemption"):
@@ -192,7 +244,7 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         res.notes.append("RoHS 3 déduit de la non-conformité RoHS 2")
 
     for n in NORMS:
-        setattr(res, n, _line_status(statuses[n], n))
+        setattr(res, n, CHECK if n in conflicts else _line_status(statuses[n], n))
     unknown = [label for n, label in (("rohs2", "RoHS 2"), ("rohs3", "RoHS 3"), ("reach", "REACH")) if statuses[n] == "inconnu"]
     if unknown:
         res.notes.append(f"Statut inconnu dans la base : {', '.join(unknown)}")
