@@ -1,3 +1,4 @@
-# Unix line endings for the scripts run in the container
+# Unix line endings for the scripts run in the container and on the server
 *.sh text eol=lf
 Dockerfile text eol=lf
+deploy/* text eol=lf

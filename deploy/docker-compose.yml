@@ -1,0 +1,41 @@
+# Production stack: the application behind Caddy, which obtains and renews the HTTPS certificate.
+# Settings come from the .env file next to this one (see .env.example).
+name: rohs-checker
+
+services:
+  app:
+    image: ghcr.io/elliotgalaor/electronicenvironmental:${APP_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      RRC_ADMIN_TOKEN: ${RRC_ADMIN_TOKEN:?Set RRC_ADMIN_TOKEN in .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Only Caddy can reach the app (port not published): trust its X-Forwarded-* headers,
+      # so the app knows the visitor uses HTTPS and marks the session cookie as Secure.
+      FORWARDED_ALLOW_IPS: "*"
+    volumes:
+      - app-data:/data
+    expose:
+      - "8000"
+    mem_limit: 600m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    mem_limit: 128m
+
+volumes:
+  app-data:
+  caddy-data:
+  caddy-config:

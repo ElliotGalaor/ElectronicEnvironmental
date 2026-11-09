@@ -131,6 +131,8 @@ Then open http://localhost:8000. The database is initialised with 129 demo compo
 
 To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens).
 
+**On a free server**: [deployment guide](docs/DEPLOY.md) for a Google Cloud *Always Free* VM, with HTTPS (Caddy + Let's Encrypt), nightly backups and an admin token.
+
 **Locally**:
 
 ```bash
@@ -147,12 +149,13 @@ Next changes, tracked as issues:
 - [ ] REACH status of the components from the distributor ([#4](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/4))
 - [ ] Exemption expiry alert in the BOM analysis ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
 - [ ] Password reset ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
-- [ ] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
+- [x] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
 - [ ] Corpus of real datasheets for the extraction ([#8](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/8))
 - [ ] Validation of KiCad, Altium and Eagle exports ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
 
 ## Documentation
 
+- **[Deployment guide](docs/DEPLOY.md)**: free Google Cloud VM, HTTPS, backups, updates, costs.
 - **[Technical guide](docs/GUIDE.md)**: detailed behaviour, matching and compliance rules, REST API, environment variables, updating the official texts.
 - Interactive API documentation: `http://localhost:8000/docs` once the application is running.
 
