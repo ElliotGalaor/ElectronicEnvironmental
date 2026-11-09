@@ -257,9 +257,14 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 
 ## Server deployment
 
+Step-by-step guide for a free Google Cloud VM with HTTPS: [DEPLOY.md](DEPLOY.md) (files in [`deploy/`](../deploy)).
+
 - `RRC_DB_PATH`: path of the SQLite database (default `data/components.db`).
 - `RRC_ADMIN_TOKEN`: if set, every change to the database requires the `X-Admin-Token` header
   (entered in the interface, Database tab). Browsing and analysis stay open.
+- `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the addresses whose `X-Forwarded-*` headers are trusted
+  (uvicorn setting). Needed for the session cookie to be marked `Secure` over HTTPS; `deploy/docker-compose.yml`
+  sets it to `*` because only the proxy can reach the application.
 
 ## Tests
 
