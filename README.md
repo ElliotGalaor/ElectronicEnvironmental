@@ -117,7 +117,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Equivalents dialog readable on every screen: cards when space runs out |
 | | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | Presentation README with screenshots, separate technical guide |
 | [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Manual column mapping** for files in an unknown format: preview of the result and of each change, database import simulated before writing, RoHS / REACH statuses read from the BOM; fix: a database update no longer erases the fields missing from the file |
-| *next* (v2.0.0) | this pull request | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
+| *next* (v2.0.0) | [#19](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/19) | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
 
 ## Quick start
 
