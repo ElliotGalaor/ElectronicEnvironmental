@@ -8,7 +8,6 @@
 data/*.db
 tests
 tools
-examples
 docs
 *.md
 .claude
