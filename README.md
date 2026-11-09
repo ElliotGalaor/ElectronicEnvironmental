@@ -79,7 +79,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling |
 | Quality | **pytest** (72 tests), **ruff** (lint), automated screenshots (Playwright) |
-| DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release) |
+| DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release, deployment to **Render**) |
 
 ## Architecture
 
@@ -104,7 +104,7 @@ The project follows a team workflow on GitHub:
 - **issues** for every change or bug, with acceptance criteria ([backlog](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues));
 - **one branch and one pull request per change**, linked to its issue and reviewed before merging;
 - mandatory **continuous integration** on every PR (lint + tests on Python 3.12, 3.13, 3.14);
-- **continuous delivery**: every merge to `main` publishes a tested Docker image; every `v*` tag creates a release.
+- **continuous delivery**: every merge to `main` publishes a tested Docker image and redeploys it on Render; every `v*` tag creates a release.
 
 ## Release history
 
@@ -118,6 +118,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | Presentation README with screenshots, separate technical guide |
 | [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Manual column mapping** for files in an unknown format: preview of the result and of each change, database import simulated before writing, RoHS / REACH statuses read from the BOM; fix: a database update no longer erases the fields missing from the file |
 | *next* (v2.0.0) | [#19](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/19) | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
+| | [#21](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/21) | **Online deployment on Render** (free plan, HTTPS): `render.yaml` Blueprint and *Deploy to Render* button, admin token generated at creation, redeployment by the CD workflow after every merge to `main` |
 
 ## Quick start
 
@@ -130,6 +131,10 @@ docker run -p 8000:8000 -v rohs-data:/data ghcr.io/elliotgalaor/electronicenviro
 Then open http://localhost:8000. The database is initialised with 129 demo components. For a specific version, add its number to the image (`…/electronicenvironmental:1.1.0`).
 
 To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens).
+
+**Online, for free**: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ElliotGalaor/ElectronicEnvironmental)
+
+Creates a free [Render](https://render.com) web service over HTTPS from [`render.yaml`](render.yaml), updated on every merge to `main`. The free plan sleeps after 15 minutes without visits and does not keep the data between restarts: see the [deployment guide](docs/DEPLOY.md).
 
 **Locally**:
 
@@ -147,12 +152,13 @@ Next changes, tracked as issues:
 - [ ] REACH status of the components from the distributor ([#4](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/4))
 - [ ] Exemption expiry alert in the BOM analysis ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
 - [ ] Password reset ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
-- [ ] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
+- [x] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
 - [ ] Corpus of real datasheets for the extraction ([#8](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/8))
 - [ ] Validation of KiCad, Altium and Eagle exports ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
 
 ## Documentation
 
+- **[Deployment guide](docs/DEPLOY.md)**: free Render web service over HTTPS, admin token, automatic updates, limits of the free plan.
 - **[Technical guide](docs/GUIDE.md)**: detailed behaviour, matching and compliance rules, REST API, environment variables, updating the official texts.
 - Interactive API documentation: `http://localhost:8000/docs` once the application is running.
 
