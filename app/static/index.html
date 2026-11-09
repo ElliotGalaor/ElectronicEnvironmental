@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=19">
+<link rel="stylesheet" href="/static/style.css?v=22">
 </head>
 <body>
 <header class="top">
@@ -256,12 +256,16 @@
     <button type="button" class="authtab" data-mode="register">Create an account</button>
   </div>
   <form id="authForm">
-    <div class="formgrid single">
+    <h2 id="authTitle" hidden>Confirm your e-mail address</h2>
+    <p id="authIntro" class="muted" hidden>Enter the password you chose when creating the account to activate it.</p>
+    <div class="formgrid single" id="authFields">
       <label id="authNameRow" hidden>Name (optional)<input name="name" autocomplete="name" maxlength="80"></label>
-      <label>E-mail address<input name="email" type="email" autocomplete="email" required></label>
+      <label id="authEmailRow">E-mail address<input name="email" type="email" autocomplete="email" required></label>
       <label>Password<input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
       <span id="authPwHint" class="muted small" hidden>At least 8 characters.</span>
+      <div id="authCaptcha" class="captcha" hidden></div>
     </div>
+    <div id="authInfo" class="alert success" hidden></div>
     <div id="authError" class="alert error" hidden></div>
     <div class="dlgactions"><span class="spacer"></span>
       <button type="button" class="btn" id="btnAuthCancel">Cancel</button>
@@ -413,6 +417,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=19"></script>
+<script src="/static/app.js?v=22"></script>
 </body>
 </html>

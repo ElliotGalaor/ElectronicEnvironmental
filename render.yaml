@@ -20,5 +20,9 @@ services:
       # Random token required to edit the database (dashboard: service > Environment)
       - key: RRC_ADMIN_TOKEN
         generateValue: true
+    # Optional, added in the dashboard (service > Environment), see docs/DEPLOY.md:
+    #   RRC_BREVO_API_KEY, RRC_MAIL_FROM                   sign-ups confirmed by e-mail (Brevo)
+    #   RRC_TURNSTILE_SITE_KEY, RRC_TURNSTILE_SECRET_KEY   captcha on the sign-up form
+    #   ANTHROPIC_API_KEY                                  AI datasheet extraction
     # Free instances have no persistent disk: the SQLite database starts again from the demo
     # data after every deploy, restart or spin-down. See "Keeping the data" in docs/DEPLOY.md.
