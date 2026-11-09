@@ -1,0 +1,24 @@
+# Render Blueprint: the RoHS / REACH Checker as a free web service, over HTTPS.
+# Step-by-step guide, limits of the free plan and automatic updates: docs/DEPLOY.md
+services:
+  - type: web
+    name: rohs-checker
+    runtime: image
+    image:
+      # Image published by the CD workflow on every merge to main, after the tests and the smoke test
+      url: ghcr.io/elliotgalaor/electronicenvironmental:latest
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/stats
+    envVars:
+      # The application listens on port 8000 (Render's default is 10000)
+      - key: PORT
+        value: "8000"
+      # Trust the X-Forwarded-* headers of Render's proxy, so the session cookie is marked Secure
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      # Random token required to edit the database (dashboard: service > Environment)
+      - key: RRC_ADMIN_TOKEN
+        generateValue: true
+    # Free instances have no persistent disk: the SQLite database starts again from the demo
+    # data after every deploy, restart or spin-down. See "Keeping the data" in docs/DEPLOY.md.
