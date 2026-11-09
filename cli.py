@@ -1,11 +1,11 @@
-"""Outil en ligne de commande.
+"""Command-line tool.
 
-Exemples :
-  python cli.py seed                               # charge les données de démonstration
-  python cli.py import ma_base.xlsx                # importe / met à jour la base locale
-  python cli.py analyze bom.csv                    # analyse avec la base locale
-  python cli.py analyze bom.xlsx -o rapport.xlsx   # + rapport Excel
-  python cli.py analyze bom.csv --server http://srv:8000   # analyse via le serveur distant
+Examples:
+  python cli.py seed                               # load the demo data
+  python cli.py import my_database.xlsx            # import / update the local database
+  python cli.py analyze bom.csv                    # analyse with the local database
+  python cli.py analyze bom.xlsx -o report.xlsx    # + Excel report
+  python cli.py analyze bom.csv --server http://srv:8000   # analyse through the remote server
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from app.analyzer import analyze  # noqa: E402
 from app.reports import LABELS, report_csv, report_xlsx  # noqa: E402
 from app.tables import TableError, parse_bom  # noqa: E402
 
-COLORS = {"conforme": "32", "exemption": "36", "svhc": "33", "non_conforme": "31", "a_verifier": "33", "non_monte": "90"}
+COLORS = {"compliant": "32", "exemption": "36", "svhc": "33", "non_compliant": "31", "needs_review": "33", "dnp": "90"}
 
 
 def color(status: str, text: str | None = None) -> str:
@@ -39,7 +39,7 @@ def cmd_seed(args):
     data = (ROOT / "data" / "seed_components.csv").read_bytes()
     with db.session() as conn:
         res = import_table(conn, data, "seed_components.csv")
-    print(f"Données de démonstration : {res['created']} créés, {res['updated']} mis à jour")
+    print(f"Demo data: {res['created']} created, {res['updated']} updated")
 
 
 def cmd_import(args):
@@ -56,7 +56,7 @@ def cmd_import(args):
     else:
         with db.session() as conn:
             res = import_table(conn, path.read_bytes(), path.name)
-    print(f"{res['created']} créés, {res['updated']} mis à jour, {res['error_count']} erreurs")
+    print(f"{res['created']} created, {res['updated']} updated, {res['error_count']} errors")
     for e in res["errors"]:
         print("  -", e)
 
@@ -75,13 +75,13 @@ def cmd_analyze(args):
             timeout=120,
         )
         if r.status_code != 200:
-            sys.exit(f"Erreur serveur ({r.status_code}) : {r.text}")
+            sys.exit(f"Server error ({r.status_code}): {r.text}")
         report = r.json()
     else:
         try:
             lines, colmap = parse_bom(data, path.name, mapping)
         except TableError as exc:
-            sys.exit(f"Erreur : {exc}")
+            sys.exit(f"Error: {exc}")
         with db.session() as conn:
             report = analyze(conn, lines, colmap, path.name)
 
@@ -93,54 +93,54 @@ def cmd_analyze(args):
     if args.output:
         out = Path(args.output)
         out.write_bytes(report_xlsx(report) if out.suffix.lower() == ".xlsx" else report_csv(report))
-        print(f"\nRapport enregistré : {out}")
+        print(f"\nReport saved: {out}")
 
-    # Code de sortie utilisable en intégration continue : 0 conforme, 1 à vérifier, 2 non conforme
+    # Exit code usable in continuous integration: 0 compliant, 1 needs review, 2 non-compliant
     overall = report["summary"]["overall"]
-    sys.exit({"conforme": 0, "a_verifier": 1}.get(overall, 2))
+    sys.exit({"compliant": 0, "needs_review": 1}.get(overall, 2))
 
 
 def print_report(report: dict):
     s = report["summary"]
     m = report.get("mapping") or {}
-    print(f"BOM : {report['filename']}  ({s['lines']} lignes, {s['dnp']} non montées)")
+    print(f"BOM: {report['filename']}  ({s['lines']} lines, {s['dnp']} not populated)")
     if m:
-        print("Colonnes détectées : " + ", ".join(f"{k}={v}" for k, v in m["columns"].items()))
-    print(f"Trouvées : {s['found']}   Incertaines : {s['uncertain']}   Introuvables : {s['not_found']}\n")
-    w = max([len(l["bom_mpn"]) for l in report["lines"]] + [10])
-    print(f"{'Ligne':>5}  {'Référence':<{w}}  {'RoHS 2':<22}{'RoHS 3':<22}{'REACH':<16}Remarques")
+        print("Detected columns: " + ", ".join(f"{k}={v}" for k, v in m["columns"].items()))
+    print(f"Found: {s['found']}   Uncertain: {s['uncertain']}   Not found: {s['not_found']}\n")
+    w = max([len(l["bom_mpn"]) for l in report["lines"]] + [11])
+    print(f"{'Line':>5}  {'Part number':<{w}}  {'RoHS 2':<22}{'RoHS 3':<22}{'REACH':<16}Notes")
     for l in report["lines"]:
         cells = "".join(color(l[n]) + " " * max(1, pad - len(LABELS.get(l[n], l[n]))) for n, pad in (("rohs2", 22), ("rohs3", 22), ("reach", 16)))
         notes = list(l["notes"])
-        if l["suggestions"] and l["match"] == "introuvable":
-            notes.append("Suggestions : " + ", ".join(x["mpn"] for x in l["suggestions"]))
+        if l["suggestions"] and l["match"] == "not_found":
+            notes.append("Suggestions: " + ", ".join(x["mpn"] for x in l["suggestions"]))
         print(f"{l['line']:>5}  {l['bom_mpn']:<{w}}  {cells}{' | '.join(notes)}")
-    print("\nVerdict BOM :")
+    print("\nBOM verdict:")
     for n, label in (("rohs2", "RoHS 2"), ("rohs3", "RoHS 3"), ("reach", "REACH ")):
-        print(f"  {label} : {color(s[n]['verdict'])}")
-    print(f"  Global : {color(s['overall'])}")
+        print(f"  {label}: {color(s[n]['verdict'])}")
+    print(f"  Overall: {color(s['overall'])}")
 
 
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    p = argparse.ArgumentParser(description="Vérificateur de conformité RoHS 2 / RoHS 3 / REACH d'une BOM")
+    p = argparse.ArgumentParser(description="RoHS 2 / RoHS 3 / REACH compliance checker for a BOM")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("seed", help="Charger les données de démonstration dans la base locale").set_defaults(func=cmd_seed)
+    sub.add_parser("seed", help="Load the demo data into the local database").set_defaults(func=cmd_seed)
 
-    pi = sub.add_parser("import", help="Importer un CSV/XLSX dans la base")
+    pi = sub.add_parser("import", help="Import a CSV/XLSX file into the database")
     pi.add_argument("file")
-    pi.add_argument("--server", help="URL du serveur (sinon base locale)")
-    pi.add_argument("--token", help="Jeton administrateur du serveur")
+    pi.add_argument("--server", help="Server URL (otherwise the local database)")
+    pi.add_argument("--token", help="Server admin token")
     pi.set_defaults(func=cmd_import)
 
-    pa = sub.add_parser("analyze", help="Analyser une BOM")
+    pa = sub.add_parser("analyze", help="Analyse a BOM")
     pa.add_argument("file")
-    pa.add_argument("-o", "--output", help="Fichier de rapport (.xlsx ou .csv)")
-    pa.add_argument("--server", help="URL du serveur (sinon base locale)")
-    pa.add_argument("--mapping", help='Colonnes forcées, JSON : \'{"mpn": "Part Number"}\'')
-    pa.add_argument("--json", action="store_true", help="Sortie JSON brute")
+    pa.add_argument("-o", "--output", help="Report file (.xlsx or .csv)")
+    pa.add_argument("--server", help="Server URL (otherwise the local database)")
+    pa.add_argument("--mapping", help='Forced columns, JSON: \'{"mpn": "Part Number"}\'')
+    pa.add_argument("--json", action="store_true", help="Raw JSON output")
     pa.set_defaults(func=cmd_analyze)
 
     args = p.parse_args()

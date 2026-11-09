@@ -1,9 +1,9 @@
-"""Fabricants : informations (site web, pays du siège, notes) et composants associés.
+"""Manufacturers: information (website, headquarters country, notes) and related components.
 
-Un fabricant est identifié par son nom normalisé (le même que components.manufacturer_norm),
-ce qui regroupe « TI », « Texas Instruments » et « Texas Instruments Inc. ».
-Les informations saisies sont stockées dans la table `manufacturers` ; pour les fabricants
-connus, un site web et un pays par défaut sont proposés tant que rien n'a été saisi.
+A manufacturer is identified by its normalised name (the same as components.manufacturer_norm),
+which groups "TI", "Texas Instruments" and "Texas Instruments Inc." together.
+The information entered is stored in the `manufacturers` table; for known manufacturers,
+a default website and country are offered as long as nothing has been entered.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from . import db
 from .datasheet import MANUFACTURERS as KNOWN_MANUFACTURERS
 
-# Pays du siège social des fabricants connus (code ISO 3166-1 alpha-2)
+# Headquarters country of known manufacturers (ISO 3166-1 alpha-2 code)
 _HQ_COUNTRY = {
     "Texas Instruments": "US", "STMicroelectronics": "CH", "Analog Devices": "US", "Microchip": "US",
     "NXP": "NL", "onsemi": "US", "Infineon": "DE", "Renesas": "JP", "Nexperia": "NL", "Diodes": "US",
@@ -27,7 +27,7 @@ _HQ_COUNTRY = {
     "Coilcraft": "US", "Bel Fuse": "US", "Hirose": "JP", "JST": "JP", "Phoenix Contact": "DE", "Omron": "JP",
 }
 
-# Valeurs par défaut : clé normalisée -> {name, website, country}
+# Default values: normalised key -> {name, website, country}
 DEFAULTS = {
     db.normalize_manufacturer(name): {
         "name": name,
@@ -47,7 +47,7 @@ def normalize_website(value: str | None) -> str:
     if not re.match(r"^https?://", v, re.I):
         v = "https://" + v
     if not _URL_RE.match(v):
-        raise db.ValidationError(f"Adresse de site web invalide : {value!r}")
+        raise db.ValidationError(f"Invalid website address: {value!r}")
     return v
 
 
@@ -56,11 +56,11 @@ def _stats(rows: list[sqlite3.Row]) -> dict:
     count = lambda field, *values: sum(1 for r in rows if r[field] in values)  # noqa: E731
     return {
         "components": total,
-        "rohs3_ok": count("rohs3", "conforme", "exemption"),
-        "rohs3_ko": count("rohs3", "non_conforme"),
-        "rohs3_unknown": count("rohs3", "inconnu"),
+        "rohs3_ok": count("rohs3", "compliant", "exemption"),
+        "rohs3_ko": count("rohs3", "non_compliant"),
+        "rohs3_unknown": count("rohs3", "unknown"),
         "reach_svhc": count("reach", "svhc"),
-        "reach_ko": count("reach", "non_conforme"),
+        "reach_ko": count("reach", "non_compliant"),
         "eccn_controlled": sum(1 for r in rows if db.eccn_is_controlled(r["eccn"])),
         "eccn_unknown": sum(1 for r in rows if not r["eccn"]),
     }

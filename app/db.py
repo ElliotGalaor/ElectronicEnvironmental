@@ -1,24 +1,24 @@
-"""Base de données des composants (SQLite).
+"""Component database (SQLite).
 
-Chaque composant est identifié par sa référence fabricant (MPN) et son fabricant.
-Les statuts de conformité possibles sont :
+Each component is identified by its manufacturer part number (MPN) and its manufacturer.
+Possible compliance statuses:
 
-RoHS 2 / RoHS 3 :
-  - "conforme"      : conforme sans exemption
-  - "exemption"     : conforme grâce à une exemption (ex. 7(c)-I), à préciser
-  - "non_conforme"  : non conforme
-  - "inconnu"       : pas d'information
+RoHS 2 / RoHS 3:
+  - "compliant"      : compliant without exemption
+  - "exemption"      : compliant thanks to an exemption (e.g. 7(c)-I), to be specified
+  - "non_compliant"  : not compliant
+  - "unknown"        : no information
 
-REACH :
-  - "conforme"      : aucune SVHC > 0,1 % m/m
-  - "svhc"          : contient une ou plusieurs SVHC > 0,1 % (obligation d'info art. 33)
-  - "non_conforme"  : substance restreinte (annexe XVII) ou non conformité déclarée
-  - "inconnu"       : pas d'information
+REACH:
+  - "compliant"      : no SVHC above 0.1 % w/w
+  - "svhc"           : contains one or more SVHCs above 0.1 % (information duty, art. 33)
+  - "non_compliant"  : restricted substance (Annex XVII) or declared non-compliance
+  - "unknown"        : no information
 
-Export / douane :
-  - eccn              : Export Control Classification Number (EAR américain / liste UE des biens à
-                        double usage), ex. "EAR99", "5A992.c", "3A991.a.1" ; vide = inconnu
-  - country_of_origin : pays d'origine, code ISO 3166-1 alpha-2 (ex. "CN", "MY", "DE") ; vide = inconnu
+Export / customs:
+  - eccn              : Export Control Classification Number (US EAR / EU dual-use list),
+                        e.g. "EAR99", "5A992.c", "3A991.a.1"; empty = unknown
+  - country_of_origin : country of origin, ISO 3166-1 alpha-2 code (e.g. "CN", "MY", "DE"); empty = unknown
 """
 
 from __future__ import annotations
@@ -34,8 +34,8 @@ from typing import Iterator
 
 DB_PATH = Path(os.environ.get("RRC_DB_PATH", Path(__file__).resolve().parent.parent / "data" / "components.db"))
 
-ROHS_STATUSES = ("conforme", "exemption", "non_conforme", "inconnu")
-REACH_STATUSES = ("conforme", "svhc", "non_conforme", "inconnu")
+ROHS_STATUSES = ("compliant", "exemption", "non_compliant", "unknown")
+REACH_STATUSES = ("compliant", "svhc", "non_compliant", "unknown")
 
 FIELDS = (
     "mpn",
@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS components (
     manufacturer      TEXT NOT NULL DEFAULT '',
     manufacturer_norm TEXT NOT NULL DEFAULT '',
     description       TEXT NOT NULL DEFAULT '',
-    rohs2             TEXT NOT NULL DEFAULT 'inconnu',
-    rohs3             TEXT NOT NULL DEFAULT 'inconnu',
-    reach             TEXT NOT NULL DEFAULT 'inconnu',
+    rohs2             TEXT NOT NULL DEFAULT 'unknown',
+    rohs3             TEXT NOT NULL DEFAULT 'unknown',
+    reach             TEXT NOT NULL DEFAULT 'unknown',
     rohs_exemptions   TEXT NOT NULL DEFAULT '',
     svhc_list         TEXT NOT NULL DEFAULT '',
     eccn              TEXT NOT NULL DEFAULT '',
@@ -77,14 +77,14 @@ CREATE INDEX IF NOT EXISTS idx_components_mpn_norm  ON components (mpn_norm);
 CREATE INDEX IF NOT EXISTS idx_components_mpn_loose ON components (mpn_loose);
 CREATE INDEX IF NOT EXISTS idx_components_mfr_norm  ON components (manufacturer_norm);
 
--- Équivalences confirmées par un utilisateur (stockées dans les deux sens)
+-- Equivalences confirmed by a user (stored in both directions)
 CREATE TABLE IF NOT EXISTS component_equivalents (
     a INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
     b INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
     PRIMARY KEY (a, b)
 );
 
--- Comptes utilisateurs (mot de passe haché avec scrypt, jamais stocké en clair)
+-- User accounts (password hashed with scrypt, never stored in clear text)
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     email         TEXT NOT NULL UNIQUE,
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at    TEXT NOT NULL
 );
 
--- Sessions de connexion : seule l'empreinte SHA-256 du jeton est conservée
+-- Login sessions: only the SHA-256 hash of the token is kept
 CREATE TABLE IF NOT EXISTS sessions (
     token_hash TEXT PRIMARY KEY,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
 
--- Historique des BOM analysées par utilisateur (fichier d'origine conservé pour pouvoir la rouvrir)
+-- History of the BOMs analysed by each user (original file kept so it can be reopened)
 CREATE TABLE IF NOT EXISTS bom_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -116,14 +116,14 @@ CREATE TABLE IF NOT EXISTS bom_history (
 );
 CREATE INDEX IF NOT EXISTS idx_bom_history_user ON bom_history (user_id, updated_at);
 
--- Exemptions RoHS : notes saisies par l'utilisateur (le texte officiel vient de data/rohs_exemptions.json)
+-- RoHS exemptions: notes entered by the user (the official text comes from data/rohs_exemptions.json)
 CREATE TABLE IF NOT EXISTS exemption_notes (
     key        TEXT PRIMARY KEY,
     notes      TEXT NOT NULL DEFAULT '',
     updated_at TEXT NOT NULL
 );
 
--- Codes ECCN : intitulé et notes saisis par l'utilisateur (l'explication est calculée)
+-- ECCN codes: title and notes entered by the user (the explanation is computed)
 CREATE TABLE IF NOT EXISTS eccn_codes (
     code       TEXT PRIMARY KEY,
     title      TEXT NOT NULL DEFAULT '',
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS eccn_codes (
     updated_at TEXT NOT NULL
 );
 
--- Informations sur les fabricants (clé = nom normalisé, comme components.manufacturer_norm)
+-- Manufacturer information (key = normalised name, like components.manufacturer_norm)
 CREATE TABLE IF NOT EXISTS manufacturers (
     key        TEXT PRIMARY KEY,
     name       TEXT NOT NULL DEFAULT '',
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS manufacturers (
 );
 """
 
-# Alias courants de fabricants -> forme canonique (après normalisation).
+# Common manufacturer aliases -> canonical form (after normalisation).
 MANUFACTURER_ALIASES = {
     "ti": "texas instruments",
     "texas": "texas instruments",
@@ -197,12 +197,12 @@ def strip_accents(text: str) -> str:
 
 
 def normalize_mpn(mpn: str | None) -> str:
-    """Majuscules, sans espaces. On garde tirets, slash, # (ex. /NOPB, #PBF) car significatifs."""
+    """Upper case, no spaces. Dashes, slashes and # are kept (e.g. /NOPB, #PBF) because they are significant."""
     return re.sub(r"\s+", "", (mpn or "")).upper()
 
 
 def loose_mpn(mpn: str | None) -> str:
-    """Forme permissive : uniquement lettres et chiffres."""
+    """Permissive form: letters and digits only."""
     return re.sub(r"[^A-Z0-9]", "", normalize_mpn(mpn))
 
 
@@ -223,10 +223,19 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-# Colonnes ajoutées après la première version : ajoutées aux bases existantes à l'ouverture.
+# Columns added after the first version: added to existing databases when they are opened.
 _ADDED_COLUMNS = {
     "eccn": "TEXT NOT NULL DEFAULT ''",
     "country_of_origin": "TEXT NOT NULL DEFAULT ''",
+}
+
+# Status values used up to v1.1.0 (French) -> current values.
+LEGACY_STATUSES = {
+    "conforme": "compliant",
+    "non_conforme": "non_compliant",
+    "inconnu": "unknown",
+    "a_verifier": "needs_review",
+    "non_monte": "dnp",
 }
 
 
@@ -235,73 +244,89 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for col, decl in _ADDED_COLUMNS.items():
         if col not in existing:
             conn.execute(f"ALTER TABLE components ADD COLUMN {col} {decl}")
+    # Databases created before v2.0.0 store French status values.
+    legacy = ", ".join(f"'{s}'" for s in LEGACY_STATUSES)
+    if conn.execute(f"SELECT 1 FROM components WHERE rohs2 IN ({legacy}) OR rohs3 IN ({legacy}) "
+                    f"OR reach IN ({legacy}) LIMIT 1").fetchone():
+        for field in ("rohs2", "rohs3", "reach"):
+            for old, new in LEGACY_STATUSES.items():
+                conn.execute(f"UPDATE components SET {field} = ? WHERE {field} = ?", (new, old))
     conn.commit()
 
 
-# ------------------------------------------------------------------ ECCN et pays d'origine
+# ------------------------------------------------------------------ ECCN and country of origin
 
 _ECCN_RE = re.compile(r"^(\d)([A-E])(\d{3})((?:\.[A-Z0-9]+)*)$", re.I)
+_EMPTY_VALUES = ("", "?", "na", "n/a", "inconnu", "unknown", "tbd", "nc")
 
 
 def normalize_eccn(value: str | None) -> str:
-    """Normalise un ECCN : "5a992.C" -> "5A992.c", "ear 99" -> "EAR99". Vide = inconnu."""
+    """Normalise an ECCN: "5a992.C" -> "5A992.c", "ear 99" -> "EAR99". Empty = unknown."""
     v = re.sub(r"\s+", "", (value or "")).strip().rstrip(".")
-    if v.lower() in ("", "?", "na", "n/a", "inconnu", "unknown", "tbd", "nc"):
+    if v.lower() in _EMPTY_VALUES:
         return ""
     if v.upper() == "EAR99":
         return "EAR99"
     m = _ECCN_RE.match(v)
     if not m:
-        raise ValidationError(f"ECCN invalide : {value!r} (attendu : EAR99 ou un code comme 5A992.c, 3A001.a.1)")
+        raise ValidationError(f"Invalid ECCN: {value!r} (expected EAR99 or a code such as 5A992.c, 3A001.a.1)")
     return f"{m.group(1)}{m.group(2).upper()}{m.group(3)}{m.group(4).lower()}"
 
 
 def eccn_is_controlled(eccn: str) -> bool:
-    """Vrai pour un ECCN de la liste de contrôle (tout sauf EAR99 et vide)."""
+    """True for an ECCN on the Commerce Control List (anything except EAR99 and empty)."""
     return bool(eccn) and eccn != "EAR99"
 
 
-# Code ISO -> nom français, puis alias (anglais, variantes) -> code
+# ISO code -> English name, then aliases (French names, variants) -> code
 COUNTRIES = {
-    "AT": "Autriche", "AU": "Australie", "BE": "Belgique", "BG": "Bulgarie", "BR": "Brésil", "CA": "Canada",
-    "CH": "Suisse", "CN": "Chine", "CR": "Costa Rica", "CZ": "Tchéquie", "DE": "Allemagne", "DK": "Danemark",
-    "EE": "Estonie", "ES": "Espagne", "FI": "Finlande", "FR": "France", "GB": "Royaume-Uni", "GR": "Grèce",
-    "HK": "Hong Kong", "HU": "Hongrie", "ID": "Indonésie", "IE": "Irlande", "IL": "Israël", "IN": "Inde",
-    "IT": "Italie", "JP": "Japon", "KR": "Corée du Sud", "LT": "Lituanie", "LU": "Luxembourg", "LV": "Lettonie",
-    "MA": "Maroc", "MT": "Malte", "MX": "Mexique", "MY": "Malaisie", "NL": "Pays-Bas", "NO": "Norvège",
-    "PH": "Philippines", "PL": "Pologne", "PT": "Portugal", "RO": "Roumanie", "RS": "Serbie", "RU": "Russie",
-    "SE": "Suède", "SG": "Singapour", "SI": "Slovénie", "SK": "Slovaquie", "TH": "Thaïlande", "TN": "Tunisie",
-    "TR": "Turquie", "TW": "Taïwan", "UA": "Ukraine", "US": "États-Unis", "VN": "Viêt Nam", "ZA": "Afrique du Sud",
+    "AT": "Austria", "AU": "Australia", "BE": "Belgium", "BG": "Bulgaria", "BR": "Brazil", "CA": "Canada",
+    "CH": "Switzerland", "CN": "China", "CR": "Costa Rica", "CZ": "Czechia", "DE": "Germany", "DK": "Denmark",
+    "EE": "Estonia", "ES": "Spain", "FI": "Finland", "FR": "France", "GB": "United Kingdom", "GR": "Greece",
+    "HK": "Hong Kong", "HU": "Hungary", "ID": "Indonesia", "IE": "Ireland", "IL": "Israel", "IN": "India",
+    "IT": "Italy", "JP": "Japan", "KR": "South Korea", "LT": "Lithuania", "LU": "Luxembourg", "LV": "Latvia",
+    "MA": "Morocco", "MT": "Malta", "MX": "Mexico", "MY": "Malaysia", "NL": "Netherlands", "NO": "Norway",
+    "PH": "Philippines", "PL": "Poland", "PT": "Portugal", "RO": "Romania", "RS": "Serbia", "RU": "Russia",
+    "SE": "Sweden", "SG": "Singapore", "SI": "Slovenia", "SK": "Slovakia", "TH": "Thailand", "TN": "Tunisia",
+    "TR": "Turkey", "TW": "Taiwan", "UA": "Ukraine", "US": "United States", "VN": "Vietnam", "ZA": "South Africa",
 }
 _COUNTRY_ALIASES = {
-    "austria": "AT", "australia": "AU", "belgium": "BE", "bulgaria": "BG", "brazil": "BR", "switzerland": "CH",
-    "china": "CN", "prc": "CN", "people s republic of china": "CN", "czech republic": "CZ", "czechia": "CZ",
-    "republique tcheque": "CZ", "germany": "DE", "denmark": "DK", "estonia": "EE", "spain": "ES", "finland": "FI",
-    "united kingdom": "GB", "uk": "GB", "great britain": "GB", "england": "GB", "greece": "GR", "hungary": "HU",
-    "indonesia": "ID", "ireland": "IE", "israel": "IL", "india": "IN", "italy": "IT", "japan": "JP",
-    "korea": "KR", "south korea": "KR", "republic of korea": "KR", "coree": "KR", "lithuania": "LT", "latvia": "LV",
-    "morocco": "MA", "mexico": "MX", "malaysia": "MY", "netherlands": "NL", "the netherlands": "NL",
-    "holland": "NL", "norway": "NO", "philippines": "PH", "poland": "PL", "romania": "RO", "serbia": "RS",
-    "russia": "RU", "russian federation": "RU", "sweden": "SE", "singapore": "SG", "slovenia": "SI",
-    "slovakia": "SK", "thailand": "TH", "tunisia": "TN", "turkey": "TR", "turkiye": "TR", "taiwan": "TW",
-    "republic of china": "TW", "chinese taipei": "TW", "ukraine": "UA", "usa": "US", "united states": "US",
-    "united states of america": "US", "etats unis": "US", "vietnam": "VN", "viet nam": "VN", "south africa": "ZA",
-    "uk great britain": "GB",
+    # English variants
+    "prc": "CN", "people s republic of china": "CN", "czech republic": "CZ", "uk": "GB", "great britain": "GB",
+    "england": "GB", "uk great britain": "GB", "korea": "KR", "republic of korea": "KR", "the netherlands": "NL",
+    "holland": "NL", "russian federation": "RU", "turkiye": "TR", "republic of china": "TW", "chinese taipei": "TW",
+    "usa": "US", "united states of america": "US", "viet nam": "VN",
+    # French names (files exported by French-language tools)
+    "autriche": "AT", "australie": "AU", "belgique": "BE", "bulgarie": "BG", "bresil": "BR", "suisse": "CH",
+    "chine": "CN", "tchequie": "CZ", "republique tcheque": "CZ", "allemagne": "DE", "danemark": "DK",
+    "estonie": "EE", "espagne": "ES", "finlande": "FI", "royaume uni": "GB", "grece": "GR", "hongrie": "HU",
+    "indonesie": "ID", "irlande": "IE", "israel": "IL", "inde": "IN", "italie": "IT", "japon": "JP",
+    "coree": "KR", "coree du sud": "KR", "lituanie": "LT", "lettonie": "LV", "maroc": "MA", "malte": "MT",
+    "mexique": "MX", "malaisie": "MY", "pays bas": "NL", "norvege": "NO", "pologne": "PL", "roumanie": "RO",
+    "serbie": "RS", "russie": "RU", "suede": "SE", "singapour": "SG", "slovenie": "SI", "slovaquie": "SK",
+    "thailande": "TH", "tunisie": "TN", "turquie": "TR", "taiwan": "TW", "etats unis": "US",
+    "afrique du sud": "ZA",
 }
-_COUNTRY_LOOKUP = {**{norm: code for code, name in COUNTRIES.items() for norm in [re.sub(r"[^a-z]+", " ", strip_accents(name).lower()).strip()]}, **_COUNTRY_ALIASES}
+
+
+def _country_key(name: str) -> str:
+    return re.sub(r"[^a-z]+", " ", strip_accents(name).lower()).strip()
+
+
+_COUNTRY_LOOKUP = {**{_country_key(name): code for code, name in COUNTRIES.items()}, **_COUNTRY_ALIASES}
 
 
 def normalize_country(value: str | None) -> str:
-    """Ramène un pays (code ISO, nom français ou anglais) à son code ISO 3166-1 alpha-2. Vide = inconnu."""
+    """Map a country (ISO code, English or French name) to its ISO 3166-1 alpha-2 code. Empty = unknown."""
     v = (value or "").strip()
-    if v.lower() in ("", "?", "na", "n/a", "inconnu", "unknown", "tbd", "nc"):
+    if v.lower() in _EMPTY_VALUES:
         return ""
     if re.fullmatch(r"[A-Za-z]{2}", v):
         return v.upper()
-    key = re.sub(r"[^a-z]+", " ", strip_accents(v).lower()).strip()
+    key = _country_key(v)
     if key in _COUNTRY_LOOKUP:
         return _COUNTRY_LOOKUP[key]
-    raise ValidationError(f"Pays d'origine non reconnu : {value!r} (utilisez le code ISO à 2 lettres, ex. CN, MY, DE)")
+    raise ValidationError(f"Unrecognised country of origin: {value!r} (use the 2-letter ISO code, e.g. CN, MY, DE)")
 
 
 def country_name(code: str) -> str:
@@ -332,28 +357,32 @@ class ValidationError(ValueError):
     pass
 
 
+# Accepted spellings for each status, in English and French (BOMs and imports come from many tools).
+STATUS_SYNONYMS = {
+    "compliant": ("yes", "y", "ok", "compliant", "c", "1", "true", "rohs", "reach", "oui", "conforme"),
+    "exemption": ("exemption", "exempt", "compliant_with_exemption", "conforme_avec_exemption", "exempte"),
+    "svhc": ("svhc", "contains_svhc", "contient_svhc", "svhc>0.1%", "art33", "article_33"),
+    "non_compliant": ("no", "n", "non_compliant", "noncompliant", "not_compliant", "0", "false", "nok",
+                      "non", "non_conforme", "nonconforme"),
+}
+
+
 def clean_status(value: str | None, allowed: tuple[str, ...], field: str) -> str:
-    """Accepte des valeurs variées (Oui/Yes/Compliant/Non...) et les ramène à l'énumération."""
+    """Accept varied values (Yes/Compliant/No/Oui/Non...) and map them to the enumeration."""
     v = strip_accents((value or "").strip().lower()).replace("-", "_").replace(" ", "_")
-    if v in ("", "?", "n/a", "na", "unknown", "inconnu", "nc", "tbd", "a_verifier"):
-        return "inconnu"
-    synonyms = {
-        "conforme": ("oui", "yes", "y", "ok", "compliant", "conforme", "c", "1", "true", "rohs", "reach"),
-        "exemption": ("exemption", "exempt", "compliant_with_exemption", "conforme_avec_exemption", "exempte"),
-        "svhc": ("svhc", "contains_svhc", "contient_svhc", "svhc>0.1%", "art33", "article_33"),
-        "non_conforme": ("non", "no", "n", "non_conforme", "nonconforme", "not_compliant", "non_compliant", "noncompliant", "0", "false", "nok"),
-    }
-    for status, words in synonyms.items():
+    if v in ("", "?", "n/a", "na", "unknown", "inconnu", "nc", "tbd", "needs_review", "a_verifier"):
+        return "unknown"
+    for status, words in STATUS_SYNONYMS.items():
         if v in words and status in allowed:
             return status
-    raise ValidationError(f"Statut invalide pour {field!r} : {value!r} (attendu : {', '.join(allowed)})")
+    raise ValidationError(f"Invalid status for {field!r}: {value!r} (expected: {', '.join(allowed)})")
 
 
 def prepare(data: dict) -> dict:
-    """Valide et normalise un enregistrement composant."""
+    """Validate and normalise a component record."""
     mpn = (data.get("mpn") or "").strip()
     if not mpn:
-        raise ValidationError("La référence fabricant (mpn) est obligatoire")
+        raise ValidationError("The manufacturer part number (mpn) is required")
     rec = {f: str(data.get(f) or "").strip() for f in FIELDS}
     rec["mpn"] = mpn
     rec["rohs2"] = clean_status(rec["rohs2"], ROHS_STATUSES, "rohs2")
@@ -373,14 +402,14 @@ def row_to_dict(row: sqlite3.Row | None) -> dict | None:
         return None
     d = dict(row)
     if "manufacturer_norm" in d:
-        d["manufacturer_key"] = d["manufacturer_norm"]  # lien vers la fiche fabricant
+        d["manufacturer_key"] = d["manufacturer_norm"]  # link to the manufacturer record
     for k in ("mpn_norm", "mpn_loose", "manufacturer_norm"):
         d.pop(k, None)
     return d
 
 
 def upsert(conn: sqlite3.Connection, data: dict) -> tuple[int, bool]:
-    """Insère ou met à jour (clé : MPN + fabricant). Retourne (id, créé)."""
+    """Insert or update (key: MPN + manufacturer). Returns (id, created)."""
     rec = prepare(data)
     existing = conn.execute(
         "SELECT id FROM components WHERE mpn_norm = ? AND manufacturer_norm = ?",
@@ -406,7 +435,7 @@ def create(conn: sqlite3.Connection, data: dict) -> int:
             [rec[c] for c in cols],
         )
     except sqlite3.IntegrityError as exc:
-        raise ValidationError("Ce composant (référence + fabricant) existe déjà") from exc
+        raise ValidationError("This component (part number + manufacturer) already exists") from exc
     return cur.lastrowid
 
 
@@ -416,7 +445,7 @@ def update(conn: sqlite3.Connection, comp_id: int, data: dict) -> bool:
     try:
         cur = conn.execute(f"UPDATE components SET {sets} WHERE id = ?", [*rec.values(), comp_id])
     except sqlite3.IntegrityError as exc:
-        raise ValidationError("Un autre composant a déjà cette référence + fabricant") from exc
+        raise ValidationError("Another component already has this part number + manufacturer") from exc
     return cur.rowcount > 0
 
 
@@ -435,8 +464,9 @@ def search(conn: sqlite3.Connection, q: str = "", limit: int = 50, offset: int =
         like = f"%{q.strip()}%"
         where.append("(mpn LIKE ? OR manufacturer LIKE ? OR description LIKE ? OR mpn_loose LIKE ?)")
         params += [like, like, like, f"%{loose_mpn(q)}%"]
-    if status == "probleme":
-        where.append("(rohs2 IN ('non_conforme','inconnu') OR rohs3 IN ('non_conforme','inconnu') OR reach IN ('non_conforme','inconnu','svhc'))")
+    if status == "issues":
+        where.append("(rohs2 IN ('non_compliant','unknown') OR rohs3 IN ('non_compliant','unknown') "
+                     "OR reach IN ('non_compliant','unknown','svhc'))")
     clause = f"WHERE {' AND '.join(where)}" if where else ""
     total = conn.execute(f"SELECT COUNT(*) FROM components {clause}", params).fetchone()[0]
     rows = conn.execute(

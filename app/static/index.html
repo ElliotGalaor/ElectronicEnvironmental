@@ -1,53 +1,53 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vérificateur RoHS / REACH</title>
-<link rel="stylesheet" href="/static/style.css?v=18">
+<title>RoHS / REACH Checker</title>
+<link rel="stylesheet" href="/static/style.css?v=19">
 </head>
 <body>
 <header class="top">
   <div class="brand">
     <span class="logo" aria-hidden="true">♻</span>
     <div>
-      <h1>Vérificateur RoHS / REACH</h1>
-      <p class="sub">Conformité environnementale d'une nomenclature (BOM)</p>
+      <h1>RoHS / REACH Checker</h1>
+      <p class="sub">Environmental compliance of a bill of materials (BOM)</p>
     </div>
   </div>
   <div class="topright">
-    <div class="dbinfo" id="dbinfo">Base : …</div>
+    <div class="dbinfo" id="dbinfo">Database: …</div>
     <div class="account" id="account"></div>
   </div>
 </header>
 
 <nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="analyse" role="tab">Analyse de BOM</button>
-  <button class="tab" data-tab="base" role="tab">Base de composants</button>
-  <button class="tab" data-tab="fabricants" role="tab">Fabricants</button>
-  <button class="tab" data-tab="exemptions" role="tab">Exemptions RoHS</button>
-  <button class="tab" data-tab="eccn" role="tab">Codes ECCN</button>
+  <button class="tab active" data-tab="analysis" role="tab">BOM analysis</button>
+  <button class="tab" data-tab="database" role="tab">Component database</button>
+  <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
+  <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
+  <button class="tab" data-tab="eccn" role="tab">ECCN codes</button>
 </nav>
 
 <main>
-  <!-- ============================== ANALYSE ============================== -->
-  <section id="tab-analyse" class="panel active">
+  <!-- ============================== ANALYSIS ============================== -->
+  <section id="tab-analysis" class="panel active">
     <label id="drop" class="drop">
       <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm" hidden>
       <div class="drop-icon" aria-hidden="true">⬆</div>
-      <strong>Déposez votre BOM ici</strong> ou cliquez pour choisir un fichier
-      <span class="hint">CSV, TXT ou Excel (.xlsx) — colonnes détectées automatiquement (référence fabricant, fabricant, repères, quantité…)</span>
+      <strong>Drop your BOM here</strong> or click to choose a file
+      <span class="hint">CSV, TXT or Excel (.xlsx) — columns detected automatically (manufacturer part number, manufacturer, designators, quantity…)</span>
     </label>
 
     <p id="historyHint" class="muted small historyhint">
-      <button class="linkbtn" data-auth="login">Connectez-vous</button> ou
-      <button class="linkbtn" data-auth="register">créez un compte</button> pour retrouver vos dernières BOM analysées.
+      <button class="linkbtn" data-auth="login">Sign in</button> or
+      <button class="linkbtn" data-auth="register">create an account</button> to find your latest analysed BOMs again.
     </p>
     <div id="historyBox" class="card history" hidden>
-      <div class="historyhead"><h3>Mes dernières BOM</h3><span class="muted small" id="historyCount"></span></div>
+      <div class="historyhead"><h3>My latest BOMs</h3><span class="muted small" id="historyCount"></span></div>
       <div id="historyList"></div>
-      <p class="muted small">Rouvrir une BOM relance l'analyse avec la base actuelle : les statuts peuvent avoir évolué
-        depuis. Les 20 analyses les plus récentes sont conservées.</p>
+      <p class="muted small">Reopening a BOM reruns the analysis against the current database: statuses may have changed
+        since. The 20 most recent analyses are kept.</p>
     </div>
 
     <div id="error" class="alert error" hidden></div>
@@ -56,7 +56,7 @@
       <div class="fileline">
         <div><strong id="fname"></strong> <span class="muted" id="fmeta"></span></div>
         <div class="actions">
-          <button class="btn" id="btnMapping" title="Choisir quelle colonne du fichier correspond à chaque champ">Colonnes…</button>
+          <button class="btn" id="btnMapping" title="Choose which file column matches each field">Columns…</button>
           <button class="btn" data-export="csv">Export CSV</button>
           <button class="btn primary" data-export="xlsx">Export Excel</button>
         </div>
@@ -65,57 +65,57 @@
       <div id="swapBar" class="swapbar" hidden>
         <span id="swapCount"></span>
         <span class="spacer"></span>
-        <button class="btn" id="btnSwapReset">Annuler les remplacements</button>
-        <button class="btn primary" id="btnSwapExport">Télécharger la BOM modifiée</button>
+        <button class="btn" id="btnSwapReset">Undo the replacements</button>
+        <button class="btn primary" id="btnSwapExport">Download the modified BOM</button>
       </div>
 
       <div class="cards" id="cards"></div>
-      <div class="charts" id="charts" aria-label="Répartition des statuts par norme"></div>
+      <div class="charts" id="charts" aria-label="Breakdown of statuses per regulation"></div>
 
       <div class="counts" id="counts"></div>
 
       <div class="toolbar">
         <div class="filters" id="filters">
-          <button class="chip active" data-filter="all">Toutes</button>
-          <button class="chip" data-filter="issues">Problèmes</button>
-          <button class="chip" data-filter="ko">Non conformes</button>
-          <button class="chip" data-filter="check">À vérifier</button>
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="issues">Issues</button>
+          <button class="chip" data-filter="ko">Non-compliant</button>
+          <button class="chip" data-filter="check">Needs review</button>
           <button class="chip" data-filter="svhc">SVHC / exemptions</button>
-          <button class="chip" data-filter="eccn">ECCN contrôlé</button>
+          <button class="chip" data-filter="eccn">Controlled ECCN</button>
         </div>
-        <div class="left"><input type="search" id="lineSearch" name="filtre-lineSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Filtrer (référence, repère…)"><span class="muted small" id="lineCount"></span></div>
+        <div class="left"><input type="search" id="lineSearch" name="filter-lineSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Filter (part number, designator…)"><span class="muted small" id="lineCount"></span></div>
       </div>
 
       <div class="tablewrap">
         <table class="grid" id="lines">
           <thead><tr>
-            <th>Ligne</th><th>Repères</th><th>Qté</th><th>Référence BOM</th><th>Fabricant</th>
-            <th>Correspondance</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN / Origine</th><th>Remarques</th>
+            <th>Line</th><th>Designators</th><th>Qty</th><th>BOM part number</th><th>Manufacturer</th>
+            <th>Match</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN / Origin</th><th>Notes</th>
           </tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="disclaimer">Les statuts proviennent de la base serveur. Vérifiez les déclarations des fabricants (certificats RoHS, déclarations REACH/SVHC) avant toute attestation de conformité.</p>
+      <p class="disclaimer">Statuses come from the server database. Check the manufacturers' declarations (RoHS certificates, REACH/SVHC declarations) before any statement of compliance.</p>
     </div>
   </section>
 
-  <!-- ============================== BASE ============================== -->
-  <section id="tab-base" class="panel">
+  <!-- ============================== DATABASE ============================== -->
+  <section id="tab-database" class="panel">
     <div class="toolbar">
       <div class="left">
-        <input type="search" id="q" name="filtre-q" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher une référence, un fabricant, une description…">
-        <label class="check"><input type="checkbox" id="onlyIssues"> Problèmes uniquement</label>
+        <input type="search" id="q" name="filter-q" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a part number, a manufacturer, a description…">
+        <label class="check"><input type="checkbox" id="onlyIssues"> Issues only</label>
       </div>
       <div class="actions">
-        <button class="btn" id="btnImport">Importer CSV/XLSX</button>
+        <button class="btn" id="btnImport">Import CSV/XLSX</button>
         <input type="file" id="importFile" accept=".csv,.txt,.xlsx" hidden>
-        <a class="btn" href="/api/components/export">Exporter</a>
-        <button class="btn" id="btnFromPdf">Depuis une datasheet PDF</button>
-        <button class="btn primary" id="btnAdd">+ Ajouter</button>
+        <a class="btn" href="/api/components/export">Export</a>
+        <button class="btn" id="btnFromPdf">From a PDF datasheet</button>
+        <button class="btn primary" id="btnAdd">+ Add</button>
       </div>
     </div>
     <div id="adminBox" class="card admin" hidden>
-      <label>Jeton administrateur (requis pour modifier la base)
+      <label>Admin token (required to edit the database)
         <input type="password" id="adminToken" autocomplete="off">
       </label>
     </div>
@@ -123,102 +123,102 @@
     <div class="tablewrap">
       <table class="grid" id="comps">
         <thead><tr>
-          <th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th>
-          <th>Exemptions / SVHC</th><th>ECCN</th><th>Origine</th><th>Vérifié le</th><th></th>
+          <th>Part number</th><th>Manufacturer</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th>
+          <th>Exemptions / SVHC</th><th>ECCN</th><th>Origin</th><th>Last checked</th><th></th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
     <div class="pager">
-      <button class="btn" id="prev">‹ Précédent</button>
+      <button class="btn" id="prev">‹ Previous</button>
       <span id="pageInfo" class="muted"></span>
-      <button class="btn" id="next">Suivant ›</button>
+      <button class="btn" id="next">Next ›</button>
     </div>
   </section>
-  <!-- ============================== EXEMPTIONS RoHS ============================== -->
+  <!-- ============================== RoHS EXEMPTIONS ============================== -->
   <section id="tab-exemptions" class="panel">
     <div id="exemptList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="exemptSearch" name="filtre-exemptSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher une exemption, une substance, un fabricant…"></div>
+        <div class="left"><input type="search" id="exemptSearch" name="filter-exemptSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search an exemption, a substance, a manufacturer…"></div>
       </div>
       <div class="tablewrap">
         <table class="grid" id="exempts">
-          <thead><tr><th>Exemption</th><th>Texte officiel</th><th>Substances</th><th>Validité</th><th>Composants</th><th>Fabricants</th></tr></thead>
+          <thead><tr><th>Exemption</th><th>Official text</th><th>Substances</th><th>Validity</th><th>Components</th><th>Manufacturers</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
       <p class="muted small" id="exemptSource"></p>
-      <p class="muted small">Une exemption autorise, pour une application précise et pour une durée limitée, une substance
-        restreinte par RoHS (plomb, mercure, cadmium…). Cliquez sur une exemption pour voir son texte officiel, ses dates et
-        les composants concernés.</p>
+      <p class="muted small">An exemption allows a substance restricted by RoHS (lead, mercury, cadmium…) for a specific
+        application and for a limited time. Click an exemption to see its official text, its dates and the components
+        concerned.</p>
     </div>
 
     <div id="exemptDetail" hidden>
-      <a href="#exemptions" class="back">‹ Toutes les exemptions</a>
+      <a href="#exemptions" class="back">‹ All exemptions</a>
       <div class="mfrhead">
         <div><h2 id="exemptCode"></h2><div class="muted" id="exemptSummary"></div></div>
-        <button class="btn" id="btnEditExempt">Modifier les notes</button>
+        <button class="btn" id="btnEditExempt">Edit the notes</button>
       </div>
       <div class="card mfrinfo" id="exemptInfo"></div>
-      <h3 class="section">Composants en base utilisant cette exemption</h3>
+      <h3 class="section">Database components using this exemption</h3>
       <div class="tablewrap">
         <table class="grid" id="exemptComps">
-          <thead><tr><th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th></th></tr></thead>
+          <thead><tr><th>Part number</th><th>Manufacturer</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted small">Pour anticiper l'expiration d'une exemption, le bouton « Équivalents » propose des composants
-        d'autres fabricants avec leur statut RoHS.</p>
+      <p class="muted small">To prepare for an exemption's expiry, the “Equivalents” button offers components from other
+        manufacturers with their RoHS status.</p>
     </div>
   </section>
 
-  <!-- ============================== CODES ECCN ============================== -->
+  <!-- ============================== ECCN CODES ============================== -->
   <section id="tab-eccn" class="panel">
     <div id="eccnList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="eccnSearch" name="filtre-eccnSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher un code, un domaine, un fabricant…"></div>
+        <div class="left"><input type="search" id="eccnSearch" name="filter-eccnSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a code, a field, a manufacturer…"></div>
         <span class="muted small" id="eccnUnknown"></span>
       </div>
       <div class="tablewrap">
         <table class="grid" id="eccns">
-          <thead><tr><th>Code</th><th>Domaine</th><th>Statut</th><th>Composants</th><th>Fabricants</th></tr></thead>
+          <thead><tr><th>Code</th><th>Field</th><th>Status</th><th>Components</th><th>Manufacturers</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted small">L'ECCN classe un article selon la Commerce Control List américaine (15 CFR partie 774).
-        Cliquez sur un code pour voir son domaine d'application, sa définition officielle et les composants concernés.</p>
+      <p class="muted small">The ECCN classifies an item according to the US Commerce Control List (15 CFR part 774).
+        Click a code to see its scope, its official definition and the components concerned.</p>
     </div>
 
     <div id="eccnDetail" hidden>
-      <a href="#eccn" class="back">‹ Tous les codes ECCN</a>
+      <a href="#eccn" class="back">‹ All ECCN codes</a>
       <div class="mfrhead">
         <div><h2 id="eccnCode"></h2><div class="muted" id="eccnSummary"></div></div>
-        <button class="btn" id="btnEditEccn">Modifier l'intitulé et les notes</button>
+        <button class="btn" id="btnEditEccn">Edit the title and notes</button>
       </div>
       <div class="cards" id="eccnParts"></div>
       <div class="card mfrinfo" id="eccnInfo"></div>
-      <h3 class="section">Composants en base avec ce code</h3>
+      <h3 class="section">Database components with this code</h3>
       <div class="tablewrap">
         <table class="grid" id="eccnComps">
-          <thead><tr><th>Référence</th><th>Fabricant</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Origine</th><th></th></tr></thead>
+          <thead><tr><th>Part number</th><th>Manufacturer</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Origin</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted small">Le résumé par catégorie, groupe et motif est indicatif : seule la définition officielle fait foi
-        pour une décision d'exportation.</p>
+      <p class="muted small">The summary by category, group and reason for control is indicative: only the official
+        definition is authoritative for an export decision.</p>
     </div>
   </section>
 
-  <!-- ============================== FABRICANTS ============================== -->
-  <section id="tab-fabricants" class="panel">
+  <!-- ============================== MANUFACTURERS ============================== -->
+  <section id="tab-manufacturers" class="panel">
     <div id="mfrList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="mfrSearch" name="filtre-mfrSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Rechercher un fabricant…"></div>
+        <div class="left"><input type="search" id="mfrSearch" name="filter-mfrSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a manufacturer…"></div>
       </div>
       <div class="tablewrap">
         <table class="grid" id="mfrs">
           <thead><tr>
-            <th>Fabricant</th><th>Composants</th><th>RoHS 3</th><th>REACH</th><th>ECCN contrôlé</th><th>Siège</th><th>Site web</th>
+            <th>Manufacturer</th><th>Components</th><th>RoHS 3</th><th>REACH</th><th>Controlled ECCN</th><th>Headquarters</th><th>Website</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -226,21 +226,21 @@
     </div>
 
     <div id="mfrDetail" hidden>
-      <a href="#fabricants" class="back">‹ Tous les fabricants</a>
+      <a href="#manufacturers" class="back">‹ All manufacturers</a>
       <div class="mfrhead">
         <div>
           <h2 id="mfrName"></h2>
           <div class="muted" id="mfrAliases"></div>
         </div>
-        <button class="btn" id="btnEditMfr">Modifier les informations</button>
+        <button class="btn" id="btnEditMfr">Edit the information</button>
       </div>
       <div class="cards" id="mfrCards"></div>
       <div class="card mfrinfo" id="mfrInfo"></div>
-      <h3 class="section">Composants en base</h3>
+      <h3 class="section">Components in the database</h3>
       <div class="tablewrap">
         <table class="grid" id="mfrComps">
           <thead><tr>
-            <th>Référence</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Origine</th><th>Vérifié le</th><th></th>
+            <th>Part number</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Origin</th><th>Last checked</th><th></th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -249,75 +249,75 @@
   </section>
 </main>
 
-<!-- ============================== MODALE CONNEXION ============================== -->
+<!-- ============================== SIGN-IN DIALOG ============================== -->
 <dialog id="dlgAuth" class="narrow">
   <div class="authtabs">
-    <button type="button" class="authtab active" data-mode="login">Se connecter</button>
-    <button type="button" class="authtab" data-mode="register">Créer un compte</button>
+    <button type="button" class="authtab active" data-mode="login">Sign in</button>
+    <button type="button" class="authtab" data-mode="register">Create an account</button>
   </div>
   <form id="authForm">
     <div class="formgrid single">
-      <label id="authNameRow" hidden>Nom (facultatif)<input name="name" autocomplete="name" maxlength="80"></label>
-      <label>Adresse e-mail<input name="email" type="email" autocomplete="email" required></label>
-      <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
-      <span id="authPwHint" class="muted small" hidden>8 caractères minimum.</span>
+      <label id="authNameRow" hidden>Name (optional)<input name="name" autocomplete="name" maxlength="80"></label>
+      <label>E-mail address<input name="email" type="email" autocomplete="email" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
+      <span id="authPwHint" class="muted small" hidden>At least 8 characters.</span>
     </div>
     <div id="authError" class="alert error" hidden></div>
     <div class="dlgactions"><span class="spacer"></span>
-      <button type="button" class="btn" id="btnAuthCancel">Annuler</button>
-      <button type="submit" class="btn primary" id="authSubmit">Se connecter</button>
+      <button type="button" class="btn" id="btnAuthCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="authSubmit">Sign in</button>
     </div>
   </form>
 </dialog>
 
-<!-- ============================== MODALE EXEMPTION ============================== -->
+<!-- ============================== EXEMPTION DIALOG ============================== -->
 <dialog id="dlgExempt">
   <form id="exemptForm" method="dialog">
-    <h2>Notes sur l'exemption</h2>
+    <h2>Notes on the exemption</h2>
     <div class="formgrid single">
-      <label>Notes<textarea name="notes" rows="5" placeholder="Demande de renouvellement en cours, plan de remplacement, échéances internes…"></textarea></label>
+      <label>Notes<textarea name="notes" rows="5" placeholder="Renewal application pending, replacement plan, internal deadlines…"></textarea></label>
     </div>
     <div id="exemptError" class="alert error" hidden></div>
     <div class="dlgactions"><span class="spacer"></span>
-      <button type="button" class="btn" id="btnExemptCancel">Annuler</button>
-      <button type="submit" class="btn primary">Enregistrer</button>
+      <button type="button" class="btn" id="btnExemptCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
     </div>
   </form>
 </dialog>
 
-<!-- ============================== MODALE ECCN ============================== -->
+<!-- ============================== ECCN DIALOG ============================== -->
 <dialog id="dlgEccn">
   <form id="eccnForm" method="dialog">
-    <h2>Code ECCN</h2>
+    <h2>ECCN code</h2>
     <div class="formgrid">
-      <label class="wide">Intitulé (affiché à la place du résumé)<input name="title" placeholder="ex. Microcontrôleurs non contrôlés par 3A001"></label>
-      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Licences, exceptions applicables (ex. NLR, ENC), remarques internes…"></textarea></label>
+      <label class="wide">Title (shown instead of the summary)<input name="title" placeholder="e.g. Microcontrollers not controlled by 3A001"></label>
+      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Licences, applicable exceptions (e.g. NLR, ENC), internal remarks…"></textarea></label>
     </div>
     <div id="eccnError" class="alert error" hidden></div>
     <div class="dlgactions"><span class="spacer"></span>
-      <button type="button" class="btn" id="btnEccnCancel">Annuler</button>
-      <button type="submit" class="btn primary">Enregistrer</button>
+      <button type="button" class="btn" id="btnEccnCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
     </div>
   </form>
 </dialog>
 
-<!-- ============================== MODALE CORRESPONDANCE DES COLONNES ============================== -->
+<!-- ============================== COLUMN MAPPING DIALOG ============================== -->
 <dialog id="dlgMap" class="wide">
   <form id="mapForm" method="dialog">
-    <h2>Correspondance des colonnes <span class="muted" id="mapFile"></span></h2>
+    <h2>Column mapping <span class="muted" id="mapFile"></span></h2>
     <div id="mapAlert" class="alert" hidden></div>
     <p class="muted small" id="mapIntro"></p>
     <div class="maphead">
-      <label>Ligne d'en-tête
+      <label>Header row
         <input type="number" id="mapHeaderRow" min="0" step="1" inputmode="numeric">
       </label>
-      <span class="muted small">Numéro de la ligne qui contient les noms de colonnes (0 si le fichier n'en a pas).</span>
+      <span class="muted small">Number of the row that holds the column names (0 if the file has none).</span>
     </div>
     <div class="mapgrid" id="mapFields"></div>
     <div id="mapDemo" class="mapdemo" hidden aria-live="polite"></div>
     <div class="maptabs" role="tablist">
-      <button type="button" class="chip active" role="tab" data-maptab="result">Résultat</button>
-      <button type="button" class="chip" role="tab" data-maptab="raw">Fichier d'origine</button>
+      <button type="button" class="chip active" role="tab" data-maptab="result">Result</button>
+      <button type="button" class="chip" role="tab" data-maptab="raw">Original file</button>
     </div>
     <div id="mapSummary" class="mapsummary"></div>
     <div id="mapManual" class="mapmanual small" hidden></div>
@@ -327,92 +327,92 @@
     <div class="dlgactions">
       <span class="muted small" id="mapStatus"></span>
       <span class="spacer"></span>
-      <button type="button" class="btn" id="btnMapCancel">Annuler</button>
-      <button type="submit" class="btn primary" id="btnMapOk">Valider</button>
+      <button type="button" class="btn" id="btnMapCancel">Cancel</button>
+      <button type="submit" class="btn primary" id="btnMapOk">Confirm</button>
     </div>
   </form>
 </dialog>
 
-<!-- ============================== MODALE ÉQUIVALENTS ============================== -->
+<!-- ============================== EQUIVALENTS DIALOG ============================== -->
 <dialog id="dlgAlt" class="wide">
-  <h2>Équivalents d'autres fabricants</h2>
+  <h2>Equivalents from other manufacturers</h2>
   <div id="altRef" class="altref"></div>
   <div id="altBody"></div>
-  <p class="muted small">Suggestions calculées à partir des descriptions : vérifiez le brochage, l'encombrement et les
-    caractéristiques détaillées sur la datasheet avant de remplacer un composant.</p>
-  <div class="dlgactions"><span class="spacer"></span><button type="button" class="btn" id="btnAltClose">Fermer</button></div>
+  <p class="muted small">Suggestions computed from the descriptions: check the pinout, the footprint and the detailed
+    characteristics on the datasheet before replacing a component.</p>
+  <div class="dlgactions"><span class="spacer"></span><button type="button" class="btn" id="btnAltClose">Close</button></div>
 </dialog>
 
-<!-- ============================== MODALE FABRICANT ============================== -->
+<!-- ============================== MANUFACTURER DIALOG ============================== -->
 <dialog id="dlgMfr">
   <form id="mfrForm" method="dialog">
-    <h2>Informations du fabricant</h2>
+    <h2>Manufacturer information</h2>
     <div class="formgrid">
-      <label class="wide">Nom affiché<input name="name"></label>
-      <label class="wide">Site web<input name="website" placeholder="https://www.exemple.com" autocomplete="off"></label>
-      <label>Pays du siège<input name="country" list="countryList" placeholder="ex. US, Allemagne" autocomplete="off"></label>
-      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Contact conformité, lien vers les déclarations RoHS/REACH, remarques…"></textarea></label>
+      <label class="wide">Display name<input name="name"></label>
+      <label class="wide">Website<input name="website" placeholder="https://www.example.com" autocomplete="off"></label>
+      <label>Headquarters country<input name="country" list="countryList" placeholder="e.g. US, Germany" autocomplete="off"></label>
+      <label class="wide">Notes<textarea name="notes" rows="4" placeholder="Compliance contact, link to the RoHS/REACH declarations, remarks…"></textarea></label>
     </div>
-    <p class="muted small">Laisser un champ vide rétablit la valeur par défaut connue pour ce fabricant, s'il y en a une.</p>
+    <p class="muted small">Leaving a field empty restores the default value known for this manufacturer, if there is one.</p>
     <div id="mfrError" class="alert error" hidden></div>
     <div class="dlgactions">
       <span class="spacer"></span>
-      <button type="button" class="btn" id="btnMfrCancel">Annuler</button>
-      <button type="submit" class="btn primary">Enregistrer</button>
+      <button type="button" class="btn" id="btnMfrCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
     </div>
   </form>
 </dialog>
 
-<!-- ============================== MODALE COMPOSANT ============================== -->
+<!-- ============================== COMPONENT DIALOG ============================== -->
 <dialog id="dlg">
   <form id="compForm" method="dialog">
-    <h2 id="dlgTitle">Composant</h2>
+    <h2 id="dlgTitle">Component</h2>
     <label id="pdfDrop" class="drop pdfdrop">
       <input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden>
-      <strong>Pré-remplir depuis une datasheet PDF</strong>
-      <span class="hint">Déposez le PDF ici ou cliquez. Les champs sont proposés : relisez-les avant d'enregistrer.</span>
+      <strong>Prefill from a PDF datasheet</strong>
+      <span class="hint">Drop the PDF here or click. The fields are proposals: review them before saving.</span>
       <span class="hint" id="pdfMethodHint"></span>
     </label>
     <div id="pdfStatus" class="pdfstatus" hidden></div>
     <div class="formgrid">
-      <label>Référence fabricant *<input name="mpn" required list="mpnList" autocomplete="off"></label>
+      <label>Manufacturer part number *<input name="mpn" required list="mpnList" autocomplete="off"></label>
       <datalist id="mpnList"></datalist>
-      <label>Fabricant<input name="manufacturer" list="mfrList" autocomplete="off"></label>
+      <label>Manufacturer<input name="manufacturer" list="mfrList" autocomplete="off"></label>
       <datalist id="mfrList"></datalist>
       <label class="wide">Description<input name="description"></label>
-      <label>RoHS 2 (2011/65/UE)
+      <label>RoHS 2 (2011/65/EU)
         <select name="rohs2">
-          <option value="conforme">Conforme</option><option value="exemption">Conforme avec exemption</option>
-          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+          <option value="compliant">Compliant</option><option value="exemption">Compliant with exemption</option>
+          <option value="non_compliant">Non-compliant</option><option value="unknown">Unknown</option>
         </select></label>
-      <label>RoHS 3 (UE 2015/863)
+      <label>RoHS 3 (EU 2015/863)
         <select name="rohs3">
-          <option value="conforme">Conforme</option><option value="exemption">Conforme avec exemption</option>
-          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+          <option value="compliant">Compliant</option><option value="exemption">Compliant with exemption</option>
+          <option value="non_compliant">Non-compliant</option><option value="unknown">Unknown</option>
         </select></label>
-      <label>REACH (CE 1907/2006)
+      <label>REACH (EC 1907/2006)
         <select name="reach">
-          <option value="conforme">Conforme (pas de SVHC &gt; 0,1 %)</option><option value="svhc">Contient SVHC &gt; 0,1 %</option>
-          <option value="non_conforme">Non conforme</option><option value="inconnu">Inconnu</option>
+          <option value="compliant">Compliant (no SVHC &gt; 0.1 %)</option><option value="svhc">Contains SVHC &gt; 0.1 %</option>
+          <option value="non_compliant">Non-compliant</option><option value="unknown">Unknown</option>
         </select></label>
-      <label>Exemptions RoHS<input name="rohs_exemptions" placeholder="ex. 7(c)-I, 6(c)"></label>
-      <label class="wide">SVHC présentes<input name="svhc_list" placeholder="ex. Plomb (CAS 7439-92-1)"></label>
-      <label>ECCN (contrôle export)<input name="eccn" placeholder="ex. EAR99, 5A992.c" autocomplete="off"></label>
-      <label>Pays d'origine<input name="country_of_origin" list="countryList" placeholder="ex. CN, MY, Allemagne" autocomplete="off"></label>
+      <label>RoHS exemptions<input name="rohs_exemptions" placeholder="e.g. 7(c)-I, 6(c)"></label>
+      <label class="wide">SVHCs present<input name="svhc_list" placeholder="e.g. Lead (CAS 7439-92-1)"></label>
+      <label>ECCN (export control)<input name="eccn" placeholder="e.g. EAR99, 5A992.c" autocomplete="off"></label>
+      <label>Country of origin<input name="country_of_origin" list="countryList" placeholder="e.g. CN, MY, Germany" autocomplete="off"></label>
       <datalist id="countryList"></datalist>
-      <label>Source<input name="source" placeholder="Déclaration fabricant, URL…"></label>
-      <label>Vérifié le<input name="last_checked" type="date"></label>
+      <label>Source<input name="source" placeholder="Manufacturer declaration, URL…"></label>
+      <label>Last checked<input name="last_checked" type="date"></label>
     </div>
     <div id="dlgError" class="alert error" hidden></div>
     <div class="dlgactions">
-      <button type="button" class="btn danger" id="btnDelete">Supprimer</button>
+      <button type="button" class="btn danger" id="btnDelete">Delete</button>
       <span class="spacer"></span>
-      <button type="button" class="btn" id="btnCancel">Annuler</button>
-      <button type="submit" class="btn primary">Enregistrer</button>
+      <button type="button" class="btn" id="btnCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
     </div>
   </form>
 </dialog>
 
-<script src="/static/app.js?v=18"></script>
+<script src="/static/app.js?v=19"></script>
 </body>
 </html>

@@ -1,8 +1,8 @@
-"""Historique des BOM analysées par un utilisateur connecté.
+"""History of the BOMs analysed by a signed-in user.
 
-On conserve le fichier d'origine, les réglages (colonnes, remplacements) et un résumé des verdicts.
-Rouvrir une BOM relance l'analyse avec la base actuelle : les statuts peuvent avoir évolué.
-Seules les MAX_PER_USER analyses les plus récentes sont gardées.
+The original file, the settings (columns, replacements) and a summary of the verdicts are kept.
+Reopening a BOM reruns the analysis against the current database: statuses may have changed.
+Only the MAX_PER_USER most recent analyses are kept.
 """
 
 from __future__ import annotations
@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import datetime, timezone
+
+from .db import LEGACY_STATUSES
 
 MAX_PER_USER = 20
 
@@ -34,9 +36,18 @@ def _summary(report: dict) -> str:
     })
 
 
+def _load_summary(text: str) -> dict:
+    """Stored summary; verdicts saved before v2.0.0 are in French and are converted."""
+    summary = json.loads(text) if text else {}
+    for key in ("overall", "rohs2", "rohs3", "reach"):
+        if summary.get(key) in LEGACY_STATUSES:
+            summary[key] = LEGACY_STATUSES[summary[key]]
+    return summary
+
+
 def save(conn: sqlite3.Connection, user_id: int, filename: str, data: bytes, mapping: str, substitutions: str,
          report: dict, history_id: int | None = None) -> int:
-    """Enregistre une analyse, ou met à jour l'entrée history_id (même BOM, réglages modifiés)."""
+    """Save an analysis, or update the history_id entry (same BOM, changed settings)."""
     now = _now()
     if history_id:
         cur = conn.execute(
@@ -50,7 +61,7 @@ def save(conn: sqlite3.Connection, user_id: int, filename: str, data: bytes, map
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (user_id, filename, data, mapping or "", substitutions or "", _summary(report), now, now),
     )
-    # On ne garde que les analyses les plus récentes
+    # Keep only the most recent analyses
     conn.execute(
         "DELETE FROM bom_history WHERE user_id = ? AND id NOT IN "
         "(SELECT id FROM bom_history WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT ?)",
@@ -75,7 +86,7 @@ def list_for(conn: sqlite3.Connection, user_id: int) -> list[dict]:
             "size": r["size"],
             "mapping": json.loads(r["mapping"]) if r["mapping"] else {},
             "substitutions": json.loads(r["substitutions"]) if r["substitutions"] else {},
-            "summary": json.loads(r["summary"]) if r["summary"] else {},
+            "summary": _load_summary(r["summary"]),
         })
     return out
 

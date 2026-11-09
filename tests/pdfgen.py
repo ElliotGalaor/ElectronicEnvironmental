@@ -1,4 +1,4 @@
-"""Génère de petits PDF texte (sans dépendance) pour tester l'extraction de datasheets."""
+"""Generate small text PDFs (no dependencies) to test datasheet extraction."""
 
 
 def _esc(s: str) -> str:
@@ -8,7 +8,7 @@ def _esc(s: str) -> str:
 def make_pdf(pages: list[list[str]], title: str = "", author: str = "") -> bytes:
     objs: list[bytes] = []
     n_pages = len(pages)
-    # 1 catalogue, 2 arbre des pages, 3 police, puis (page, contenu) par page, puis infos
+    # 1 catalog, 2 page tree, 3 font, then (page, content) per page, then info
     page_ids = [4 + 2 * i for i in range(n_pages)]
     info_id = 4 + 2 * n_pages
     objs.append(b"<< /Type /Catalog /Pages 2 0 R >>")
