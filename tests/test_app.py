@@ -34,6 +34,16 @@ def analyze_text(text: str, name="bom.csv", **params):
     return r.json()
 
 
+def test_home_page_and_example_bom():
+    page = client.get("/").text
+    assert 'id="tab-home"' in page and 'id="btnExample"' in page
+    r = client.get("/examples/bom_example.csv")
+    assert r.status_code == 200 and r.content == (ROOT / "examples" / "bom_example.csv").read_bytes()
+    # The example offered on the home page is a BOM the analysis reads without manual mapping
+    report = analyze_text(r.text, name="bom_example.csv")
+    assert report["summary"]["lines"] > 10 and report["summary"]["not_found"] <= 2
+
+
 def test_manufacturer_normalisation():
     assert db.normalize_manufacturer("TI") == "texas instruments"
     assert db.normalize_manufacturer("Texas Instruments Inc.") == "texas instruments"

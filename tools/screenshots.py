@@ -51,6 +51,12 @@ def main(base: str) -> None:
         page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=2, color_scheme="light",
                                 locale="en-GB")
 
+        # 0. Home page: presentation of the tool and example result
+        page.goto(f"{base}/#home")
+        page.wait_for_selector("#tab-home.active .sample")
+        page.wait_for_timeout(300)
+        shot(page, "home", clip=clip_between(page, ".top", ".hero", pad=16))
+
         # 1. BOM analysis: verdicts and pie charts
         page.goto(f"{base}/#analysis")
         page.set_input_files("#bomFile", str(ROOT / "examples" / "bom_example.csv"))

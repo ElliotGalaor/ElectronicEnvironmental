@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=22">
+<link rel="stylesheet" href="/static/style.css?v=24">
 </head>
 <body>
 <header class="top">
-  <div class="brand">
+  <a class="brand" href="#home" title="Home">
     <span class="logo" aria-hidden="true">♻</span>
     <div>
       <h1>RoHS / REACH Checker</h1>
       <p class="sub">Environmental compliance of a bill of materials (BOM)</p>
     </div>
-  </div>
+  </a>
   <div class="topright">
     <div class="dbinfo" id="dbinfo">Database: …</div>
     <div class="account" id="account"></div>
@@ -22,7 +22,8 @@
 </header>
 
 <nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="analysis" role="tab">BOM analysis</button>
+  <button class="tab active" data-tab="home" role="tab">Home</button>
+  <button class="tab" data-tab="analysis" role="tab">BOM analysis</button>
   <button class="tab" data-tab="database" role="tab">Component database</button>
   <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
   <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
@@ -30,8 +31,105 @@
 </nav>
 
 <main>
+  <!-- ============================== HOME ============================== -->
+  <section id="tab-home" class="panel active home">
+    <div class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Compliance check for electronic bills of materials</p>
+        <h2 class="hero-title">Is your board RoHS, REACH and export compliant?</h2>
+        <p class="lead">Drop the bill of materials (BOM) exported from your CAD tool or ERP. Every component is matched
+          against a reference database and gets its <strong>RoHS 2</strong>, <strong>RoHS 3</strong> and
+          <strong>REACH</strong> status, the RoHS exemptions it relies on, and its <strong>ECCN</strong> export
+          classification. Problem parts are flagged, with an equivalent from another manufacturer when there is one.</p>
+        <div class="hero-actions">
+          <a class="btn primary big" href="#analysis">Analyse my BOM</a>
+          <button class="btn big" id="btnExample" type="button">Try with an example BOM</button>
+        </div>
+        <p class="muted small">Free, no account needed. Your file is only kept if you sign in, to find it again in
+          your history.</p>
+        <div id="exampleError" class="alert error" hidden></div>
+      </div>
+
+      <figure class="card sample" aria-label="Example of an analysis result">
+        <figcaption class="sample-head"><strong>my_board.csv</strong>
+          <span class="badge b-non_compliant">Non-compliant</span></figcaption>
+        <div class="tablewrap">
+          <table class="grid">
+            <thead><tr><th>Part number</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">NE555P</span><br><span class="muted small">Texas Instruments</span></td>
+                <td><span class="badge b-compliant">Compliant</span></td><td><span class="badge b-compliant">Compliant</span></td><td class="mono">EAR99</td></tr>
+              <tr><td><span class="mono">STM32F103C8T6</span><br><span class="muted small">STMicroelectronics</span></td>
+                <td><span class="badge b-compliant">Compliant</span></td><td><span class="badge b-compliant">Compliant</span></td><td class="mono">3A991.a.2</td></tr>
+              <tr><td><span class="mono">RC0603FR-0710KL</span><br><span class="muted small">Yageo</span></td>
+                <td><span class="badge b-exemption">Exemption 7(c)-I</span></td><td><span class="badge b-svhc">SVHC</span></td><td class="mono">EAR99</td></tr>
+              <tr><td><span class="mono">DEMO-LEADED-DIP8</span><br><span class="muted small">Example Corp</span></td>
+                <td><span class="badge b-non_compliant">Non-compliant</span></td><td><span class="badge b-svhc">SVHC</span></td><td class="mono">5A992.c</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted small sample-note">Lead in the pin finish of DEMO-LEADED-DIP8: replace it with an equivalent
+          from another manufacturer, then export the report or the modified BOM.</p>
+      </figure>
+    </div>
+
+    <h2 class="home-h">What it checks</h2>
+    <div class="home-grid grid-5">
+      <article class="card feature"><h3>RoHS 2</h3>
+        <p>Directive 2011/65/EU: lead, mercury, cadmium, hexavalent chromium, PBB and PBDE in electrical and
+          electronic equipment.</p></article>
+      <article class="card feature"><h3>RoHS 3</h3>
+        <p>Delegated Directive (EU) 2015/863: adds four phthalates (DEHP, BBP, DBP, DIBP), ten restricted
+          substances in total.</p></article>
+      <article class="card feature"><h3>RoHS exemptions</h3>
+        <p>Exemptions of Annexes III and IV used by each part, with the official EUR-Lex text and the expiry dates
+          to anticipate.</p></article>
+      <article class="card feature"><h3>REACH</h3>
+        <p>Regulation (EC) 1907/2006: substances of very high concern (SVHC) above 0.1 % by weight, and Annex XVII
+          restrictions.</p></article>
+      <article class="card feature"><h3>Export control (ECCN)</h3>
+        <p>Classification on the US Commerce Control List (EAR99, 3A991…), explained field by field, with the
+          official definition.</p></article>
+    </div>
+
+    <h2 class="home-h">How it works</h2>
+    <ol class="steps grid-4">
+      <li class="card"><h3>Drop your BOM</h3>
+        <p>CSV, TXT or Excel file from KiCad, Altium, an ERP… Columns are recognised automatically; for an unusual
+          format, map them yourself with a live preview.</p></li>
+      <li class="card"><h3>Matching</h3>
+        <p>Each line is matched by manufacturer part number, with manufacturer names normalised (TI = Texas
+          Instruments) and close or ambiguous matches flagged.</p></li>
+      <li class="card"><h3>Verdicts</h3>
+        <p>A status per regulation and an overall verdict per line and for the whole board: compliant, exemption,
+          SVHC, non-compliant or needs review, with the reason.</p></li>
+      <li class="card"><h3>Act</h3>
+        <p>Replace a problem part with an equivalent from another manufacturer, then export the Excel report or
+          the modified BOM.</p></li>
+    </ol>
+
+    <h2 class="home-h">Who it is for</h2>
+    <div class="home-grid grid-4">
+      <article class="card feature"><h3>Hardware designers</h3>
+        <p>Check the parts while designing, before the prototype, and pick compliant alternatives early.</p></article>
+      <article class="card feature"><h3>Purchasing and component engineering</h3>
+        <p>Find equivalents from other manufacturers and spot the parts whose exemption is about to expire.</p></article>
+      <article class="card feature"><h3>Quality and compliance</h3>
+        <p>Prepare the RoHS and REACH declarations of a product from its BOM, line by line.</p></article>
+      <article class="card feature"><h3>Export control</h3>
+        <p>See at a glance which parts carry an ECCN other than EAR99 and may need an export licence.</p></article>
+    </div>
+
+    <div class="alert home-note">The database holds demo data to showcase the tool, and some components are
+      fictitious. A statement of compliance must rely on the manufacturers' declarations.</div>
+
+    <p class="muted small home-foot">Open-source project:
+      <a href="https://github.com/ElliotGalaor/ElectronicEnvironmental" target="_blank" rel="noopener">source code on GitHub</a> ·
+      <a href="/docs" target="_blank" rel="noopener">REST API documentation</a></p>
+  </section>
+
   <!-- ============================== ANALYSIS ============================== -->
-  <section id="tab-analysis" class="panel active">
+  <section id="tab-analysis" class="panel">
     <label id="drop" class="drop">
       <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm" hidden>
       <div class="drop-icon" aria-hidden="true">⬆</div>
@@ -417,6 +515,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=22"></script>
+<script src="/static/app.js?v=24"></script>
 </body>
 </html>
