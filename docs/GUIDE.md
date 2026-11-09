@@ -110,6 +110,30 @@ columns, replacements by equivalents and verdicts. Changing the columns or repla
 entry. "Reopen" reruns the analysis against the current database: statuses may have changed since. The 20 most
 recent analyses are kept per user; everyone only sees their own BOMs.
 
+### Limiting sign-ups
+
+Two optional protections, each turned on by environment variables (setup on Render:
+[DEPLOY.md](DEPLOY.md#optional-protect-sign-ups)):
+
+- **E-mail confirmation**: the account only exists once its owner opens the link received by e-mail (valid
+  24 hours) and enters the password chosen at sign-up. Until then, signing in is refused with a message that
+  explains why. E-mails go through the [Brevo](https://www.brevo.com) API (`RRC_BREVO_API_KEY`,
+  `RRC_MAIL_FROM`), over HTTPS, so it works where outgoing SMTP is blocked (Render's free plan).
+- **Captcha**: a [Cloudflare Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
+  box on the sign-up form (`RRC_TURNSTILE_SITE_KEY`, `RRC_TURNSTILE_SECRET_KEY`). The server checks each token
+  with Cloudflare before creating anything.
+
+Safeguards:
+- each sign-up attempt keeps its own password, and its link only works with that password: someone who signs
+  up first with another person's address cannot take the account over;
+- the e-mail does not contain the name typed in the form, so the form cannot be used to send text of one's
+  own to someone else's mailbox;
+- at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address;
+- the link's token is in the address fragment (`#confirm/…`): it never reaches the server logs, the interface
+  removes it from the address bar at once, and only its SHA-256 hash is stored.
+
+Without these variables, sign-up works as before: the account is created and signed in at once.
+
 Security:
 - passwords hashed with scrypt (random salt per account), never stored in clear text;
 - 30-day session in an `HttpOnly`, `SameSite=Lax` cookie (and `Secure` over HTTPS); only the SHA-256 hash of
@@ -242,7 +266,9 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET | `/api/components/{id}/alternatives` | equivalents from other manufacturers for a component |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | equivalents for a part number not in the database |
 | POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
-| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account, sign in, sign out |
+| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when a confirmation e-mail is sent), sign in, sign out |
+| POST | `/api/auth/confirm` | confirm a sign-up (token of the e-mailed link + password) and sign in |
+| GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
 | GET | `/api/auth/me` | signed-in user (`null` otherwise) |
 | GET | `/api/history` | latest BOMs analysed by the signed-in user |
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
@@ -265,6 +291,15 @@ Step-by-step guide for a free Render web service over HTTPS: [DEPLOY.md](DEPLOY.
 - `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the addresses whose `X-Forwarded-*` headers are trusted
   (uvicorn setting). Needed for the session cookie to be marked `Secure` over HTTPS; `render.yaml` sets it
   to `*` because only Render's proxy can reach the application.
+- `RRC_BREVO_API_KEY`, `RRC_MAIL_FROM`: Brevo API key and sender address verified in Brevo; turn on the
+  e-mail confirmation of sign-ups.
+- `RRC_MAIL_LOG=1`: for development, confirmation e-mails are written to the server log instead of being
+  sent (this also turns on the e-mail confirmation).
+- `RRC_PUBLIC_URL`: address used in the e-mailed links (default: `RENDER_EXTERNAL_URL` on Render, otherwise
+  the address of the request).
+- `RRC_TURNSTILE_SITE_KEY`, `RRC_TURNSTILE_SECRET_KEY`: Cloudflare Turnstile keys; turn on the captcha.
+  Cloudflare's test keys (`1x00000000000000000000AA` and `1x0000000000000000000000000000000AA`) always pass,
+  for local use.
 
 ## Tests
 
@@ -285,7 +320,9 @@ app/datasheet_ai.py  PDF datasheet extraction with Claude (optional)
 app/manufacturers.py manufacturer pages (information, statistics, components)
 app/alternates.py   search for equivalents and confirmed equivalences
 app/eccn.py         ECCN code pages (explanation, official definition)
-app/auth.py         user accounts and sessions
+app/auth.py         user accounts, sessions, sign-ups confirmed by e-mail
+app/mailer.py       sending e-mails (Brevo API, or the server log in development)
+app/captcha.py      Cloudflare Turnstile check
 app/history.py      history of analysed BOMs
 app/exemptions.py   RoHS exemption pages (official EUR-Lex text)
 tools/extract_rohs_exemptions.py  update of the exemption text from EUR-Lex

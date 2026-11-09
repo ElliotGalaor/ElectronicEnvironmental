@@ -190,6 +190,8 @@ dialog.narrow { width: min(420px, calc(100vw - 32px)); }
 .authtab { background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; color: var(--muted); cursor: pointer; }
 .authtab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 .formgrid.single { grid-template-columns: 1fr; }
+.captcha { min-height: 65px; }
+#dlgAuth .formgrid[hidden], #dlgAuth .btn[hidden], #dlgAuth .authtabs[hidden] { display: none; }
 .formgrid label[hidden] { display: none; }
 
 /* Line counter and empty table */
