@@ -2,6 +2,7 @@ name: CD
 
 # Builds the Docker image on every pull request (check) and publishes it to
 # GitHub Container Registry on every merge to main and every v* tag.
+# A merge to main then redeploys the Render service (docs/DEPLOY.md).
 # A v* tag also creates a GitHub release with the release notes.
 on:
   push:
@@ -94,6 +95,24 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+
+  deploy:
+    name: Deploy to Render
+    if: github.ref == 'refs/heads/main'
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      # Render does not watch the registry: its deploy hook makes it pull the new :latest image.
+      # Skipped until the RENDER_DEPLOY_HOOK_URL secret is set (forks, before the Render setup).
+      - name: Trigger the Render deploy hook
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL secret not set: Render was not redeployed"
+            exit 0
+          fi
+          curl -fsS -X POST -d '' "$DEPLOY_HOOK" -w '\nHTTP %{http_code}\n'
 
   release:
     name: GitHub release
