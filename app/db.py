@@ -102,6 +102,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
 
+-- Sign-ups waiting for e-mail confirmation: one row per attempt, with the password chosen
+-- in that attempt. Only the SHA-256 hash of the link's token is kept.
+CREATE TABLE IF NOT EXISTS signup_requests (
+    token_hash    TEXT PRIMARY KEY,
+    email         TEXT NOT NULL,
+    name          TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    expires_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signup_requests_email ON signup_requests (email);
+
 -- History of the BOMs analysed by each user (original file kept so it can be reopened)
 CREATE TABLE IF NOT EXISTS bom_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

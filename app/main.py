@@ -5,6 +5,7 @@ Run with:  uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 from __future__ import annotations
 
+import html
 import json
 import os
 import time
@@ -17,7 +18,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, auth, datasheet, datasheet_ai, db, eccn, exemptions, history, manufacturers
+from . import alternates, auth, captcha, datasheet, datasheet_ai, db, eccn, exemptions, history, mailer, manufacturers
 from .analyzer import analyze
 from .importer import IMPORT_FIELDS, detect_import_columns, import_table, plan_table
 from .reports import database_csv, report_csv, report_xlsx
@@ -259,10 +260,16 @@ class RegisterIn(BaseModel):
     email: str
     password: str
     name: str = ""
+    captcha: str = ""   # Turnstile token, when the captcha is on
 
 
 class LoginIn(BaseModel):
     email: str
+    password: str
+
+
+class ConfirmIn(BaseModel):
+    token: str
     password: str
 
 
@@ -288,14 +295,82 @@ def _open_session(conn, user: dict, request: Request, response: Response) -> dic
     return user
 
 
-@app.post("/api/auth/register", status_code=201, summary="Create an account (and sign in)")
+# Sign-ups per client address while confirmation e-mails are sent: 10 per hour
+_SIGNUP_WINDOW, _SIGNUP_MAX = 60 * 60, 10
+_signup_attempts: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_signup_throttle(ip: str) -> None:
+    now = time.monotonic()
+    recent = [t for t in _signup_attempts[ip] if now - t < _SIGNUP_WINDOW]
+    if len(recent) >= _SIGNUP_MAX:
+        _signup_attempts[ip] = recent
+        raise HTTPException(429, "Too many sign-ups from your connection: try again later")
+    _signup_attempts[ip] = [*recent, now]
+
+
+def _public_url(request: Request) -> str:
+    """Base address for the links in e-mails (Render sets RENDER_EXTERNAL_URL)."""
+    base = os.environ.get("RRC_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or str(request.base_url)
+    return base.rstrip("/")
+
+
+def _confirmation_email(link: str) -> str:
+    # The name typed in the form is left out on purpose: a sign-up form must not let anyone
+    # send their own text to someone else's mailbox.
+    url = html.escape(link, quote=True)
+    return (
+        "<p>Hello,</p>"
+        "<p>An account was created with this e-mail address on the RoHS / REACH Checker. To confirm it, "
+        "open the link below and enter the password chosen when creating the account.</p>"
+        f'<p><a href="{url}">Confirm my account</a></p>'
+        f"<p>Or copy this address into your browser:<br>{url}</p>"
+        f"<p>The link is valid for {auth.SIGNUP_HOURS} hours. If you did not create this account, "
+        "ignore this e-mail: no account is created without confirmation.</p>"
+    )
+
+
+@app.get("/api/auth/config", summary="Sign-up settings: e-mail confirmation, captcha key")
+def auth_config():
+    return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key()}
+
+
+@app.post("/api/auth/register", status_code=201,
+          summary="Create an account: signed in at once, or 202 when a confirmation e-mail is sent")
 def register(body: RegisterIn, request: Request, response: Response, conn=Depends(get_conn)):
+    ip = request.client.host if request.client else ""
+    confirm_by_email = mailer.available()
+    if confirm_by_email:
+        _check_signup_throttle(ip)
+    if not captcha.verify(body.captcha, ip or None):
+        raise HTTPException(400, "Captcha check failed: try again")
     try:
-        user = auth.create_user(conn, body.email, body.password, body.name)
+        if not confirm_by_email:
+            return _open_session(conn, auth.create_user(conn, body.email, body.password, body.name), request, response)
+        token = auth.create_signup_request(conn, body.email, body.password, body.name)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except auth.TooManyRequests as exc:
+        raise HTTPException(429, str(exc)) from exc
     except auth.AuthError as exc:
         raise HTTPException(409, str(exc)) from exc
+    email = auth.normalize_email(body.email)
+    try:
+        mailer.send(email, "Confirm your account - RoHS / REACH Checker",
+                    _confirmation_email(f"{_public_url(request)}/#confirm/{token}"))
+    except mailer.MailError as exc:
+        # The error cancels the transaction: the sign-up attempt is not kept
+        raise HTTPException(502, "The confirmation e-mail could not be sent: try again later") from exc
+    response.status_code = 202
+    return {"pending": True, "email": email, "hours": auth.SIGNUP_HOURS}
+
+
+@app.post("/api/auth/confirm", summary="Confirm a sign-up with the token of the e-mailed link (and sign in)")
+def confirm(body: ConfirmIn, request: Request, response: Response, conn=Depends(get_conn)):
+    try:
+        user = auth.confirm_signup(conn, body.token, body.password)
+    except auth.AuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
     return _open_session(conn, user, request, response)
 
 
@@ -306,6 +381,9 @@ def login(body: LoginIn, request: Request, response: Response, conn=Depends(get_
     try:
         user = auth.authenticate(conn, email, body.password)
     except auth.AuthError as exc:
+        if auth.signup_pending(conn, email, body.password):
+            raise HTTPException(403, "Confirm your e-mail address first: open the link sent to you "
+                                     "when you created the account") from exc
         _login_failures[email].append(time.monotonic())
         raise HTTPException(401, str(exc)) from exc
     _login_failures.pop(email, None)
