@@ -1,0 +1,7 @@
+Sensor board bill of materials;;;;;
+Revision B - ERP export;;;;;
+Supplier item code;Company;Description;Distributor;Directive 2015/863;Regulation 1907/2006
+GRM188R71H104KA93D;Murata;Capacitor 100 nF;Mouser;no;yes
+CC0603KRX7R9BB104;Yageo;Capacitor 100 nF;Farnell;yes;yes
+BSS138;onsemi;N-channel MOSFET;Digikey;yes;yes
+XYZ-UNKNOWN-42;Acme;Prototype sensor;Mouser;yes;no

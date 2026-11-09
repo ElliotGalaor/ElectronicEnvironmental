@@ -1,12 +1,12 @@
-"""Exemptions RoHS : texte officiel, dates d'expiration et composants concernés.
+"""RoHS exemptions: official text, expiry dates and affected components.
 
-Les exemptions figurent aux annexes III (toutes catégories d'EEE) et IV (dispositifs médicaux et
-instruments de surveillance et de contrôle) de la directive 2011/65/UE. Le texte officiel, en
-français, est extrait du texte consolidé publié sur EUR-Lex (data/rohs_exemptions.json, généré par
-tools/extract_rohs_exemptions.py).
+The exemptions are listed in Annexes III (all EEE categories) and IV (medical devices and
+monitoring and control instruments) of Directive 2011/65/EU. The official English text is
+extracted from the consolidated text published on EUR-Lex (data/rohs_exemptions.json, generated
+by tools/extract_rohs_exemptions.py).
 
-Notation : « 7(c)-I », « 7 c)-I » ou « 7c-I » désignent la même exemption de l'annexe III ;
-préfixer par « IV- » pour l'annexe IV (ex. « IV-37 »).
+Notation: "7(c)-I", "7 c)-I" or "7c-I" refer to the same Annex III exemption;
+prefix with "IV-" for Annex IV (e.g. "IV-37").
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ from pathlib import Path
 from . import db
 
 DIRECTIVE_URL = "https://eur-lex.europa.eu/eli/dir/2011/65/oj"
-ART5_NOTE = ("Article 5, paragraphe 5 : si une demande de renouvellement a été déposée au plus tard 18 mois avant "
-             "l'expiration, l'exemption reste valable jusqu'à ce que la Commission ait statué.")
+ART5_NOTE = ("Article 5(5): if an application for renewal was submitted no later than 18 months before "
+             "expiry, the exemption remains valid until the Commission has taken a decision.")
 
 _SUBSTANCES = [
-    ("plomb", r"\bplomb\b"), ("mercure", r"\bmercure\b"), ("cadmium", r"\bcadmium\b"),
-    ("chrome hexavalent", r"chrome hexavalent"), ("PBB", r"\bPBB\b|polybromobiph[ée]nyles"),
-    ("PBDE", r"\bPBDE\b|polybromodiph[ée]nyl"), ("phtalates (DEHP, BBP, DBP, DIBP)", r"phtalate|\bDEHP\b|\bBBP\b|\bDBP\b|\bDIBP\b"),
+    ("lead", r"\blead\b"), ("mercury", r"\bmercury\b"), ("cadmium", r"\bcadmium\b"),
+    ("hexavalent chromium", r"hexavalent chromium"), ("PBB", r"\bPBB\b|polybrominated biphenyls"),
+    ("PBDE", r"\bPBDE\b|polybrominated diphenyl"), ("phthalates (DEHP, BBP, DBP, DIBP)", r"phthalate|\bDEHP\b|\bBBP\b|\bDBP\b|\bDIBP\b"),
 ]
 
 
@@ -42,7 +42,7 @@ def _data() -> dict:
 
 
 def normalize_key(code: str) -> str:
-    """« 7(c)-I » -> « 7C-I » ; « Annexe IV 37 » / « IV-37 » -> « IV-37 »."""
+    """"7(c)-I" -> "7C-I"; "Annex IV 37" / "IV-37" -> "IV-37"."""
     c = (code or "").strip()
     m = re.match(r"^(?:annexe\s+|annex\s+)?IV\s*[-:]?\s*(?:point\s+)?(.+)$", c, re.I)
     prefix = ""
@@ -52,7 +52,7 @@ def normalize_key(code: str) -> str:
 
 
 def split_codes(field: str) -> list[str]:
-    """Le champ rohs_exemptions peut contenir plusieurs codes : « 7(a), 7(c)-I »."""
+    """The rohs_exemptions field may hold several codes: "7(a), 7(c)-I"."""
     parts = re.split(r"[,;/]|\s+et\s+|\s+and\s+", field or "")
     return [p.strip() for p in parts if p.strip()]
 
@@ -64,22 +64,23 @@ def _substances(text: str) -> list[str]:
 def _status(dates: list[str]) -> dict:
     today = date.today().isoformat()
     if not dates:
-        return {"kind": "sans_date", "label": "Pas de date d'expiration indiquée", "next": ""}
+        return {"kind": "no_date", "label": "No expiry date given", "next": ""}
     future = [d for d in dates if d >= today]
     if future:
         nxt = min(future)
         days = (date.fromisoformat(nxt) - date.today()).days
-        return {"kind": "bientot" if days <= 365 else "en_vigueur",
-                "label": f"Expire le {_fr(nxt)}" + (f" (dans {days} jours)" if days <= 365 else ""), "next": nxt}
+        return {"kind": "expiring_soon" if days <= 365 else "in_force",
+                "label": f"Expires on {_long_date(nxt)}" + (f" (in {days} days)" if days <= 365 else ""), "next": nxt}
     last = max(dates)
-    return {"kind": "depassee", "label": f"Date d'expiration dépassée ({_fr(last)}) : vérifier si un renouvellement est en cours",
+    return {"kind": "expired", "label": f"Expiry date passed ({_long_date(last)}): check whether a renewal is pending",
             "next": last}
 
 
-_MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+           "November", "December"]
 
 
-def _fr(iso: str) -> str:
+def _long_date(iso: str) -> str:
     y, m, d = (int(x) for x in iso.split("-"))
     return f"{d} {_MONTHS[m - 1]} {y}"
 
@@ -92,13 +93,13 @@ def describe(code: str) -> dict:
             "links": [], "renewal_note": ART5_NOTE}
     links = []
     if data.get("url"):
-        links.append({"label": f"Texte officiel consolidé de la directive 2011/65/UE, version du {data.get('version', '')} (EUR-Lex)",
-                      "url": data["url"], "hint": f"Annexe {e['annex'] if e else 'III'}, point {e['code'] if e else code}."})
-    links.append({"label": "Directive 2011/65/UE, texte d'origine (EUR-Lex)", "url": DIRECTIVE_URL})
+        links.append({"label": f"Official consolidated text of Directive 2011/65/EU, version of {data.get('version', '')} (EUR-Lex)",
+                      "url": data["url"], "hint": f"Annex {e['annex'] if e else 'III'}, point {e['code'] if e else code}."})
+    links.append({"label": "Directive 2011/65/EU, original text (EUR-Lex)", "url": DIRECTIVE_URL})
     base["links"] = links
     if not e:
         return base | {"found": False, "code": code, "annex": "", "description": "", "scope": "", "dates": [],
-                       "status": {"kind": "inconnue", "label": "Exemption introuvable dans les annexes III et IV", "next": ""},
+                       "status": {"kind": "unknown", "label": "Exemption not found in Annexes III and IV", "next": ""},
                        "substances": []}
     upcoming = data.get("upcoming") or {}
     change = (upcoming.get("changes") or {}).get(key)
@@ -107,8 +108,8 @@ def describe(code: str) -> dict:
         "found": True,
         "code": e["code"],
         "annex": e["annex"],
-        "annex_label": ("Annexe III — applications exemptées pour toutes les catégories d'équipements" if e["annex"] == "III"
-                        else "Annexe IV — dispositifs médicaux et instruments de surveillance et de contrôle"),
+        "annex_label": ("Annex III — exempted applications for all categories of equipment" if e["annex"] == "III"
+                        else "Annex IV — medical devices and monitoring and control instruments"),
         "group": e.get("group", ""),
         "parent": e.get("parent", ""),
         "description": e["description"],
@@ -117,11 +118,11 @@ def describe(code: str) -> dict:
         "status": _status(e["dates"]),
         "substances": _substances(full),
         "upcoming": ({"version": upcoming.get("version"), "url": upcoming.get("url"), **change} if change else
-                     {"version": upcoming.get("version"), "url": upcoming.get("url"), "type": "aucun"} if upcoming else None),
+                     {"version": upcoming.get("version"), "url": upcoming.get("url"), "type": "none"} if upcoming else None),
     }
 
 
-# ------------------------------------------------------------------ base de données
+# ------------------------------------------------------------------ database
 
 def _components_by_key(conn: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]:
     out: dict[str, list] = {}
@@ -171,7 +172,7 @@ def get(conn: sqlite3.Connection, code: str) -> dict:
 def update(conn: sqlite3.Connection, code: str, notes: str) -> dict:
     key = normalize_key(code)
     if not key:
-        raise db.ValidationError("Code d'exemption manquant")
+        raise db.ValidationError("Missing exemption code")
     conn.execute(
         "INSERT INTO exemption_notes (key, notes, updated_at) VALUES (?, ?, ?) "
         "ON CONFLICT(key) DO UPDATE SET notes = excluded.notes, updated_at = excluded.updated_at",

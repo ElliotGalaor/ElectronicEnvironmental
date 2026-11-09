@@ -1,267 +1,265 @@
-# Guide technique — Vérificateur RoHS 2 / RoHS 3 / REACH
+# Technical guide — RoHS 2 / RoHS 3 / REACH Checker
 
-Outil qui analyse une nomenclature électronique (BOM) et détermine, ligne par ligne puis pour la carte entière,
-la conformité à **RoHS 2** (2011/65/UE), **RoHS 3** (UE 2015/863) et **REACH** (CE 1907/2006),
-à partir d'une base de données serveur des composants.
+A tool that analyses an electronic bill of materials (BOM) and determines, line by line and then for the whole
+board, compliance with **RoHS 2** (2011/65/EU), **RoHS 3** (EU 2015/863) and **REACH** (EC 1907/2006),
+based on a server-side component database.
 
-## Démarrage
+## Getting started
 
 ```bash
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python cli.py seed          # charge 129 composants de démonstration
+.venv\Scripts\python cli.py seed          # loads 129 demo components
 .venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Puis ouvrir http://localhost:8000 (documentation de l'API : http://localhost:8000/docs).
+Then open http://localhost:8000 (API documentation: http://localhost:8000/docs).
 
-> ⚠ Les données de démonstration (`data/seed_components.csv`) servent à tester l'outil :
-> - 26 composants d'exemple (source « DEMO - à vérifier », dont 3 fictifs `DEMO-…`) ;
-> - 103 composants courants relevés sur le distributeur LCSC le 6 novembre 2026 (source « LCSC Cxxxx ») :
->   RoHS 2 / RoHS 3 d'après le certificat publié par LCSC (RoHS 3 laissé « inconnu » sans certificat RoHS 3),
->   ECCN d'après la fiche LCSC ; REACH et exemptions RoHS ne sont pas publiés par ce distributeur et restent
->   « inconnu » / vides.
+> ⚠ The demo data (`data/seed_components.csv`) is there to try the tool:
+> - 26 example components (source "DEMO - to be checked", 3 of them fictitious `DEMO-…`);
+> - 103 common components collected from the distributor LCSC on 6 November 2026 (source "LCSC Cxxxx"):
+>   RoHS 2 / RoHS 3 from the certificate published by LCSC (RoHS 3 left "unknown" without a RoHS 3 certificate),
+>   ECCN from the LCSC product page; REACH and RoHS exemptions are not published by this distributor and stay
+>   "unknown" / empty.
 >
-> Pour une attestation de conformité, appuyez-vous sur les déclarations des fabricants.
+> For a statement of compliance, rely on the manufacturers' declarations.
 
-## Fonctionnement
+## How it works
 
-1. **Lecture de la BOM** : CSV/TXT (séparateur `;` `,` tab détecté, UTF-8 ou Windows-1252) ou Excel `.xlsx`.
-   La ligne d'en-tête et les colonnes sont détectées automatiquement (noms français et anglais :
-   *Manufacturer Part Number*, *Référence fabricant*, *MPN*, *Fabricant*, *Repères*, *Qté*, *DNP*…).
-   La colonne « Reference » de KiCad est reconnue comme repère si elle contient des `R1, C2…`.
-   Les statuts RoHS 2, RoHS 3 et REACH déclarés dans la BOM sont aussi reconnus (« RoHS » seul = RoHS 3).
-   **Correspondance des colonnes** : si la référence fabricant n'est pas détectée, une fenêtre s'ouvre pour
-   choisir la colonne de chaque champ et la ligne d'en-tête (`0` = fichier sans en-tête) ; le bouton
-   « Colonnes… » l'ouvre aussi. Elle montre l'effet de chaque changement sur les 3 premières lignes et le
-   résultat de la lecture (référence trouvée ou non en base). Le choix est conservé dans l'historique.
-2. **Rapprochement avec la base**, par ordre de fiabilité :
-   | Correspondance | Règle | Statut retenu |
+1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`.
+   The header row and the columns are detected automatically (English and French names:
+   *Manufacturer Part Number*, *MPN*, *Manufacturer*, *Designator*, *Qty*, *DNP*, *Référence fabricant*, *Repères*…).
+   KiCad's "Reference" column is recognised as a designator if it holds `R1, C2…`.
+   RoHS 2, RoHS 3 and REACH statuses declared in the BOM are also recognised ("RoHS" alone = RoHS 3).
+   **Column mapping**: if the manufacturer part number is not detected, a dialog opens to choose the column
+   for each field and the header row (`0` = file without a header); the "Columns…" button opens it too.
+   It shows the effect of each change on the first 3 lines and the result of the reading (part number found
+   in the database or not). The choice is kept in the history.
+2. **Matching against the database**, from most to least reliable:
+   | Match | Rule | Status used |
    |---|---|---|
-   | Exacte | même référence + même fabricant (alias gérés : TI, ST, ON Semi…) | statut de la base |
-   | Référence seule | même référence, pas de fabricant dans la BOM | statut de la base |
-   | Approchante | identique hors ponctuation (`LM358-DR` = `LM358DR`) | statut de la base |
-   | Autre fabricant / Partielle (suffixe d'emballage) / Ambiguë | | **À vérifier** |
-   | Introuvable | + suggestions de références proches | **À vérifier** |
+   | Exact | same part number + same manufacturer (aliases handled: TI, ST, ON Semi…) | database status |
+   | Part number only | same part number, no manufacturer in the BOM | database status |
+   | Close | identical except for punctuation (`LM358-DR` = `LM358DR`) | database status |
+   | Other manufacturer / Partial (packaging suffix) / Ambiguous | | **Needs review** |
+   | Not found | + suggestions of similar part numbers | **Needs review** |
 
-   Statuts déclarés dans la BOM : la base fait foi. Un statut inconnu en base est complété par la BOM,
-   un désaccord donne **À vérifier** (avec les deux valeurs en remarque), et un composant absent ou ambigu
-   reprend les statuts de la BOM. Ces statuts sont marqués « selon la BOM » à l'écran et dans les exports.
-3. **Verdict** par norme : *Non conforme* si une ligne l'est, sinon *À vérifier* s'il manque une information,
-   sinon *Conforme* (en signalant les exemptions RoHS et les SVHC REACH > 0,1 %).
-   Les composants non montés (DNP) sont exclus.
-   RoHS 3 incluant RoHS 2 (+ 4 phtalates), un composant RoHS 3 conforme est déduit conforme RoHS 2 si ce statut manque.
+   Statuses declared in the BOM: the database is authoritative. A status that is unknown in the database is
+   completed by the BOM, a disagreement gives **Needs review** (with both values in the notes), and a component
+   that is missing or ambiguous takes the BOM statuses. These statuses are marked "from the BOM" on screen and
+   in the exports.
+3. **Verdict** per regulation: *Non-compliant* if one line is, otherwise *Needs review* if information is
+   missing, otherwise *Compliant* (flagging RoHS exemptions and REACH SVHCs above 0.1 %).
+   Components that are not populated (DNP) are excluded.
+   Since RoHS 3 includes RoHS 2 (+ 4 phthalates), a RoHS 3 compliant component is inferred RoHS 2 compliant
+   when that status is missing.
 
-## Statuts en base
+## Statuses in the database
 
-| Champ | Valeurs |
+| Field | Values |
 |---|---|
-| `rohs2`, `rohs3` | `conforme`, `exemption`, `non_conforme`, `inconnu` |
-| `reach` | `conforme` (pas de SVHC > 0,1 %), `svhc` (SVHC > 0,1 % : obligation d'info art. 33 / SCIP), `non_conforme`, `inconnu` |
+| `rohs2`, `rohs3` | `compliant`, `exemption`, `non_compliant`, `unknown` |
+| `reach` | `compliant` (no SVHC above 0.1 %), `svhc` (SVHC above 0.1 %: information duty under art. 33 / SCIP), `non_compliant`, `unknown` |
 
-À l'import, les valeurs `Oui/Yes/Compliant/OK` et `Non/No/Not compliant` sont aussi acceptées.
-Autres champs : `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_list`, `eccn`,
+On import, the values `Yes/Compliant/OK` and `No/Not compliant` are also accepted, as well as their French
+equivalents (`Oui`, `Conforme`, `Non`, `Non conforme`, `Inconnu`).
+Other fields: `mpn`, `manufacturer`, `description`, `rohs_exemptions`, `svhc_list`, `eccn`,
 `country_of_origin`, `source`, `last_checked`.
 
-### Export et douane
+Up to v1.1.0, statuses were stored in French (`conforme`, `non_conforme`, `inconnu`…). A database created with
+those versions is converted automatically the first time it is opened, including the verdicts kept in the
+BOM history.
 
-| Champ | Contenu | Exemples |
+### Export and customs
+
+| Field | Content | Examples |
 |---|---|---|
-| `eccn` | Export Control Classification Number (EAR américain / liste UE des biens à double usage). Vide = inconnu | `EAR99`, `5A992.c`, `3A991.a.1` |
-| `country_of_origin` | Pays d'origine, stocké en code ISO 3166-1 alpha-2. Vide = inconnu | `CN`, `MY`, `DE` |
+| `eccn` | Export Control Classification Number (US EAR / EU dual-use list). Empty = unknown | `EAR99`, `5A992.c`, `3A991.a.1` |
+| `country_of_origin` | Country of origin, stored as an ISO 3166-1 alpha-2 code. Empty = unknown | `CN`, `MY`, `DE` |
 
-- L'ECCN est normalisé (`5a992.C` devient `5A992.c`) et refusé s'il n'a pas un format valide.
-- Le pays peut être saisi en code ISO ou en toutes lettres, en français ou en anglais (« Malaisie », « Germany ») ;
-  il est enregistré sous forme de code.
-- Dans l'analyse de BOM : colonne « ECCN / Origine », filtre « ECCN contrôlé », remarque sur chaque ligne
-  dont l'ECCN n'est pas EAR99, et synthèse (ECCN contrôlés, inconnus, répartition des pays d'origine),
-  reprise dans l'export Excel.
-- Les bases créées avant cette version reçoivent automatiquement les deux nouvelles colonnes (vides) au démarrage.
+- The ECCN is normalised (`5a992.C` becomes `5A992.c`) and rejected if its format is not valid.
+- The country can be entered as an ISO code or spelled out, in English or French ("Germany", "Malaisie");
+  it is stored as a code.
+- In the BOM analysis: "ECCN / Origin" column, "Controlled ECCN" filter, a note on every line whose ECCN is
+  not EAR99, and a summary (controlled and unknown ECCNs, breakdown of countries of origin), also in the
+  Excel export.
+- Databases created before these fields existed get the two new columns (empty) automatically at start-up.
 
-## Fabricants
+## Manufacturers
 
-Onglet « Fabricants » : liste des fabricants présents en base, avec le nombre de composants, l'état
-RoHS 3 / REACH, les ECCN contrôlés, le pays du siège et le site web.
+"Manufacturers" tab: list of the manufacturers in the database, with the number of components, the
+RoHS 3 / REACH status, the controlled ECCNs, the headquarters country and the website.
 
-Chaque nom de fabricant (onglet Base, fiche fabricant, analyse de BOM) est un lien vers sa fiche :
-- site web et pays du siège (proposés par défaut pour les fabricants connus, modifiables) et notes libres
-  (contact conformité, lien vers les déclarations RoHS/REACH…) ;
-- statistiques : composants en base, part RoHS 3 conforme, SVHC, ECCN contrôlés ou inconnus,
-  pays d'origine des composants ;
-- liste de ses composants en base, avec accès direct à leur fiche.
+Every manufacturer name (Database tab, manufacturer page, BOM analysis) links to its page:
+- website and headquarters country (offered by default for known manufacturers, can be edited) and free notes
+  (compliance contact, link to the RoHS/REACH declarations…);
+- statistics: components in the database, share of RoHS 3 compliant ones, SVHCs, controlled or unknown ECCNs,
+  countries of origin of the components;
+- list of its components in the database, with direct access to their record.
 
-Les variantes d'écriture sont regroupées : « TI », « Texas Instruments » et « Texas Instruments Inc. »
-mènent à la même fiche. Chaque page a sa propre adresse (`#fabricant/texas instruments`), utilisable
-comme lien direct.
+Spelling variants are grouped: "TI", "Texas Instruments" and "Texas Instruments Inc." lead to the same page.
+Each page has its own address (`#manufacturer/texas instruments`), usable as a direct link.
 
-## Comptes et historique des BOM
+## Accounts and BOM history
 
-Bouton « Se connecter » en haut à droite : connexion ou création de compte (e-mail, mot de passe
-de 8 caractères minimum, nom facultatif).
+"Sign in" button at the top right: sign in or create an account (e-mail, password of at least 8 characters,
+optional name).
 
-Une fois connecté, chaque BOM analysée est enregistrée dans **« Mes dernières BOM »** (onglet Analyse) :
-fichier d'origine, colonnes choisies, remplacements par des équivalents et verdicts. Modifier les
-colonnes ou remplacer une ligne met à jour la même entrée. « Rouvrir » relance l'analyse avec la base
-actuelle : les statuts peuvent avoir évolué depuis. Les 20 analyses les plus récentes sont conservées
-par utilisateur ; chacun ne voit que ses propres BOM.
+Once signed in, every analysed BOM is saved in **"My latest BOMs"** (Analysis tab): original file, chosen
+columns, replacements by equivalents and verdicts. Changing the columns or replacing a line updates the same
+entry. "Reopen" reruns the analysis against the current database: statuses may have changed since. The 20 most
+recent analyses are kept per user; everyone only sees their own BOMs.
 
-Sécurité :
-- mots de passe hachés avec scrypt (sel aléatoire par compte), jamais stockés en clair ;
-- session de 30 jours dans un cookie `HttpOnly`, `SameSite=Lax` (et `Secure` en HTTPS) ; seule
-  l'empreinte SHA-256 du jeton est stockée en base ;
-- 5 échecs de connexion sur une même adresse bloquent les essais pendant 15 minutes ;
-- les comptes servent à l'historique : la modification de la base reste protégée par
-  `RRC_ADMIN_TOKEN` si défini.
+Security:
+- passwords hashed with scrypt (random salt per account), never stored in clear text;
+- 30-day session in an `HttpOnly`, `SameSite=Lax` cookie (and `Secure` over HTTPS); only the SHA-256 hash of
+  the token is stored in the database;
+- 5 failed sign-ins for the same address block attempts for 15 minutes;
+- accounts are used for the history: changes to the database remain protected by `RRC_ADMIN_TOKEN` if set.
 
-Pour un serveur accessible par d'autres personnes, servez l'application en **HTTPS** (par exemple
-derrière un proxy inverse) pour que mots de passe et cookies ne circulent pas en clair. Les BOM
-enregistrées sont stockées dans la base SQLite (`data/components.db`).
+For a server that other people can reach, serve the application over **HTTPS** (for example behind a reverse
+proxy) so that passwords and cookies are not sent in clear text. Saved BOMs are stored in the SQLite database
+(`data/components.db`).
 
-## Exemptions RoHS
+## RoHS exemptions
 
-Onglet « Exemptions RoHS » : exemptions utilisées par les composants de la base, avec les substances
-concernées, la validité (« expire le … », « dans N jours ») et les composants / fabricants.
-Chaque code d'exemption affiché dans l'application (onglet Base, analyse de BOM) est un lien vers sa fiche :
-- **texte officiel** de l'exemption et son **champ d'application et dates**, en français, tirés du
-  texte consolidé de la directive 2011/65/UE sur EUR-Lex (annexes III et IV, 161 exemptions,
-  `data/rohs_exemptions.json`) ;
-- dates citées, mises en évidence si elles sont dépassées, et rappel de l'article 5, § 5 (une
-  exemption reste valable pendant l'examen d'une demande de renouvellement déposée à temps) ;
-- version consolidée à venir déjà publiée (changements prévus pour l'exemption) ;
-- liens vers EUR-Lex, composants concernés (avec accès aux équivalents pour anticiper une
-  expiration), notes modifiables.
+"RoHS exemptions" tab: exemptions used by the database components, with the substances concerned, the validity
+("expires on …", "in N days") and the components / manufacturers.
+Every exemption code shown in the application (Database tab, BOM analysis) links to its page:
+- **official text** of the exemption and its **scope and dates**, taken from the consolidated text of
+  Directive 2011/65/EU on EUR-Lex (English version, Annexes III and IV, 163 exemptions,
+  `data/rohs_exemptions.json`);
+- dates mentioned, highlighted once passed, and a reminder of Article 5(5) (an exemption remains valid while
+  a renewal application submitted in time is being examined);
+- upcoming consolidated version already published (changes planned for the exemption);
+- links to EUR-Lex, components concerned (with access to equivalents to prepare for an expiry), editable notes.
 
-Les codes sont reconnus sous plusieurs écritures (`7(c)-I`, `7 c)-I`, `7c-I`) ; préfixer par `IV-`
-pour l'annexe IV. Mise à jour du texte officiel quand une nouvelle version consolidée paraît :
+Codes are recognised in several spellings (`7(c)-I`, `7 c)-I`, `7c-I`); prefix with `IV-` for Annex IV.
+Updating the official text when a new consolidated version is published:
 
 ```bash
 .venv\Scripts\python tools\extract_rohs_exemptions.py 20260701 20270813
 ```
-(versions disponibles : https://eur-lex.europa.eu/legal-content/FR/ALL/?uri=CELEX:32011L0065)
+(available versions: https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065)
 
-## Codes ECCN
+## ECCN codes
 
-Onglet « Codes ECCN » : liste des codes présents en base (contrôlés en premier), avec le domaine,
-le nombre de composants et les fabricants. Chaque code ECCN affiché dans l'application est un lien
-vers sa fiche :
-- **décomposition du code** : catégorie (ex. 3 = Électronique), groupe de produits (A = systèmes,
-  équipements et composants), motif de contrôle déduit du numéro (0xx Wassenaar, 1xx MTCR, 2xx NSG,
-  3xx Groupe d'Australie, 5xx/6xx articles spatiaux/militaires, 9xx contrôles unilatéraux
-  américains / anti-terrorisme) et sous-rubrique ;
-- **intitulé officiel** de l'entrée, tiré de la Commerce Control List (`data/ccl_headings.json`,
-  622 entrées extraites de l'eCFR, domaine public) ;
-- **liens vers la définition officielle** sur l'eCFR (site du gouvernement américain) :
-  Commerce Control List (15 CFR partie 774, supplément n° 1) et Commerce Country Chart
-  (15 CFR partie 738) ; pour EAR99, 15 CFR 734.3(c) ;
-- composants de la base portant ce code, intitulé et notes modifiables.
+"ECCN codes" tab: list of the codes in the database (controlled ones first), with the field, the number of
+components and the manufacturers. Every ECCN code shown in the application links to its page:
+- **breakdown of the code**: category (e.g. 3 = Electronics), product group (A = systems, equipment and
+  components), reason for control derived from the number (0xx Wassenaar, 1xx MTCR, 2xx NSG, 3xx Australia
+  Group, 5xx/6xx space/military items, 9xx US unilateral controls / anti-terrorism) and sub-paragraph;
+- **official heading** of the entry, taken from the Commerce Control List (`data/ccl_headings.json`,
+  622 entries extracted from the eCFR, public domain);
+- **links to the official definition** on the eCFR (US government website): Commerce Control List
+  (15 CFR part 774, Supplement No. 1) and Commerce Country Chart (15 CFR part 738); for EAR99, 15 CFR 734.3(c);
+- database components with this code, editable title and notes.
 
-Le résumé par catégorie / groupe / motif est indicatif : seule la définition officielle fait foi.
-Pour mettre à jour les intitulés, relancer l'extraction depuis l'API eCFR
+The summary by category / group / reason is indicative: only the official definition is authoritative.
+To update the headings, rerun the extraction from the eCFR API
 (`/api/versioner/v1/full/<date>/title-15.xml?part=774&appendix=Supplement No. 1 to Part 774`).
 
-## Équivalents d'autres fabricants
+## Equivalents from other manufacturers
 
-Cliquer sur une référence dans l'analyse de BOM (ou sur le bouton « Équivalents » d'un composant dans
-l'onglet Base ou une fiche fabricant) ouvre la liste des composants similaires **d'autres fabricants**
-présents en base, avec leurs statuts RoHS 2 / RoHS 3 / REACH et leur ECCN.
+Clicking a part number in the BOM analysis (or the "Equivalents" button of a component in the Database tab
+or on a manufacturer page) opens the list of similar components **from other manufacturers** in the database,
+with their RoHS 2 / RoHS 3 / REACH statuses and their ECCN.
 
-- **Similarité** calculée à partir des descriptions : type de composant, valeur (Ω, F, H, Hz, V),
-  boîtier, tension et courant nominaux, diélectrique, tolérance, canal (MOSFET). Les points communs et
-  les différences (« tension inférieure », « boîtier différent »…) sont affichés pour chaque suggestion.
-  Une valeur différente (10 kΩ contre 100 Ω) exclut le candidat.
-- Pour les composants complexes (microcontrôleurs, convertisseurs DC-DC, transceivers génériques),
-  partager le même type ne suffit pas : seuls les **équivalents confirmés** sont proposés.
-- **Équivalences confirmées** : bouton « Confirmer l'équivalence » ; elles apparaissent toujours en tête,
-  dans les deux sens.
-- **Remplacement dans la BOM** : « Utiliser dans la BOM » remplace la ligne et relance l'analyse.
-  Les lignes remplacées sont surlignées ; un bandeau permet d'annuler les remplacements ou de
-  **télécharger la BOM modifiée** (CSV avec toutes les colonnes d'origine et une colonne « Remplace »).
-  Les exports Excel/CSV du rapport indiquent aussi la référence d'origine.
+- **Similarity** computed from the descriptions: component type, value (Ω, F, H, Hz, V), package, rated
+  voltage and current, dielectric, tolerance, channel (MOSFET). The common points and the differences
+  ("lower voltage", "different package"…) are shown for each suggestion. A different value (10 kΩ versus
+  100 Ω) excludes the candidate.
+- For complex components (microcontrollers, DC-DC converters, generic transceivers), sharing the same type is
+  not enough: only **confirmed equivalents** are offered.
+- **Confirmed equivalences**: "Confirm the equivalence" button; they always come first, in both directions.
+- **Replacement in the BOM**: "Use in the BOM" replaces the line and reruns the analysis. Replaced lines are
+  highlighted; a banner lets you undo the replacements or **download the modified BOM** (CSV with all the
+  original columns and a "Replaces" column). The Excel/CSV report exports also give the original part number.
 
-Les suggestions sont des pistes : vérifiez le brochage, l'encombrement et les caractéristiques
-détaillées sur la datasheet avant de valider un remplacement.
+Suggestions are leads: check the pinout, the footprint and the detailed characteristics on the datasheet
+before confirming a replacement.
 
-## Alimenter la base
+## Feeding the database
 
-- **Interface web** : onglet « Base de composants » (ajout, modification, import CSV/XLSX, export).
-  Depuis un rapport, le bouton « + Ajouter à la base » pré-remplit une référence introuvable.
-- **Ajout manuel** : bouton « + Ajouter », puis saisie des champs.
-- **Ajout depuis une datasheet PDF** : bouton « Depuis une datasheet PDF », ou dépôt du PDF dans la fiche.
-  Les champs sont pré-remplis (et surlignés), avec les extraits de la datasheet et le numéro de page
-  qui justifient chaque valeur. **Rien n'est enregistré sans relecture** : on corrige puis on clique sur « Enregistrer ».
-  Si le composant existe déjà, la fiche existante est proposée.
-
-### Extraction des datasheets
-
-Deux méthodes, choisies automatiquement :
-
-| Méthode | Quand | Ce qu'elle fait |
-|---|---|---|
-| **Règles automatiques** (par défaut) | toujours disponible, hors ligne | lit le texte du PDF : fabricant (site web, copyright), référence (fréquence, page 1, tableau de commande, nom du fichier), description (titre), mentions RoHS / 2011/65 / 2015/863 / exemptions / REACH / SVHC, ECCN et pays d'origine (« ECCN: EAR99 », « Country of Origin: Malaysia », « Made in Japan ») |
-| **IA (Claude)** | si `ANTHROPIC_API_KEY` est défini sur le serveur | envoie le PDF au modèle, qui lit aussi les tableaux et les PDF scannés ; les champs manquants sont complétés par les règles ; repli automatique sur les règles en cas d'erreur |
-
-Règles de prudence appliquées dans les deux cas :
-- « Pb-free », « green » ou « lead-free » seuls ne suffisent pas pour conclure à la conformité RoHS.
-- RoHS 3 n'est marqué conforme que si la datasheet cite (UE) 2015/863, RoHS 3 ou les 10 substances ;
-  une simple mention « RoHS » ne vaut que pour RoHS 2.
-- Beaucoup de datasheets ne donnent pas la conformité : les statuts restent alors « inconnu ».
-  La déclaration de conformité du fabricant reste la source de référence.
-
-Variables : `ANTHROPIC_API_KEY` (active l'IA), `RRC_AI=off` (désactive l'IA), `RRC_AI_MODEL`
-(modèle, défaut `claude-opus-5-5`). Avec l'IA, le PDF est envoyé à l'API Anthropic.
-- **Import en masse** : un CSV/XLSX avec les colonnes ci-dessus. Dans l'interface, la fenêtre de
-  correspondance s'ouvre avant l'import : colonnes à utiliser, ligne d'en-tête, et simulation ligne par ligne
-  (nouveau, modifié avec l'ancienne et la nouvelle valeur, inchangé, erreur), sans rien écrire.
-  Clé d'unicité : référence + fabricant. Sur un composant existant, seuls les champs associés à une colonne
-  et renseignés sont modifiés (une colonne absente ou une cellule vide ne remplace pas la valeur en base).
+- **Web interface**: "Component database" tab (add, edit, CSV/XLSX import, export).
+  From a report, the "+ Add to database" button prefills a part number that was not found.
+- **Manual entry**: "+ Add" button, then fill in the fields.
+- **From a PDF datasheet**: "From a PDF datasheet" button, or drop the PDF into the record.
+  The fields are prefilled (and highlighted), with the datasheet excerpts and the page number that justify
+  each value. **Nothing is saved without review**: correct the fields, then click "Save".
+  If the component already exists, the existing record is offered.
+- **Bulk import**: a CSV/XLSX file with the columns above. In the interface, the column mapping dialog opens
+  before the import: columns to use, header row, and a line-by-line simulation (new, changed with the old and
+  new value, unchanged, error), without writing anything.
+  Uniqueness key: part number + manufacturer. On an existing component, only the fields mapped to a column
+  and filled in are changed (a missing column or an empty cell does not replace the value in the database).
   ```bash
-  .venv\Scripts\python cli.py import ma_base.xlsx
+  .venv\Scripts\python cli.py import my_database.xlsx
   ```
 
-## Ligne de commande
+### Datasheet extraction
+
+Two methods, chosen automatically:
+
+| Method | When | What it does |
+|---|---|---|
+| **Automatic rules** (default) | always available, offline | reads the PDF text: manufacturer (website, copyright), part number (frequency, page 1, ordering table, file name), description (title), mentions of RoHS / 2011/65 / 2015/863 / exemptions / REACH / SVHC, ECCN and country of origin ("ECCN: EAR99", "Country of Origin: Malaysia", "Made in Japan") |
+| **AI (Claude)** | if `ANTHROPIC_API_KEY` is set on the server | sends the PDF to the model, which also reads tables and scanned PDFs; missing fields are completed by the rules; automatic fallback to the rules on error |
+
+Caution rules applied in both cases:
+- "Pb-free", "green" or "lead-free" alone are not enough to conclude RoHS compliance.
+- RoHS 3 is only marked compliant if the datasheet cites (EU) 2015/863, RoHS 3 or the 10 substances;
+  a plain "RoHS" mention only counts for RoHS 2.
+- Many datasheets do not give compliance: the statuses then stay "unknown".
+  The manufacturer's declaration of conformity remains the reference source.
+
+Variables: `ANTHROPIC_API_KEY` (enables the AI), `RRC_AI=off` (disables the AI), `RRC_AI_MODEL`
+(model, default `claude-opus-5-5`). With the AI, the PDF is sent to the Anthropic API.
+
+## Command line
 
 ```bash
-.venv\Scripts\python cli.py analyze exemples\bom_exemple.csv -o rapport.xlsx
-.venv\Scripts\python cli.py analyze bom.csv --server http://serveur:8000      # via le serveur distant
+.venv\Scripts\python cli.py analyze examples\bom_example.csv -o report.xlsx
+.venv\Scripts\python cli.py analyze bom.csv --server http://server:8000      # through the remote server
 .venv\Scripts\python cli.py analyze bom.csv --mapping "{\"mpn\": \"Part Number\"}"
 ```
-Code de sortie : `0` conforme, `1` à vérifier, `2` non conforme (utilisable en intégration continue).
+Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continuous integration).
 
-Format de `mapping` (API et ligne de commande) : `{"mpn": "Code article", "manufacturer": "__none__", "_header_row": 3}`.
-`__none__` ignore un champ détecté à tort ; `_header_row` est le numéro de la ligne d'en-tête (`0` = pas d'en-tête).
+`mapping` format (API and command line): `{"mpn": "Item code", "manufacturer": "__none__", "_header_row": 3}`.
+`__none__` ignores a wrongly detected field; `_header_row` is the number of the header row (`0` = no header).
 
-## API REST
+## REST API
 
-| Méthode | Route | Rôle |
+| Method | Route | Purpose |
 |---|---|---|
-| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse d'une BOM (`file`, `mapping` et `substitutions` optionnels ; `save=1` ou `history_id` pour l'historique si connecté) ; `bom` renvoie la BOM modifiée |
-| GET | `/api/components?q=&status=probleme&limit=&offset=` | recherche |
-| GET/POST/PUT/DELETE | `/api/components[/{id}]` | gestion d'un composant |
-| POST | `/api/components/import` | import en masse (`file`, `mapping` optionnel) |
-| POST | `/api/table/preview?kind=bom\|components` | aperçu d'un fichier : colonnes détectées, champs proposés, résultat de la lecture (BOM) ou simulation de l'import (n'enregistre rien) |
-| POST | `/api/datasheet/extract?method=auto\|heuristique\|ia` | propose les champs d'un composant depuis sa datasheet PDF (n'enregistre rien) |
-| GET | `/api/components/export` | export CSV de la base |
-| GET | `/api/components/{id}/alternatives` | équivalents d'autres fabricants pour un composant |
-| GET | `/api/alternatives?mpn=&manufacturer=&description=` | équivalents pour une référence absente de la base |
-| POST / DELETE | `/api/components/{id}/equivalents[/{autre_id}]` | confirmer / retirer une équivalence |
-| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | créer un compte, se connecter, se déconnecter |
-| GET | `/api/auth/me` | utilisateur connecté (`null` sinon) |
-| GET | `/api/history` | dernières BOM analysées par l'utilisateur connecté |
-| GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | fichier d'origine d'une BOM / suppression |
-| GET | `/api/exemptions` | exemptions RoHS utilisées par les composants de la base |
-| GET/PUT | `/api/exemptions/{code}` | fiche d'une exemption (texte officiel, dates, composants) / notes |
-| GET | `/api/eccn` | codes ECCN présents en base, avec leur explication |
-| GET/PUT | `/api/eccn/{code}` | fiche d'un code (décomposition, intitulé officiel, liens eCFR, composants) / intitulé et notes |
-| GET | `/api/manufacturers` | liste des fabricants et leurs statistiques |
-| GET/PUT | `/api/manufacturers/{clé}` | fiche d'un fabricant (infos + composants) / modification des infos |
-| GET | `/api/countries` | codes pays reconnus et leur nom |
-| GET | `/api/stats` | statistiques |
+| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse a BOM (`file`, optional `mapping` and `substitutions`; `save=1` or `history_id` for the history when signed in); `bom` returns the modified BOM |
+| GET | `/api/components?q=&status=issues&limit=&offset=` | search |
+| GET/POST/PUT/DELETE | `/api/components[/{id}]` | manage a component |
+| POST | `/api/components/import` | bulk import (`file`, optional `mapping`) |
+| POST | `/api/table/preview?kind=bom\|components` | preview of a file: detected columns, offered fields, result of the reading (BOM) or simulation of the import (saves nothing) |
+| POST | `/api/datasheet/extract?method=auto\|heuristic\|ai` | proposes a component's fields from its PDF datasheet (saves nothing) |
+| GET | `/api/components/export` | CSV export of the database |
+| GET | `/api/components/{id}/alternatives` | equivalents from other manufacturers for a component |
+| GET | `/api/alternatives?mpn=&manufacturer=&description=` | equivalents for a part number not in the database |
+| POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
+| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account, sign in, sign out |
+| GET | `/api/auth/me` | signed-in user (`null` otherwise) |
+| GET | `/api/history` | latest BOMs analysed by the signed-in user |
+| GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
+| GET | `/api/exemptions` | RoHS exemptions used by the database components |
+| GET/PUT | `/api/exemptions/{code}` | an exemption's page (official text, dates, components) / notes |
+| GET | `/api/eccn` | ECCN codes in the database, with their explanation |
+| GET/PUT | `/api/eccn/{code}` | a code's page (breakdown, official heading, eCFR links, components) / title and notes |
+| GET | `/api/manufacturers` | list of manufacturers and their statistics |
+| GET/PUT | `/api/manufacturers/{key}` | a manufacturer's page (information + components) / edit the information |
+| GET | `/api/countries` | recognised country codes and their names |
+| GET | `/api/stats` | statistics |
 
-## Déploiement serveur
+## Server deployment
 
-- `RRC_DB_PATH` : chemin de la base SQLite (défaut `data/components.db`).
-- `RRC_ADMIN_TOKEN` : si défini, toute modification de la base exige l'en-tête `X-Admin-Token`
-  (saisi dans l'interface, onglet Base). La consultation et l'analyse restent libres.
+- `RRC_DB_PATH`: path of the SQLite database (default `data/components.db`).
+- `RRC_ADMIN_TOKEN`: if set, every change to the database requires the `X-Admin-Token` header
+  (entered in the interface, Database tab). Browsing and analysis stay open.
 
 ## Tests
 
@@ -272,20 +270,21 @@ Format de `mapping` (API et ligne de commande) : `{"mpn": "Code article", "manuf
 ## Structure
 
 ```
-app/db.py         base SQLite, normalisation des références et fabricants
-app/tables.py     lecture CSV/XLSX, détection de l'en-tête et des colonnes, correspondance manuelle
-app/analyzer.py   rapprochement et calcul des verdicts
-app/reports.py    exports Excel / CSV
-app/importer.py   import en masse de la base (simulation, mise à jour partielle)
-app/datasheet.py  extraction des datasheets PDF par règles
-app/datasheet_ai.py  extraction des datasheets PDF par Claude (optionnelle)
-app/manufacturers.py fiches fabricants (infos, statistiques, composants)
-app/alternates.py   recherche d'équivalents et équivalences confirmées
-app/eccn.py         fiches des codes ECCN (explication, définition officielle)
-app/auth.py         comptes utilisateurs et sessions
-app/history.py      historique des BOM analysées
-app/exemptions.py   fiches des exemptions RoHS (texte officiel EUR-Lex)
-tools/extract_rohs_exemptions.py  mise à jour du texte des exemptions depuis EUR-Lex
-app/main.py       API FastAPI + interface web (app/static)
-cli.py            ligne de commande
+app/db.py         SQLite database, normalisation of part numbers and manufacturers, migrations
+app/tables.py     CSV/XLSX reading, header and column detection, manual mapping
+app/analyzer.py   matching and verdict computation
+app/reports.py    Excel / CSV exports
+app/importer.py   bulk import of the database (simulation, partial update)
+app/datasheet.py  rule-based PDF datasheet extraction
+app/datasheet_ai.py  PDF datasheet extraction with Claude (optional)
+app/manufacturers.py manufacturer pages (information, statistics, components)
+app/alternates.py   search for equivalents and confirmed equivalences
+app/eccn.py         ECCN code pages (explanation, official definition)
+app/auth.py         user accounts and sessions
+app/history.py      history of analysed BOMs
+app/exemptions.py   RoHS exemption pages (official EUR-Lex text)
+tools/extract_rohs_exemptions.py  update of the exemption text from EUR-Lex
+tools/screenshots.py  README screenshots (Playwright)
+app/main.py       FastAPI API + web interface (app/static)
+cli.py            command line
 ```

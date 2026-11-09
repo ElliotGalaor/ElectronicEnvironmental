@@ -4,5 +4,5 @@ __pycache__/
 .pytest_cache/
 data/*.db
 *.xlsx
-!exemples/*.xlsx
+!examples/*.xlsx
 .claude/

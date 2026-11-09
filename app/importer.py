@@ -1,42 +1,45 @@
-"""Import en masse de la base de composants depuis un CSV / XLSX."""
+"""Bulk import of the component database from a CSV / XLSX file."""
 
 from . import db
 from .tables import TableError, apply_overrides, norm_header, read_rows, resolve_header_row, table_headers
 
+# Recognised headers (normalised), in English and French
 IMPORT_HEADERS = {
     "mpn": ("mpn", "reference", "reference fabricant", "ref fabricant", "part number", "manufacturer part number"),
     "manufacturer": ("manufacturer", "fabricant", "constructeur", "mfr"),
     "description": ("description", "designation"),
-    "rohs2": ("rohs2", "rohs 2", "rohs ii", "rohs 2011 65 ue"),
-    "rohs3": ("rohs3", "rohs 3", "rohs iii", "rohs 2015 863", "rohs 2015 863 ue"),
+    "rohs2": ("rohs2", "rohs 2", "rohs ii", "rohs 2011 65 ue", "rohs 2011 65 eu"),
+    "rohs3": ("rohs3", "rohs 3", "rohs iii", "rohs 2015 863", "rohs 2015 863 ue", "rohs 2015 863 eu"),
     "reach": ("reach",),
     "rohs_exemptions": ("rohs exemptions", "exemptions", "exemption", "exemptions rohs"),
-    "svhc_list": ("svhc list", "svhc", "substances svhc", "liste svhc"),
-    "eccn": ("eccn", "eccn us", "us eccn", "export control classification number", "classification export", "eu eccn"),
-    "country_of_origin": ("country of origin", "country_of_origin", "coo", "origin", "origine", "pays d origine", "pays origine", "pays de fabrication", "made in"),
+    "svhc_list": ("svhc list", "svhc", "svhc substances", "substances svhc", "liste svhc"),
+    "eccn": ("eccn", "eccn us", "us eccn", "export control classification number", "export classification",
+             "classification export", "eu eccn"),
+    "country_of_origin": ("country of origin", "country_of_origin", "coo", "origin", "origine", "pays d origine",
+                          "pays origine", "pays de fabrication", "made in"),
     "source": ("source", "document", "declaration"),
-    "last_checked": ("last checked", "verifie le", "date verification", "date"),
+    "last_checked": ("last checked", "checked on", "verifie le", "date verification", "date"),
 }
 
-# Champs proposés dans la fenêtre de correspondance des colonnes : (clé, libellé, obligatoire)
+# Fields offered in the column mapping dialog: (key, label, required)
 IMPORT_FIELDS = [
-    ("mpn", "Référence fabricant", True),
-    ("manufacturer", "Fabricant", False),
+    ("mpn", "Manufacturer part number", True),
+    ("manufacturer", "Manufacturer", False),
     ("description", "Description", False),
     ("rohs2", "RoHS 2", False),
     ("rohs3", "RoHS 3", False),
     ("reach", "REACH", False),
-    ("rohs_exemptions", "Exemptions RoHS", False),
-    ("svhc_list", "Substances SVHC", False),
+    ("rohs_exemptions", "RoHS exemptions", False),
+    ("svhc_list", "SVHC substances", False),
     ("eccn", "ECCN", False),
-    ("country_of_origin", "Pays d'origine", False),
+    ("country_of_origin", "Country of origin", False),
     ("source", "Source", False),
-    ("last_checked", "Vérifié le", False),
+    ("last_checked", "Last checked", False),
 ]
 
 
 def _detect_header_row(rows: list[list[str]], max_scan: int = 25) -> int:
-    """Première ligne contenant le plus d'en-têtes connus (la première ligne par défaut)."""
+    """First row containing the most known headers (the first row by default)."""
     known = {name for names in IMPORT_HEADERS.values() for name in names}
     best, best_score = 0, 0
     for i, row in enumerate(rows[:max_scan]):
@@ -47,9 +50,9 @@ def _detect_header_row(rows: list[list[str]], max_scan: int = 25) -> int:
 
 
 def detect_import_columns(rows: list[list[str]], mapping: dict | None = None) -> tuple[int, list[str], dict[str, int]]:
-    """Ligne d'en-tête, noms des colonnes et correspondance {champ: index}, correspondance manuelle appliquée."""
+    """Header row, column names and mapping {field: index}, with the manual mapping applied."""
     if not rows:
-        raise TableError("Le fichier est vide")
+        raise TableError("The file is empty")
     hr = resolve_header_row(rows, mapping, _detect_header_row)
     headers, labels = table_headers(rows, hr)
     normalized = [norm_header(h) for h in headers]
@@ -64,7 +67,7 @@ def detect_import_columns(rows: list[list[str]], mapping: dict | None = None) ->
 
 
 def _records(rows: list[list[str]], header_row: int, colmap: dict[str, int]):
-    """Lignes du fichier converties en enregistrements {champ: valeur} (seuls les champs associés à une colonne)."""
+    """File rows converted to records {field: value} (only the fields mapped to a column)."""
     for n, row in enumerate(rows[header_row + 1:], start=header_row + 2):
         rec = {f: (row[i].strip() if i < len(row) else "") for f, i in colmap.items()}
         if rec.get("mpn"):
@@ -72,11 +75,11 @@ def _records(rows: list[list[str]], header_row: int, colmap: dict[str, int]):
 
 
 def plan_row(conn, rec: dict) -> dict:
-    """Simule l'import d'une ligne, sans rien écrire.
+    """Simulate the import of one row, without writing anything.
 
-    action : create (nouveau composant), update (champs modifiés), unchanged, error.
-    Pour un composant existant, seuls les champs associés à une colonne et renseignés sont modifiés :
-    une colonne ignorée ou une cellule vide ne doit pas effacer ce qui est déjà en base.
+    action: create (new component), update (fields changed), unchanged, error.
+    For an existing component, only fields mapped to a column and filled in are changed:
+    an ignored column or an empty cell must not erase what is already in the database.
     """
     try:
         new = db.prepare(rec)
@@ -98,7 +101,7 @@ def plan_row(conn, rec: dict) -> dict:
 
 
 def plan_table(conn, rows: list[list[str]], header_row: int, colmap: dict[str, int], sample: int = 10) -> dict:
-    """Bilan de l'import (toutes les lignes) et détail des premières lignes, pour l'aperçu."""
+    """Import summary (all rows) and detail of the first rows, for the preview."""
     counts = {"create": 0, "update": 0, "unchanged": 0, "error": 0}
     detail = []
     for n, rec in _records(rows, header_row, colmap):
@@ -110,15 +113,15 @@ def plan_table(conn, rows: list[list[str]], header_row: int, colmap: dict[str, i
 
 
 def import_table(conn, data: bytes, filename: str, mapping: dict | None = None) -> dict:
-    """Import / mise à jour en masse (clé : référence + fabricant).
+    """Bulk import / update (key: part number + manufacturer).
 
-    mapping : correspondance manuelle des colonnes {champ: nom de colonne}, voir tables.apply_overrides.
-    Sur les composants déjà en base, les champs sans colonne et les cellules vides ne sont pas modifiés.
+    mapping: manual column mapping {field: column name}, see tables.apply_overrides.
+    For components already in the database, fields without a column and empty cells are not changed.
     """
     rows = read_rows(data, filename)
     hr, _, colmap = detect_import_columns(rows, mapping)
     if "mpn" not in colmap:
-        raise TableError("Colonne « référence fabricant » (mpn) introuvable : indiquez-la dans la correspondance des colonnes")
+        raise TableError("Manufacturer part number (mpn) column not found: select it in the column mapping")
     counts = {"create": 0, "update": 0, "unchanged": 0}
     errors = []
     for n, rec in _records(rows, hr, colmap):
@@ -132,7 +135,7 @@ def import_table(conn, data: bytes, filename: str, mapping: dict | None = None) 
                 db.update(conn, plan["id"], {**plan["old"], **{f: rec[f] for f in plan["provided"]}})
             counts[plan["action"]] += 1
         except db.ValidationError as exc:
-            errors.append(f"Ligne {n} : {exc}")
+            errors.append(f"Row {n}: {exc}")
     return {
         "created": counts["create"], "updated": counts["update"], "unchanged": counts["unchanged"],
         "errors": errors[:100], "error_count": len(errors),

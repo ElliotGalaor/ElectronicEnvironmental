@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_call:        # réutilisé par le workflow de déploiement (les tests passent avant toute publication)
+  workflow_call:        # reused by the deployment workflow (tests pass before any publication)
 
 permissions:
   contents: read
@@ -42,11 +42,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: requirements-dev.txt
-      - name: Dépendances
+      - name: Dependencies
         run: pip install -r requirements-dev.txt
       - name: Tests
         run: pytest --junitxml=pytest-report.xml
-      - name: Rapport de tests
+      - name: Test report
         if: always()
         uses: actions/upload-artifact@v4
         with:

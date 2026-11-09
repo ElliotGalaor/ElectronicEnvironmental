@@ -1,8 +1,8 @@
 #!/bin/sh
-# Au premier démarrage (volume vide), charge les composants de démonstration.
+# On first start (empty volume), load the demo components.
 set -e
 if [ ! -f "$RRC_DB_PATH" ]; then
-    echo "Base absente : chargement des données de démonstration dans $RRC_DB_PATH"
+    echo "No database found: loading the demo data into $RRC_DB_PATH"
     python cli.py seed
 fi
 exec "$@"

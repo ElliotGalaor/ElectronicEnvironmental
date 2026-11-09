@@ -1,13 +1,13 @@
-"""Recherche de composants équivalents chez d'autres fabricants.
+"""Searching for equivalent components from other manufacturers.
 
-Deux sources :
-  1. les équivalences confirmées par un utilisateur (table component_equivalents) ;
-  2. une similarité calculée à partir de la description : famille de composant, valeur
-     principale (Ω, F, H, Hz, V), boîtier, tension et courant nominaux, diélectrique, tolérance,
-     type de canal (MOSFET).
+Two sources:
+  1. equivalences confirmed by a user (component_equivalents table);
+  2. a similarity computed from the description: component family, main value
+     (Ω, F, H, Hz, V), package, rated voltage and current, dielectric, tolerance,
+     channel type (MOSFET).
 
-Les suggestions calculées sont des pistes : le brochage, les caractéristiques détaillées et
-l'encombrement doivent être vérifiés sur la datasheet avant de remplacer un composant.
+The computed suggestions are leads: the pinout, the detailed characteristics and the
+footprint must be checked against the datasheet before replacing a component.
 """
 
 from __future__ import annotations
@@ -18,9 +18,10 @@ from dataclasses import dataclass, field
 
 from . import db
 
-# ------------------------------------------------------------------ extraction des attributs
+# ------------------------------------------------------------------ attribute extraction
 
-# (famille, motif) — le premier motif trouvé l'emporte : l'ordre compte.
+# (family, pattern) — the first matching pattern wins: order matters.
+# French words are kept so that descriptions written in French are understood too.
 _CATEGORIES = [
     ("tvs", r"\btvs\b|transil|suppress"),
     ("schottky", r"schottky"),
@@ -28,7 +29,7 @@ _CATEGORIES = [
     ("led", r"\bled\b"),
     ("diode", r"\bdiode|redresseur|rectifier"),
     ("mosfet", r"mosfet"),
-    ("bjt", r"transistor bipolaire|\bbjt\b|\bnpn\b|\bpnp\b"),
+    ("bjt", r"transistor bipolaire|bipolar transistor|\bbjt\b|\bnpn\b|\bpnp\b"),
     ("opamp", r"ampli[- ]?op|op[- ]?amp|amplificateur op[ée]rationnel|operational amplifier"),
     ("comparator", r"comparat"),
     ("ldo", r"\bldo\b|r[ée]gulateur lin[ée]aire|linear (voltage )?regulator"),
@@ -38,7 +39,7 @@ _CATEGORIES = [
     ("mcu", r"\bmcu\b|microcontr[ôo]leur|microcontroller"),
     ("can", r"\bcan\b.{0,20}transceiver|transceiver.{0,20}\bcan\b"),
     ("transceiver", r"transceiver|[ée]metteur[- ]r[ée]cepteur"),
-    ("crystal", r"quartz|crystal|cristal|r[ée]sonateur"),
+    ("crystal", r"quartz|crystal|cristal|r[ée]sonateur|resonator"),
     ("oscillator", r"oscillat"),
     ("inductor", r"inductance|inductor|\bself\b"),
     ("ferrite", r"ferrite"),
@@ -54,16 +55,16 @@ _CATEGORIES = [
 _CATEGORY_RES = [(c, re.compile(p, re.I)) for c, p in _CATEGORIES]
 
 CATEGORY_LABELS = {
-    "tvs": "diode TVS", "schottky": "diode Schottky", "zener": "diode Zener", "led": "LED", "diode": "diode",
-    "mosfet": "MOSFET", "bjt": "transistor bipolaire", "opamp": "ampli-op", "comparator": "comparateur",
-    "ldo": "régulateur linéaire", "dcdc": "convertisseur DC-DC", "timer": "timer", "mcu": "microcontrôleur",
-    "can": "transceiver CAN", "transceiver": "transceiver", "crystal": "quartz", "oscillator": "oscillateur",
-    "inductor": "inductance", "ferrite": "ferrite", "resistor": "résistance", "capacitor": "condensateur céramique",
-    "cap_tantalum": "condensateur tantale", "cap_alu": "condensateur électrolytique",
-    "connector": "connecteur", "relay": "relais", "fuse": "fusible", "cable": "câble",
+    "tvs": "TVS diode", "schottky": "Schottky diode", "zener": "Zener diode", "led": "LED", "diode": "diode",
+    "mosfet": "MOSFET", "bjt": "bipolar transistor", "opamp": "op-amp", "comparator": "comparator",
+    "ldo": "linear regulator", "dcdc": "DC-DC converter", "timer": "timer", "mcu": "microcontroller",
+    "can": "CAN transceiver", "transceiver": "transceiver", "crystal": "crystal", "oscillator": "oscillator",
+    "inductor": "inductor", "ferrite": "ferrite", "resistor": "resistor", "capacitor": "ceramic capacitor",
+    "cap_tantalum": "tantalum capacitor", "cap_alu": "electrolytic capacitor",
+    "connector": "connector", "relay": "relay", "fuse": "fuse", "cable": "cable",
 }
 
-# Valeur principale de chaque famille (unité SI)
+# Main value of each family (SI unit)
 _PRIMARY = {"resistor": "Ω", "capacitor": "F", "cap_tantalum": "F", "cap_alu": "F", "inductor": "H", "crystal": "Hz",
             "oscillator": "Hz", "ldo": "V", "zener": "V"}
 
@@ -90,7 +91,7 @@ def _num(s: str) -> float:
 @dataclass
 class Attributes:
     category: str = ""
-    values: dict[str, list[float]] = field(default_factory=dict)  # unité -> valeurs trouvées
+    values: dict[str, list[float]] = field(default_factory=dict)  # unit -> values found
     package: str = ""
     dielectric: str = ""
     tolerance: float | None = None
@@ -127,7 +128,7 @@ def format_value(v: float, unit: str) -> str:
     for p, f in (("G", 1e9), ("M", 1e6), ("k", 1e3), ("", 1.0), ("m", 1e-3), ("µ", 1e-6), ("n", 1e-9), ("p", 1e-12)):
         if abs(v) >= f * 0.999:
             n = v / f
-            return f"{n:.3g}".replace(".", ",") + f" {p}{unit}"
+            return f"{n:.3g} {p}{unit}"
     return f"{v:g} {unit}"
 
 
@@ -143,7 +144,7 @@ def extract(description: str, mpn: str = "") -> Attributes:
         unit = "Ω" if unit.lower().startswith("ohm") else unit
         prefix = m.group(2)
         if unit == "Hz" and prefix == "m":
-            prefix = "M"  # « 16 mHz » est presque toujours une faute de casse pour MHz
+            prefix = "M"  # "16 mHz" is almost always a case typo for MHz
         a.values.setdefault(unit, []).append(_num(m.group(1)) * _PREFIX[prefix])
     m = _PACKAGE_RE.search(text) or _PACKAGE_RE.search(mpn or "")
     if m:
@@ -163,13 +164,13 @@ def extract(description: str, mpn: str = "") -> Attributes:
     return a
 
 
-# ------------------------------------------------------------------ similarité
+# ------------------------------------------------------------------ similarity
 
-# Familles interchangeables entre elles
+# Families that can replace each other
 _FAMILY = {"schottky": "diode", "zener": "diode", "cap_tantalum": "capacitor", "cap_alu": "capacitor"}
 
-# Composants complexes : partager le même type ne suffit pas (un STM32 ne remplace pas un ATmega).
-# Ils ne sont proposés que s'ils ont été confirmés comme équivalents.
+# Complex components: sharing the same type is not enough (an STM32 does not replace an ATmega).
+# They are only offered once confirmed as equivalents.
 NO_AUTO_MATCH = {"mcu", "dcdc", "transceiver"}
 
 
@@ -182,43 +183,43 @@ def _close(a: float, b: float, tol: float = 0.01) -> bool:
 
 
 def similarity(ref: Attributes, cand: Attributes) -> tuple[int, list[str], list[str]] | None:
-    """Retourne (score, points communs, différences), ou None si le candidat ne convient pas."""
+    """Return (score, common points, differences), or None if the candidate is not suitable."""
     if not ref.category or not cand.category or ref.category in NO_AUTO_MATCH:
         return None
     if ref.category != cand.category and _family(ref.category) != _family(cand.category):
         return None
-    score, same, diff = 30, [f"même type ({CATEGORY_LABELS.get(cand.category, cand.category)})"], []
+    score, same, diff = 30, [f"same type ({CATEGORY_LABELS.get(cand.category, cand.category)})"], []
     if ref.category != cand.category:
         score -= 10
-        diff.append(f"type voisin ({CATEGORY_LABELS.get(cand.category, cand.category)})")
+        diff.append(f"related type ({CATEGORY_LABELS.get(cand.category, cand.category)})")
 
-    # Valeur principale : doit être identique (une résistance de 10 kΩ ne remplace pas une 100 Ω)
+    # Main value: must be identical (a 10 kΩ resistor does not replace a 100 Ω one)
     unit = _PRIMARY.get(ref.category)
     rp, cp = ref.primary(), cand.primary()
     if unit and rp is not None and cp is not None:
         if not _close(rp, cp):
             return None
         score += 40
-        same.append(f"même valeur ({format_value(rp, unit)})")
+        same.append(f"same value ({format_value(rp, unit)})")
     elif unit and rp is not None:
-        diff.append("valeur non indiquée")
+        diff.append("value not given")
 
     if ref.channel and cand.channel:
         if ref.channel != cand.channel:
             return None
         score += 10
-        same.append(f"canal {ref.channel}")
+        same.append(f"{ref.channel}-channel")
 
     if ref.package and cand.package:
         if ref.package == cand.package:
             score += 25
-            same.append(f"même boîtier ({ref.package})")
+            same.append(f"same package ({ref.package})")
         else:
             score -= 10
-            diff.append(f"boîtier différent ({cand.package} au lieu de {ref.package})")
+            diff.append(f"different package ({cand.package} instead of {ref.package})")
 
-    # Tension et courant nominaux (hors valeur principale) : le remplaçant doit tenir au moins autant
-    for u, label, e, bonus, malus in (("V", "tension", "e", 10, 20), ("A", "courant", "", 5, 10), ("W", "puissance", "e", 5, 10)):
+    # Rated voltage and current (other than the main value): the replacement must withstand at least as much
+    for u, label, bonus, malus in (("V", "voltage", 10, 20), ("A", "current", 5, 10), ("W", "power", 5, 10)):
         if u == unit:
             continue
         rv, cv = ref.max(u), cand.max(u)
@@ -226,28 +227,28 @@ def similarity(ref: Attributes, cand: Attributes) -> tuple[int, list[str], list[
             continue
         if _close(rv, cv):
             score += bonus
-            same.append(f"même {label} ({format_value(rv, u)})")
+            same.append(f"same {label} ({format_value(rv, u)})")
         elif cv > rv:
             score += bonus // 2
-            same.append(f"{label} supérieur{e} ({format_value(cv, u)} ≥ {format_value(rv, u)})")
+            same.append(f"higher {label} ({format_value(cv, u)} ≥ {format_value(rv, u)})")
         else:
             score -= malus
-            diff.append(f"{label} inférieur{e} ({format_value(cv, u)} < {format_value(rv, u)})")
+            diff.append(f"lower {label} ({format_value(cv, u)} < {format_value(rv, u)})")
 
     if ref.dielectric and cand.dielectric:
         if ref.dielectric == cand.dielectric:
             score += 10
-            same.append(f"même diélectrique ({ref.dielectric})")
+            same.append(f"same dielectric ({ref.dielectric})")
         else:
             score -= 10
-            diff.append(f"diélectrique différent ({cand.dielectric} au lieu de {ref.dielectric})")
+            diff.append(f"different dielectric ({cand.dielectric} instead of {ref.dielectric})")
     if ref.tolerance is not None and cand.tolerance is not None:
         if cand.tolerance <= ref.tolerance:
             score += 5
-            same.append(f"tolérance {cand.tolerance:g} %")
+            same.append(f"tolerance {cand.tolerance:g} %")
         else:
             score -= 5
-            diff.append(f"tolérance moins bonne ({cand.tolerance:g} % au lieu de {ref.tolerance:g} %)")
+            diff.append(f"looser tolerance ({cand.tolerance:g} % instead of {ref.tolerance:g} %)")
     if ref.pins and cand.pins:
         if ref.pins == cand.pins:
             score += 10
@@ -257,10 +258,10 @@ def similarity(ref: Attributes, cand: Attributes) -> tuple[int, list[str], list[
     return score, same, diff
 
 
-# ------------------------------------------------------------------ conformité (pour le tri)
+# ------------------------------------------------------------------ compliance (for sorting)
 
-_ROHS_RANK = {"conforme": 0, "exemption": 1, "inconnu": 2, "non_conforme": 3}
-_REACH_RANK = {"conforme": 0, "svhc": 1, "inconnu": 2, "non_conforme": 3}
+_ROHS_RANK = {"compliant": 0, "exemption": 1, "unknown": 2, "non_compliant": 3}
+_REACH_RANK = {"compliant": 0, "svhc": 1, "unknown": 2, "non_compliant": 3}
 
 
 def compliance_rank(c: dict) -> int:
@@ -268,10 +269,11 @@ def compliance_rank(c: dict) -> int:
 
 
 def is_fully_compliant(c: dict) -> bool:
-    return c.get("rohs2") in ("conforme", "exemption") and c.get("rohs3") in ("conforme", "exemption") and c.get("reach") in ("conforme", "svhc")
+    return (c.get("rohs2") in ("compliant", "exemption") and c.get("rohs3") in ("compliant", "exemption")
+            and c.get("reach") in ("compliant", "svhc"))
 
 
-# ------------------------------------------------------------------ équivalences confirmées
+# ------------------------------------------------------------------ confirmed equivalences
 
 def confirmed_ids(conn: sqlite3.Connection, comp_id: int) -> set[int]:
     return {r[0] for r in conn.execute("SELECT b FROM component_equivalents WHERE a = ?", (comp_id,))}
@@ -279,9 +281,9 @@ def confirmed_ids(conn: sqlite3.Connection, comp_id: int) -> set[int]:
 
 def confirm(conn: sqlite3.Connection, a: int, b: int) -> None:
     if a == b:
-        raise db.ValidationError("Un composant ne peut pas être son propre équivalent")
+        raise db.ValidationError("A component cannot be its own equivalent")
     if not db.get(conn, a) or not db.get(conn, b):
-        raise db.ValidationError("Composant introuvable")
+        raise db.ValidationError("Component not found")
     conn.executemany("INSERT OR IGNORE INTO component_equivalents (a, b) VALUES (?, ?)", [(a, b), (b, a)])
 
 
@@ -289,11 +291,11 @@ def unconfirm(conn: sqlite3.Connection, a: int, b: int) -> None:
     conn.execute("DELETE FROM component_equivalents WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)", (a, b, b, a))
 
 
-# ------------------------------------------------------------------ recherche
+# ------------------------------------------------------------------ search
 
 def find(conn: sqlite3.Connection, *, description: str = "", mpn: str = "", manufacturer: str = "",
          component_id: int | None = None, limit: int = 20) -> dict:
-    """Composants équivalents d'autres fabricants, du plus proche au moins proche."""
+    """Equivalent components from other manufacturers, from closest to least close."""
     ref_comp = db.get(conn, component_id) if component_id else None
     if ref_comp:
         description, mpn, manufacturer = ref_comp["description"], ref_comp["mpn"], ref_comp["manufacturer"]
@@ -307,7 +309,7 @@ def find(conn: sqlite3.Connection, *, description: str = "", mpn: str = "", manu
             continue
         is_confirmed = row["id"] in confirmed
         if not is_confirmed and ref_mfr and row["manufacturer_norm"] == ref_mfr:
-            continue  # autres fabricants uniquement
+            continue  # other manufacturers only
         cand = extract(row["description"], row["mpn"])
         sim = similarity(ref, cand)
         if sim is None and not is_confirmed:

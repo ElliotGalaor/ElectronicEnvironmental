@@ -5,30 +5,32 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const LABELS = {
-  conforme: "Conforme", exemption: "Exemption", svhc: "SVHC > 0,1 %", non_conforme: "Non conforme",
-  a_verifier: "À vérifier", inconnu: "Inconnu", non_monte: "Non monté",
+  compliant: "Compliant", exemption: "Exemption", svhc: "SVHC > 0.1 %", non_compliant: "Non-compliant",
+  needs_review: "Needs review", unknown: "Unknown", dnp: "Not populated",
 };
 const VERDICT = {
-  conforme: "Conforme", exemption: "Conforme (exemptions)", svhc: "Conforme, SVHC à déclarer",
-  non_conforme: "Non conforme", a_verifier: "À vérifier",
+  compliant: "Compliant", exemption: "Compliant (exemptions)", svhc: "Compliant, SVHC to declare",
+  non_compliant: "Non-compliant", needs_review: "Needs review",
 };
 const MATCH = {
-  exact: ["Exacte", ""], mpn: ["Référence seule", ""], approchant: ["Approchante", ""],
-  mpn_autre_fabricant: ["Autre fabricant", "warn"], partiel: ["Partielle", "warn"],
-  ambigu: ["Ambiguë", "warn"], introuvable: ["Introuvable", "bad"], "-": ["—", ""],
+  exact: ["Exact", ""], mpn: ["Part number only", ""], close: ["Close", ""],
+  mpn_other_manufacturer: ["Other manufacturer", "warn"], partial: ["Partial", "warn"],
+  ambiguous: ["Ambiguous", "warn"], not_found: ["Not found", "bad"], "-": ["—", ""],
 };
-const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/UE"], ["rohs3", "RoHS 3", "Directive (UE) 2015/863"], ["reach", "REACH", "Règlement (CE) 1907/2006"]];
+const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/EU"], ["rohs3", "RoHS 3", "Directive (EU) 2015/863"], ["reach", "REACH", "Regulation (EC) 1907/2006"]];
+const DATE_LOCALE = "en-GB";
 
 let COUNTRIES = {};
 const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${esc(code)}</span>` : "";
 const exHref = (code) => "#exemption/" + encodeURIComponent(code);
 const exLinks = (field) => (field || "").split(/[,;/]|\s+et\s+|\s+and\s+/).map((c) => c.trim()).filter(Boolean)
-  .map((c) => `<a class="ex-link" href="${exHref(c)}" title="Voir le texte officiel et la date d'expiration">${esc(c)}</a>`).join(", ");
+  .map((c) => `<a class="ex-link" href="${exHref(c)}" title="See the official text and the expiry date">${esc(c)}</a>`).join(", ");
 const eccnHref = (e) => "#eccn/" + encodeURIComponent(e);
 const eccnCell = (e) => !e ? "" : e === "EAR99"
-  ? `<a class="eccn-link mono" href="${eccnHref(e)}" title="Voir la définition de EAR99">EAR99</a>`
-  : `<a class="eccn-link" href="${eccnHref(e)}" title="Soumis au contrôle export : voir le domaine d'application et la définition"><span class="badge b-eccn">${esc(e)}</span></a>`;
+  ? `<a class="eccn-link mono" href="${eccnHref(e)}" title="See the definition of EAR99">EAR99</a>`
+  : `<a class="eccn-link" href="${eccnHref(e)}" title="Subject to export control: see the scope and the definition"><span class="badge b-eccn">${esc(e)}</span></a>`;
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
+const plural = (n, word, many = word + "s") => `${n} ${n > 1 ? many : word}`;
 
 const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50, adminRequired: false };
 
@@ -45,8 +47,8 @@ async function api(url, opts = {}) {
   return r.status === 204 ? null : r;
 }
 
-/* ------------------------------------------------------------------ onglets et navigation
-   Adresses : #analyse, #base, #fabricants, #fabricant/<clé> (liens partageables, bouton Précédent) */
+/* ------------------------------------------------------------------ tabs and navigation
+   Addresses: #analysis, #database, #manufacturers, #manufacturer/<key> (shareable links, Back button) */
 $$(".tab").forEach((t) => t.addEventListener("click", () => {
   const target = "#" + t.dataset.tab;
   if (location.hash === target) route(); else location.hash = target;
@@ -59,9 +61,9 @@ function showTab(name) {
 
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
-  if (h.startsWith("fabricant/")) {
-    showTab("fabricants");
-    openManufacturer(h.slice("fabricant/".length));
+  if (h.startsWith("manufacturer/")) {
+    showTab("manufacturers");
+    openManufacturer(h.slice("manufacturer/".length));
   } else if (h.startsWith("exemption/")) {
     showTab("exemptions");
     openExemption(h.slice("exemption/".length));
@@ -78,25 +80,25 @@ function route() {
     $("#eccnDetail").hidden = true;
     $("#eccnList").hidden = false;
     loadEccnList();
-  } else if (h === "fabricants") {
-    showTab("fabricants");
+  } else if (h === "manufacturers") {
+    showTab("manufacturers");
     $("#mfrDetail").hidden = true;
     $("#mfrList").hidden = false;
     loadManufacturers();
-  } else if (h === "base") {
-    showTab("base");
+  } else if (h === "database") {
+    showTab("database");
     loadComponents();
   } else {
-    showTab("analyse");
+    showTab("analysis");
   }
 }
 window.addEventListener("hashchange", route);
 
-// Lien vers la fiche d'un fabricant ("_" = fabricant non renseigné)
-const mfrHref = (key) => "#fabricant/" + encodeURIComponent(key === "" ? "_" : key);
+// Link to a manufacturer's page ("_" = no manufacturer given)
+const mfrHref = (key) => "#manufacturer/" + encodeURIComponent(key === "" ? "_" : key);
 const mfrLink = (name, key) => (key === undefined || key === null)
   ? esc(name)
-  : `<a class="mfr-link" href="${mfrHref(key)}">${esc(name || "(non renseigné)")}</a>`;
+  : `<a class="mfr-link" href="${mfrHref(key)}">${esc(name || "(not given)")}</a>`;
 
 async function loadStats() {
   try {
@@ -104,22 +106,22 @@ async function loadStats() {
     state.adminRequired = s.admin_required;
     state.aiAvailable = s.ai_available;
     $("#pdfMethodHint").textContent = s.ai_available
-      ? "Analyse par IA (Claude) activée sur le serveur."
-      : "Analyse par règles (aucune clé API Claude configurée sur le serveur).";
-    $("#dbinfo").textContent = `Base : ${s.total} composant${s.total > 1 ? "s" : ""}`;
+      ? "AI analysis (Claude) enabled on the server."
+      : "Rule-based analysis (no Claude API key configured on the server).";
+    $("#dbinfo").textContent = `Database: ${plural(s.total, "component")}`;
     $("#adminBox").hidden = !s.admin_required;
-  } catch { $("#dbinfo").textContent = "Base : serveur injoignable"; }
+  } catch { $("#dbinfo").textContent = "Database: server unreachable"; }
 }
 
-/* ------------------------------------------------------------------ analyse */
+/* ------------------------------------------------------------------ analysis */
 const drop = $("#drop");
 ["dragenter", "dragover"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
-// Filtres du tableau des lignes : remis à zéro à chaque nouvelle BOM (un filtre resté d'une BOM
-// précédente, ou rempli automatiquement par le navigateur, masquerait toutes les lignes).
+// Line table filters: reset for every new BOM (a filter left over from a previous BOM,
+// or filled in automatically by the browser, would hide every line).
 function resetLineFilters() {
   $("#lineSearch").value = "";
   state.filter = "all";
@@ -138,7 +140,7 @@ async function runAnalysis(format = "json") {
   fd.append("file", state.file);
   fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
   fd.append("substitutions", Object.keys(state.substitutions).length ? JSON.stringify(state.substitutions) : "");
-  // Utilisateur connecté : enregistrement dans l'historique (mise à jour de l'entrée si la BOM y est déjà)
+  // Signed-in user: saved in the history (the entry is updated if the BOM is already there)
   if (format === "json" && state.user) {
     if (state.historyId) fd.append("history_id", state.historyId); else fd.append("save", "1");
   }
@@ -150,8 +152,8 @@ async function runAnalysis(format = "json") {
       const a = Object.assign(document.createElement("a"), {
         href: URL.createObjectURL(blob),
         download: format === "bom"
-          ? `${state.file.name.replace(/\.[^.]+$/, "")}_modifiee.csv`
-          : `conformite_${state.file.name.replace(/\.[^.]+$/, "")}.${format}`,
+          ? `${state.file.name.replace(/\.[^.]+$/, "")}_modified.csv`
+          : `compliance_${state.file.name.replace(/\.[^.]+$/, "")}.${format}`,
       });
       a.click();
       URL.revokeObjectURL(a.href);
@@ -164,26 +166,26 @@ async function runAnalysis(format = "json") {
     if (state.user) loadHistory();
   } catch (e) {
     if (format === "json" && e.kind === "columns") {
-      // Message laissé sous la fenêtre, au cas où l'utilisateur l'annule
-      $("#error").textContent = "Colonnes à préciser : " + e.message;
+      // Message left under the dialog, in case the user cancels it
+      $("#error").textContent = "Columns to specify: " + e.message;
       $("#error").hidden = false;
       $("#result").hidden = true;
       openBomMapping(e.message);
       return;
     }
-    $("#error").textContent = "Erreur : " + e.message;
+    $("#error").textContent = "Error: " + e.message;
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
   }
 }
 
-// Correspondance des colonnes de la BOM : ouverte par « Colonnes… » ou quand la détection échoue
+// BOM column mapping: opened by "Columns…" or when detection fails
 function openBomMapping(problem = "") {
   openMapping({
     kind: "bom", file: state.file, mapping: state.overrides, problem,
-    intro: "Choisissez la colonne du fichier qui correspond à chaque champ. Seule la référence fabricant est obligatoire ; " +
-      "le fabricant et la description améliorent la recherche dans la base.",
-    okLabel: "Analyser",
+    intro: "Choose the file column that matches each field. Only the manufacturer part number is required; " +
+      "the manufacturer and the description improve the database search.",
+    okLabel: "Analyse",
     onConfirm: (mapping) => { state.overrides = mapping; runAnalysis(); },
   });
 }
@@ -195,42 +197,42 @@ function renderReport() {
   const R = state.report, S = R.summary;
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
-  $("#fmeta").textContent = `— ${S.lines} lignes, analysé avec ${R.database_size} composants en base`;
+  $("#fmeta").textContent = `— ${plural(S.lines, "line")}, analysed against ${plural(R.database_size, "component")} in the database`;
 
   // Verdicts
   const detail = (c) => [
-    c.non_conforme && `${c.non_conforme} non conf.`, c.a_verifier && `${c.a_verifier} à vérifier`,
-    c.exemption && `${c.exemption} exemption`, c.svhc && `${c.svhc} SVHC`, c.conforme && `${c.conforme} conformes`,
+    c.non_compliant && `${c.non_compliant} non-compl.`, c.needs_review && `${c.needs_review} to review`,
+    c.exemption && plural(c.exemption, "exemption"), c.svhc && `${c.svhc} SVHC`, c.compliant && `${c.compliant} compliant`,
   ].filter(Boolean).join(" · ");
   $("#cards").innerHTML =
-    `<div class="vcard global v-${S.overall}"><div class="norm">Verdict global de la BOM</div><div class="verdict">${VERDICT[S.overall]}</div>
-      <div class="detail">${S.overall === "conforme" ? "Toutes les lignes sont conformes" : S.overall === "non_conforme" ? "Au moins un composant non conforme" : "Informations manquantes ou incertaines"}</div></div>` +
+    `<div class="vcard global v-${S.overall}"><div class="norm">Overall BOM verdict</div><div class="verdict">${VERDICT[S.overall]}</div>
+      <div class="detail">${S.overall === "compliant" ? "All lines are compliant" : S.overall === "non_compliant" ? "At least one non-compliant component" : "Missing or uncertain information"}</div></div>` +
     NORMS.map(([k, name, ref]) => `<div class="vcard v-${S[k].verdict}"><div class="norm">${name} <span title="${ref}">· ${ref}</span></div>
       <div class="verdict">${VERDICT[S[k].verdict]}</div><div class="detail">${detail(S[k].counts)}</div></div>`).join("");
 
-  $("#counts").innerHTML = `<span><b>${S.found}</b> trouvées en base</span><span><b>${S.uncertain}</b> correspondances incertaines</span>
-    <span><b>${S.not_found}</b> introuvables</span><span><b>${S.dnp}</b> non montées</span>` +
-    (S.export ? `<span>Export : <b>${S.export.eccn_controlled}</b> ECCN contrôlé${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> ECCN inconnu${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
-      `<span>Origines : ${[
+  $("#counts").innerHTML = `<span><b>${S.found}</b> found in database</span><span><b>${S.uncertain}</b> uncertain ${S.uncertain > 1 ? "matches" : "match"}</span>
+    <span><b>${S.not_found}</b> not found</span><span><b>${S.dnp}</b> not populated</span>` +
+    (S.export ? `<span>Export: <b>${S.export.eccn_controlled}</b> controlled ECCN${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> unknown ECCN${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
+      `<span>Origins: ${[
         ...Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`),
-        ...(S.export.country_unknown ? [`<b>${S.export.country_unknown}</b> inconnue${S.export.country_unknown > 1 ? "s" : ""}`] : []),
+        ...(S.export.country_unknown ? [`<b>${S.export.country_unknown}</b> unknown`] : []),
       ].join(", ") || "—"}</span>` : "");
   renderCharts(S);
   renderLines();
 }
 
-/* ------------------------------------------------------------------ camemberts par norme
-   Répartition des statuts des lignes montées (les lignes non montées sont exclues). */
+/* ------------------------------------------------------------------ pie charts per regulation
+   Breakdown of the statuses of populated lines (lines that are not populated are excluded). */
 const PIE_STATUSES = [
-  ["conforme", "Conforme", "--pie-ok"],
+  ["compliant", "Compliant", "--pie-ok"],
   ["exemption", "Exemption", "--pie-ex"],
   ["svhc", "SVHC", "--pie-svhc"],
-  ["a_verifier", "À vérifier", "--pie-chk"],
-  ["non_conforme", "Non conforme", "--pie-ko"],
+  ["needs_review", "Needs review", "--pie-chk"],
+  ["non_compliant", "Non-compliant", "--pie-ko"],
 ];
 
 function pieSvg(slices, total, centerValue, centerLabel) {
-  const R = 58, r = 36, C = 60; // anneau : rayon extérieur 58, intérieur 36
+  const R = 58, r = 36, C = 60; // ring: outer radius 58, inner radius 36
   const pt = (rad, a) => [C + rad * Math.sin(a), C - rad * Math.cos(a)];
   let a0 = 0;
   const marks = slices.map((s) => {
@@ -251,27 +253,27 @@ function pieSvg(slices, total, centerValue, centerLabel) {
 }
 
 function renderCharts(S) {
-  $("#charts").innerHTML = NORMS.map(([k, name, ref]) => {
+  $("#charts").innerHTML = NORMS.map(([k, name]) => {
     const counts = S[k].counts;
     const slices = PIE_STATUSES.filter(([key]) => counts[key]).map(([key, label, color]) => ({ key, label, color, n: counts[key] }));
     const total = slices.reduce((t, s) => t + s.n, 0);
-    const skipped = counts.non_monte || 0;
-    if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">Aucune ligne montée.</p></div></div>`;
-    const okShare = slices.filter((s) => s.key !== "a_verifier" && s.key !== "non_conforme").reduce((t, s) => t + s.n, 0);
+    const skipped = counts.dnp || 0;
+    if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">No populated line.</p></div></div>`;
+    const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
     const legend = slices.map((s) => `<li data-k="${s.key}"><span class="sw" style="background:var(${s.color})"></span>
       <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
-    const desc = slices.map((s) => `${s.label} : ${s.n}`).join(", ");
-    return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name} : ${desc}">
-      ${pieSvg(slices, total, pctOf(okShare), "conformes")}
-      <div><h4>${name} <span>· ${total} ligne${total > 1 ? "s" : ""}</span></h4>
+    const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
+    return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">
+      ${pieSvg(slices, total, pctOf(okShare), "compliant")}
+      <div><h4>${name} <span>· ${plural(total, "line")}</span></h4>
         <ul class="legend">${legend}</ul>
-        ${skipped ? `<div class="foot">${skipped} non montée${skipped > 1 ? "s" : ""} exclue${skipped > 1 ? "s" : ""}</div>` : ""}</div>
+        ${skipped ? `<div class="foot">${skipped} not populated, excluded</div>` : ""}</div>
     </div>`;
   }).join("");
 }
 
-// Survol : met en avant la part et sa ligne de légende, avec une infobulle
+// Hover: highlights the slice and its legend row, with a tooltip
 const chartTip = Object.assign(document.createElement("div"), { className: "charttip", hidden: true });
 document.body.appendChild(chartTip);
 function chartHover(ev) {
@@ -284,7 +286,7 @@ function chartHover(ev) {
   card.querySelector(".pie").classList.add("dim");
   card.querySelectorAll(`[data-k="${key}"]`).forEach((e) => e.classList.add("on"));
   const li = card.querySelector(`.legend [data-k="${key}"]`);
-  chartTip.textContent = `${card.querySelector("h4").firstChild.textContent.trim()} · ${li.querySelector(".lbl").textContent} : ${li.querySelector(".val").textContent}`;
+  chartTip.textContent = `${card.querySelector("h4").firstChild.textContent.trim()} · ${li.querySelector(".lbl").textContent}: ${li.querySelector(".val").textContent}`;
   chartTip.hidden = false;
   chartTip.style.left = Math.min(ev.clientX + 14, innerWidth - chartTip.offsetWidth - 8) + "px";
   chartTip.style.top = ev.clientY + 14 + "px";
@@ -299,22 +301,22 @@ $$("#filters .chip").forEach((c) => c.addEventListener("click", () => {
 }));
 $("#lineSearch").addEventListener("input", renderLines);
 
-// Tableau vide alors que la BOM contient des lignes : on dit pourquoi et on propose de tout afficher
+// Empty table although the BOM has lines: say why and offer to show everything
 function emptyLinesRow() {
-  if (!state.report.lines.length) return `<tr><td colspan="11" class="muted">La BOM ne contient aucune ligne.</td></tr>`;
+  if (!state.report.lines.length) return `<tr><td colspan="11" class="muted">The BOM has no lines.</td></tr>`;
   const q = $("#lineSearch").value.trim();
   const chip = $(`#filters .chip[data-filter="${state.filter}"]`);
-  const why = [q ? `recherche « ${esc(q)} »` : "", state.filter !== "all" && chip ? `filtre « ${esc(chip.textContent)} »` : ""].filter(Boolean).join(" et ");
-  return `<tr><td colspan="11" class="emptyrow">Aucune des ${state.report.lines.length} lignes ne correspond ${why ? `à : ${why}` : "aux filtres"}.
-    <button class="btn small" data-clearfilters>Afficher toutes les lignes</button></td></tr>`;
+  const why = [q ? `search “${esc(q)}”` : "", state.filter !== "all" && chip ? `filter “${esc(chip.textContent)}”` : ""].filter(Boolean).join(" and ");
+  return `<tr><td colspan="11" class="emptyrow">None of the ${state.report.lines.length} lines match ${why ? `the ${why}` : "the filters"}.
+    <button class="btn small" data-clearfilters>Show all lines</button></td></tr>`;
 }
 
 function lineVisible(l) {
   const st = [l.rohs2, l.rohs3, l.reach];
   const f = state.filter;
-  if (f === "issues" && !st.some((s) => ["non_conforme", "a_verifier"].includes(s))) return false;
-  if (f === "ko" && !st.includes("non_conforme")) return false;
-  if (f === "check" && !st.includes("a_verifier")) return false;
+  if (f === "issues" && !st.some((s) => ["non_compliant", "needs_review"].includes(s))) return false;
+  if (f === "ko" && !st.includes("non_compliant")) return false;
+  if (f === "check" && !st.includes("needs_review")) return false;
   if (f === "svhc" && !st.some((s) => ["svhc", "exemption"].includes(s))) return false;
   if (f === "eccn" && !(l.component && l.component.eccn && l.component.eccn !== "EAR99")) return false;
   const q = $("#lineSearch").value.trim().toLowerCase();
@@ -329,27 +331,27 @@ function renderLines() {
     const comp = l.component;
     const matchCell = `<span class="match ${mCls}">${mLabel}</span>` +
       (comp && l.match !== "exact" ? `<div class="mono muted">${esc(comp.mpn)}</div>` : "");
-    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">déduit</span>` : "") +
-      ((l.from_bom || []).includes(k) ? `<span class="inferred" title="Statut déclaré dans la BOM, pas dans la base">selon la BOM</span>` : "");
+    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">inferred</span>` : "") +
+      ((l.from_bom || []).includes(k) ? `<span class="inferred" title="Status declared in the BOM, not in the database">from the BOM</span>` : "");
     const sugg = l.suggestions.length && !comp
-      ? `<div class="sugg">Proches : ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
-    const add = (l.match === "introuvable" && l.bom_mpn)
-      ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Ajouter à la base</button></div>` : "";
-    const notes = l.notes.map((n) => n.startsWith("Exemption RoHS") && l.exemptions
-      ? `<div>Exemption RoHS : ${exLinks(l.exemptions)} (voir la date d'expiration)</div>` : `<div>${esc(n)}</div>`).join("");
-    const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small" data-altline="${l.line}">Équivalents</button></div>` : "";
+      ? `<div class="sugg">Similar: ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
+    const add = (l.match === "not_found" && l.bom_mpn)
+      ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Add to database</button></div>` : "";
+    const notes = l.notes.map((n) => n.startsWith("RoHS exemption") && l.exemptions
+      ? `<div>RoHS exemption: ${exLinks(l.exemptions)} (check the expiry date)</div>` : `<div>${esc(n)}</div>`).join("");
+    const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small" data-altline="${l.line}">Equivalents</button></div>` : "";
     const ref = (!l.dnp && l.bom_mpn)
-      ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="Voir les équivalents d'autres fabricants">${esc(l.bom_mpn)}</a>`
+      ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="See equivalents from other manufacturers">${esc(l.bom_mpn)}</a>`
       : esc(l.bom_mpn);
     return `<tr class="${l.dnp ? "dnp" : ""}${l.original_mpn ? " swapped" : ""}">
       <td>${l.line}</td><td class="mono">${esc(l.designator)}</td><td>${esc(l.quantity)}</td>
-      <td class="mono">${ref}${l.original_mpn ? `<div class="muted small">au lieu de ${esc(l.original_mpn)}</div>` : ""}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
+      <td class="mono">${ref}${l.original_mpn ? `<div class="muted small">instead of ${esc(l.original_mpn)}</div>` : ""}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
   }).join("") || emptyLinesRow();
   const total = state.report.lines.length;
-  $("#lineCount").textContent = rows.length === total ? `${total} ligne${total > 1 ? "s" : ""}` : `${rows.length} ligne${rows.length > 1 ? "s" : ""} affichée${rows.length > 1 ? "s" : ""} sur ${total}`;
+  $("#lineCount").textContent = rows.length === total ? plural(total, "line") : `${rows.length} of ${total} lines shown`;
   $("#lineCount").classList.toggle("filtered", rows.length !== total);
 }
 
@@ -367,7 +369,7 @@ $("#lines").addEventListener("click", (ev) => {
   openDialog(null, { mpn: l.bom_mpn, manufacturer: l.bom_manufacturer, description: l.bom_description });
 });
 
-/* ------------------------------------------------------------------ base */
+/* ------------------------------------------------------------------ database */
 let searchTimer;
 $("#q").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.page = 0; loadComponents(); }, 250); });
 $("#onlyIssues").addEventListener("change", () => { state.page = 0; loadComponents(); });
@@ -377,23 +379,23 @@ $("#adminToken").value = token();
 $("#adminToken").addEventListener("change", (e) => { try { localStorage.setItem("rrc_token", e.target.value); } catch {} });
 
 async function loadComponents() {
-  const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "probleme" : "" });
+  const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "issues" : "" });
   try {
     const { total, items } = await (await api("/api/components?" + p)).json();
     const pages = Math.max(1, Math.ceil(total / state.pageSize));
     if (state.page >= pages) { state.page = pages - 1; return loadComponents(); }
-    $("#pageInfo").textContent = `${total} composant${total > 1 ? "s" : ""} — page ${state.page + 1} / ${pages}`;
+    $("#pageInfo").textContent = `${plural(total, "component")} — page ${state.page + 1} / ${pages}`;
     $("#prev").disabled = state.page === 0;
     $("#next").disabled = state.page >= pages - 1;
     $("#comps tbody").innerHTML = items.map((c) => `<tr>
       <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-      <td class="notes">${c.rohs_exemptions ? `<div>Exemption : ${exLinks(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC : ${esc(c.svhc_list)}</div>` : ""}</td>
+      <td class="notes">${c.rohs_exemptions ? `<div>Exemption: ${exLinks(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC: ${esc(c.svhc_list)}</div>` : ""}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
-      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
-      || `<tr><td colspan="11" class="muted">Aucun composant.</td></tr>`;
+      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+      || `<tr><td colspan="11" class="muted">No components.</td></tr>`;
   } catch (e) {
-    $("#comps tbody").innerHTML = `<tr><td colspan="11">Erreur : ${esc(e.message)}</td></tr>`;
+    $("#comps tbody").innerHTML = `<tr><td colspan="11">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -403,7 +405,7 @@ $("#comps").addEventListener("click", async (ev) => {
 });
 $("#btnAdd").addEventListener("click", () => openDialog(null));
 
-/* ------------------------------------------------------------------ fabricants */
+/* ------------------------------------------------------------------ manufacturers */
 let MFRS = [];
 const pct = (n, total) => total ? Math.round((100 * n) / total) + " %" : "—";
 const siteLink = (url) => url
@@ -415,7 +417,7 @@ async function loadManufacturers() {
     MFRS = await (await api("/api/manufacturers")).json();
     renderManufacturers();
   } catch (e) {
-    $("#mfrs tbody").innerHTML = `<tr><td colspan="7">Erreur : ${esc(e.message)}</td></tr>`;
+    $("#mfrs tbody").innerHTML = `<tr><td colspan="7">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 $("#mfrSearch").addEventListener("input", renderManufacturers);
@@ -425,16 +427,16 @@ function renderManufacturers() {
   const rows = MFRS.filter((m) => !q || [m.name, m.key, ...m.aliases].join(" ").toLowerCase().includes(q));
   $("#mfrs tbody").innerHTML = rows.map((m) => {
     const s = m.stats;
-    const rohs = s.rohs3_ko ? `<span class="badge b-non_conforme">${s.rohs3_ko} non conf.</span>`
-      : s.rohs3_unknown ? `<span class="badge b-inconnu">${s.rohs3_unknown} inconnu${s.rohs3_unknown > 1 ? "s" : ""}</span>`
-      : s.components ? `<span class="badge b-conforme">Conformes</span>` : "";
-    const reach = s.reach_ko ? `<span class="badge b-non_conforme">${s.reach_ko} non conf.</span>`
+    const rohs = s.rohs3_ko ? `<span class="badge b-non_compliant">${s.rohs3_ko} non-compl.</span>`
+      : s.rohs3_unknown ? `<span class="badge b-unknown">${s.rohs3_unknown} unknown</span>`
+      : s.components ? `<span class="badge b-compliant">Compliant</span>` : "";
+    const reach = s.reach_ko ? `<span class="badge b-non_compliant">${s.reach_ko} non-compl.</span>`
       : s.reach_svhc ? `<span class="badge b-svhc">${s.reach_svhc} SVHC</span>` : "";
     return `<tr>
       <td>${mfrLink(m.name, m.key)}</td><td>${s.components}</td><td>${rohs}</td><td>${reach}</td>
       <td>${s.eccn_controlled ? `<span class="badge b-eccn">${s.eccn_controlled}</span>` : ""}</td>
       <td>${country(m.country)}</td><td>${siteLink(m.website)}</td></tr>`;
-  }).join("") || `<tr><td colspan="7" class="muted">Aucun fabricant.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="muted">No manufacturers.</td></tr>`;
 }
 
 let currentMfr = null;
@@ -442,12 +444,12 @@ let currentMfr = null;
 async function openManufacturer(key) {
   $("#mfrList").hidden = true;
   $("#mfrDetail").hidden = false;
-  $("#mfrName").textContent = "Chargement…";
+  $("#mfrName").textContent = "Loading…";
   try {
     currentMfr = await (await api("/api/manufacturers/" + encodeURIComponent(key === "" ? "_" : key))).json();
   } catch (e) {
     currentMfr = null;
-    $("#mfrName").textContent = "Fabricant introuvable";
+    $("#mfrName").textContent = "Manufacturer not found";
     $("#mfrAliases").textContent = e.message;
     $("#mfrCards").innerHTML = $("#mfrInfo").innerHTML = $("#mfrComps tbody").innerHTML = "";
     $("#btnEditMfr").hidden = true;
@@ -458,29 +460,28 @@ async function openManufacturer(key) {
 
 function renderManufacturer() {
   const m = currentMfr, s = m.stats;
-  $("#mfrName").textContent = m.name || "(fabricant non renseigné)";
-  $("#mfrAliases").textContent = m.aliases.length ? "Aussi écrit : " + m.aliases.join(", ") : "";
+  $("#mfrName").textContent = m.name || "(manufacturer not given)";
+  $("#mfrAliases").textContent = m.aliases.length ? "Also written: " + m.aliases.join(", ") : "";
   $("#btnEditMfr").hidden = m.key === "";
-  const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
   $("#mfrCards").innerHTML = [
-    ["Composants en base", s.components, ""],
-    ["RoHS 3 conformes", `${s.rohs3_ok} / ${s.components}`, pct(s.rohs3_ok, s.components) + (s.rohs3_ko ? ` · ${plural(s.rohs3_ko, "non conforme")}` : "")],
-    ["REACH : SVHC > 0,1 %", s.reach_svhc, s.reach_ko ? plural(s.reach_ko, "non conforme") : ""],
-    ["ECCN contrôlés", s.eccn_controlled, s.eccn_unknown ? plural(s.eccn_unknown, "ECCN inconnu") : ""],
+    ["Components in database", s.components, ""],
+    ["RoHS 3 compliant", `${s.rohs3_ok} / ${s.components}`, pct(s.rohs3_ok, s.components) + (s.rohs3_ko ? ` · ${s.rohs3_ko} non-compliant` : "")],
+    ["REACH: SVHC > 0.1 %", s.reach_svhc, s.reach_ko ? `${s.reach_ko} non-compliant` : ""],
+    ["Controlled ECCNs", s.eccn_controlled, s.eccn_unknown ? plural(s.eccn_unknown, "unknown ECCN") : ""],
   ].map(([t, v, d]) => `<div class="vcard"><div class="norm">${t}</div><div class="verdict">${v}</div><div class="detail">${esc(d)}</div></div>`).join("");
   const origins = Object.entries(m.origins).map(([c, n]) => `${country(c)} (${n})`).join(", ");
-  const dflt = `<span class="tag" title="Valeur connue pour ce fabricant, modifiable">par défaut</span>`;
+  const dflt = `<span class="tag" title="Known value for this manufacturer, can be edited">default</span>`;
   $("#mfrInfo").innerHTML = `
-    <dt>Site web</dt><dd>${siteLink(m.website)}${m.website_is_default ? dflt : ""}</dd>
-    <dt>Siège</dt><dd>${m.country ? `${esc(m.country_name)} (${esc(m.country)})` : `<span class="muted">—</span>`}${m.country_is_default ? dflt : ""}</dd>
-    <dt>Pays d'origine des composants</dt><dd>${origins || `<span class="muted">non renseignés</span>`}</dd>
+    <dt>Website</dt><dd>${siteLink(m.website)}${m.website_is_default ? dflt : ""}</dd>
+    <dt>Headquarters</dt><dd>${m.country ? `${esc(m.country_name)} (${esc(m.country)})` : `<span class="muted">—</span>`}${m.country_is_default ? dflt : ""}</dd>
+    <dt>Components' countries of origin</dt><dd>${origins || `<span class="muted">not given</span>`}</dd>
     <dt>Notes</dt><dd>${m.notes ? esc(m.notes) : `<span class="muted">—</span>`}</dd>`;
   $("#mfrComps tbody").innerHTML = m.components.map((c) => `<tr>
     <td class="mono">${esc(c.mpn)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
     <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td>${esc(c.last_checked)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
-    || `<tr><td colspan="9" class="muted">Aucun composant de ce fabricant en base.</td></tr>`;
+    <td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+    || `<tr><td colspan="9" class="muted">No component from this manufacturer in the database.</td></tr>`;
 }
 
 $("#mfrComps").addEventListener("click", async (ev) => {
@@ -508,15 +509,15 @@ mfrForm.addEventListener("submit", async (ev) => {
   } catch (e) { $("#mfrError").textContent = e.message; $("#mfrError").hidden = false; }
 });
 
-/* ------------------------------------------------------------------ modale */
+/* ------------------------------------------------------------------ component dialog */
 const dlg = $("#dlg"), form = $("#compForm");
 let editingId = null;
 
 function openDialog(comp, preset = {}) {
   editingId = comp ? comp.id : null;
-  const data = comp || { rohs2: "inconnu", rohs3: "inconnu", reach: "inconnu", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
+  const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
-  $("#dlgTitle").textContent = comp ? "Modifier le composant" : "Nouveau composant";
+  $("#dlgTitle").textContent = comp ? "Edit component" : "New component";
   $("#btnDelete").hidden = !comp;
   $("#dlgError").hidden = true;
   $("#pdfStatus").hidden = true;
@@ -525,10 +526,10 @@ function openDialog(comp, preset = {}) {
   dlg.showModal();
 }
 
-/* ------------------------------------------------------------------ datasheet PDF */
+/* ------------------------------------------------------------------ PDF datasheet */
 const FIELD_LABELS = {
-  mpn: "Référence", manufacturer: "Fabricant", description: "Description", rohs2: "RoHS 2", rohs3: "RoHS 3",
-  reach: "REACH", rohs_exemptions: "Exemptions", svhc_list: "SVHC", eccn: "ECCN", country_of_origin: "Pays d'origine",
+  mpn: "Part number", manufacturer: "Manufacturer", description: "Description", rohs2: "RoHS 2", rohs3: "RoHS 3",
+  reach: "REACH", rohs_exemptions: "Exemptions", svhc_list: "SVHC", eccn: "ECCN", country_of_origin: "Country of origin",
 };
 const pdfDrop = $("#pdfDrop");
 ["dragenter", "dragover"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.add("over"); }));
@@ -540,7 +541,7 @@ $("#btnFromPdf").addEventListener("click", () => { openDialog(null); $("#pdfFile
 async function extractPdf(file) {
   const box = $("#pdfStatus");
   box.hidden = false;
-  box.innerHTML = `<div class="head">Analyse de ${esc(file.name)}…</div>`;
+  box.innerHTML = `<div class="head">Analysing ${esc(file.name)}…</div>`;
   pdfDrop.classList.add("busy");
   const fd = new FormData();
   fd.append("file", file);
@@ -548,7 +549,7 @@ async function extractPdf(file) {
     const r = await (await api("/api/datasheet/extract", { method: "POST", body: fd })).json();
     applyExtraction(r, file.name);
   } catch (e) {
-    box.innerHTML = `<div class="head warn">Analyse impossible : ${esc(e.message)}</div>`;
+    box.innerHTML = `<div class="head warn">Analysis failed: ${esc(e.message)}</div>`;
   } finally {
     pdfDrop.classList.remove("busy");
   }
@@ -560,35 +561,35 @@ function applyExtraction(r, fname) {
   for (const el of form.elements) {
     if (!el.name || !(el.name in f)) continue;
     const v = f[el.name];
-    // Ne remplace un champ que si la datasheet apporte une valeur (un statut "inconnu" n'écrase rien)
-    if (v && !(el.tagName === "SELECT" && v === "inconnu" && el.value !== "inconnu")) {
+    // Only replace a field when the datasheet provides a value (an "unknown" status overwrites nothing)
+    if (v && !(el.tagName === "SELECT" && v === "unknown" && el.value !== "unknown")) {
       el.value = v;
-      if (v !== "inconnu") el.closest("label").classList.add("filled");
+      if (v !== "unknown") el.closest("label").classList.add("filled");
     }
   }
   form.elements.last_checked.value = new Date().toLocaleDateString("sv-SE");
   $("#mpnList").innerHTML = (r.candidates.mpn || []).map((c) => `<option value="${esc(c.value)}">`).join("");
   $("#mfrList").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
 
-  const method = r.method === "ia" ? `IA (${esc(r.model || "Claude")})` : "règles automatiques";
+  const method = r.method === "ai" ? `AI (${esc(r.model || "Claude")})` : "automatic rules";
   const others = (r.candidates.mpn || []).slice(1, 6).map((c) => esc(c.value));
   const ev = Object.entries(r.evidence || {}).filter(([, list]) => list && list.length).map(([k, list]) =>
-    `<div class="ev"><b>${FIELD_LABELS[k] || k}</b> : ${list.map((e) => `<q>${esc(e.text)}</q>${e.page ? ` (p. ${e.page})` : ""}`).join(" · ")}</div>`).join("");
+    `<div class="ev"><b>${FIELD_LABELS[k] || k}</b>: ${list.map((e) => `<q>${esc(e.text)}</q>${e.page ? ` (p. ${e.page})` : ""}`).join(" · ")}</div>`).join("");
   const items = [
     ...r.warnings.map((w) => `<li class="warn">${esc(w)}</li>`),
     ...r.notes.map((n) => `<li>${esc(n)}</li>`),
-    others.length ? `<li>Autres références trouvées : ${others.join(", ")} (liste proposée dans le champ Référence)</li>` : "",
+    others.length ? `<li>Other part numbers found: ${others.join(", ")} (list offered in the Part number field)</li>` : "",
   ].join("");
   $("#pdfStatus").innerHTML =
-    `<div class="head">${esc(fname)} analysé par ${method} — ${r.pages} page${r.pages > 1 ? "s" : ""}. Champs proposés surlignés.</div>` +
-    (r.existing_id && !editingId ? `<div class="warn">Ce composant existe déjà en base. <button type="button" class="btn small" id="openExisting">Ouvrir la fiche existante</button></div>` : "") +
+    `<div class="head">${esc(fname)} analysed with ${method} — ${plural(r.pages, "page")}. Proposed fields are highlighted.</div>` +
+    (r.existing_id && !editingId ? `<div class="warn">This component is already in the database. <button type="button" class="btn small" id="openExisting">Open the existing record</button></div>` : "") +
     (items ? `<ul>${items}</ul>` : "") +
-    (ev ? `<details><summary>Extraits de la datasheet utilisés</summary>${ev}</details>` : "");
+    (ev ? `<details><summary>Datasheet excerpts used</summary>${ev}</details>` : "");
   const btn = $("#openExisting");
   if (btn) btn.addEventListener("click", async () => {
     const comp = await (await api("/api/components/" + r.existing_id)).json();
     openDialog(comp);
-    // Réapplique la proposition sur la fiche existante pour comparaison
+    // Reapply the proposal on the existing record for comparison
     applyExtraction({ ...r, existing_id: null }, fname);
   });
 }
@@ -607,16 +608,16 @@ form.addEventListener("submit", async (ev) => {
 });
 
 $("#btnDelete").addEventListener("click", async () => {
-  if (!editingId || !confirm("Supprimer définitivement ce composant de la base ?")) return;
+  if (!editingId || !confirm("Permanently delete this component from the database?")) return;
   try { await api(`/api/components/${editingId}`, { method: "DELETE" }); dlg.close(); afterDbChange(); }
   catch (e) { $("#dlgError").textContent = e.message; $("#dlgError").hidden = false; }
 });
 
 function afterDbChange() {
   loadStats();
-  if ($("#tab-base").classList.contains("active")) loadComponents();
-  if ($("#tab-fabricants").classList.contains("active")) route();
-  if (state.report) runAnalysis(); // relance l'analyse avec la base à jour
+  if ($("#tab-database").classList.contains("active")) loadComponents();
+  if ($("#tab-manufacturers").classList.contains("active")) route();
+  if (state.report) runAnalysis(); // rerun the analysis with the updated database
 }
 
 /* ------------------------------------------------------------------ import */
@@ -627,9 +628,9 @@ $("#importFile").addEventListener("change", (ev) => {
   if (!f) return;
   openMapping({
     kind: "components", file: f,
-    intro: "Vérifiez la colonne utilisée pour chaque champ : l'onglet Résultat montre, avant d'écrire quoi que ce soit, les composants " +
-      "qui seront créés et les valeurs qui seront modifiées (même référence et même fabricant = composant existant).",
-    okLabel: "Importer",
+    intro: "Check the column used for each field: before anything is written, the Result tab shows the components " +
+      "that will be created and the values that will change (same part number and same manufacturer = existing component).",
+    okLabel: "Import",
     onConfirm: (mapping) => importComponents(f, mapping),
   });
 });
@@ -642,27 +643,27 @@ async function importComponents(f, mapping) {
   try {
     const r = await (await api("/api/components/import", { method: "POST", body: fd })).json();
     box.className = "alert " + (r.error_count ? "" : "success");
-    box.innerHTML = `Import de <b>${esc(f.name)}</b> : ${r.created} créés, ${r.updated} modifiés, ${r.unchanged} inchangés, ${r.error_count} erreurs.` +
+    box.innerHTML = `Import of <b>${esc(f.name)}</b>: ${r.created} created, ${r.updated} updated, ${r.unchanged} unchanged, ${plural(r.error_count, "error")}.` +
       (r.errors.length ? "<br>" + r.errors.slice(0, 10).map(esc).join("<br>") : "");
     afterDbChange();
-  } catch (e) { box.className = "alert error"; box.textContent = "Import impossible : " + e.message; }
+  } catch (e) { box.className = "alert error"; box.textContent = "Import failed: " + e.message; }
   box.hidden = false;
 }
 
-/* ------------------------------------------------------------------ correspondance des colonnes
-   Fenêtre commune à l'analyse de BOM et à l'import en base : ligne d'en-tête, colonne à utiliser pour
-   chaque champ (préremplie par la détection automatique), et deux vues :
-   - Résultat : les lignes telles qu'elles seront lues, avec ce qui va changer (calculé par le serveur) ;
-   - Fichier d'origine : le fichier brut, colonnes utilisées surlignées. */
+/* ------------------------------------------------------------------ column mapping
+   Dialog shared by the BOM analysis and the database import: header row, column used for each
+   field (prefilled by automatic detection), and two views:
+   - Result: the lines as they will be read, with what will change (computed by the server);
+   - Original file: the raw file, with the columns in use highlighted. */
 const dlgMap = $("#dlgMap");
 let mapCtx = null; // { kind, file, onConfirm, preview, tab, seq }
 const STATUS_FIELDS = new Set(["rohs2", "rohs3", "reach"]);
 const ACTION = {
-  create: ["Nouveau", "b-conforme"], update: ["Modifié", "b-exemption"],
-  unchanged: ["Inchangé", "b-non_monte"], error: ["Erreur", "b-non_conforme"],
+  create: ["New", "b-compliant"], update: ["Changed", "b-exemption"],
+  unchanged: ["Unchanged", "b-dnp"], error: ["Error", "b-non_compliant"],
 };
 
-async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Valider", onConfirm }) {
+async function openMapping({ kind, file, mapping = {}, problem = "", intro = "", okLabel = "Confirm", onConfirm }) {
   mapCtx = { kind, file, onConfirm, preview: null, tab: mapCtx?.tab || "result", seq: 0, before: null };
   $("#mapFile").textContent = "— " + file.name;
   $("#mapIntro").textContent = intro;
@@ -679,21 +680,21 @@ async function openMapping({ kind, file, mapping = {}, problem = "", intro = "",
 }
 
 async function loadMapPreview(mapping) {
-  const seq = ++mapCtx.seq; // seule la dernière réponse compte (choix successifs rapides)
+  const seq = ++mapCtx.seq; // only the latest response counts (fast successive choices)
   const fd = new FormData();
   fd.append("file", mapCtx.file);
   fd.append("mapping", JSON.stringify(mapping || {}));
-  $("#mapStatus").textContent = "Lecture du fichier…";
+  $("#mapStatus").textContent = "Reading the file…";
   $("#btnMapOk").disabled = true;
   let preview;
   try {
     preview = await (await api(`/api/table/preview?kind=${mapCtx.kind}`, { method: "POST", body: fd })).json();
   } catch (e) {
     if (seq !== mapCtx.seq) return;
-    // Correspondance enregistrée devenue invalide (colonne renommée…) : on repart de la détection automatique
+    // A saved mapping that became invalid (renamed column…): start again from automatic detection
     if (mapping && Object.keys(mapping).length) return loadMapPreview({});
     $("#mapAlert").className = "alert error";
-    $("#mapAlert").textContent = "Fichier illisible : " + e.message;
+    $("#mapAlert").textContent = "Unreadable file: " + e.message;
     $("#mapAlert").hidden = false;
     $("#mapStatus").textContent = "";
     return;
@@ -703,7 +704,7 @@ async function loadMapPreview(mapping) {
   renderMapping();
 }
 
-// Correspondance à envoyer : ligne d'en-tête + chaque champ (« __none__ » = ignoré)
+// Mapping to send: header row + each field ("__none__" = ignored)
 function collectMapping() {
   const mapping = { _header_row: mapCtx.preview.header_row };
   $$("#mapFields select").forEach((s) => { mapping[s.name] = s.value || "__none__"; });
@@ -716,12 +717,12 @@ function renderMapping() {
   hr.value = P.header_row;
   hr.max = P.total_rows;
   const examples = columnExamples(P);
-  const opts = (sel) => `<option value="">— aucune —</option>` +
-    P.headers.map((h) => `<option value="${esc(h)}" ${h === sel ? "selected" : ""}>${esc(h)}${examples[h] ? ` — ex. ${esc(examples[h])}` : ""}</option>`).join("");
+  const opts = (sel) => `<option value="">— none —</option>` +
+    P.headers.map((h) => `<option value="${esc(h)}" ${h === sel ? "selected" : ""}>${esc(h)}${examples[h] ? ` — e.g. ${esc(examples[h])}` : ""}</option>`).join("");
   $("#mapFields").innerHTML = P.fields.map((f) => {
     const manual = (P.columns[f.key] || "") !== (P.detected[f.key] || "");
     return `<label class="${manual ? "manual" : ""}"><span>${esc(f.label)}${f.required ? " *" : ""}${manual
-      ? ` <span class="tag" title="Détection automatique : ${esc(P.detected[f.key] || "aucune")}">modifié</span>` : ""}</span>
+      ? ` <span class="tag" title="Automatic detection: ${esc(P.detected[f.key] || "none")}">changed</span>` : ""}</span>
       <select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`;
   }).join("");
   renderManualChanges();
@@ -729,8 +730,8 @@ function renderMapping() {
   renderMapResult();
   renderMapRaw();
   const missing = P.fields.filter((f) => f.required && !P.columns[f.key]).map((f) => f.label);
-  const shown = P.rows.length < P.total_rows ? ` · ${P.rows.length} premières lignes affichées sur ${P.total_rows}` : "";
-  $("#mapStatus").textContent = missing.length ? `Champ obligatoire à renseigner : ${missing.join(", ")}` : `Ligne d'en-tête ${P.header_row || "absente"}${shown}`;
+  const shown = P.rows.length < P.total_rows ? ` · first ${P.rows.length} of ${P.total_rows} rows shown` : "";
+  $("#mapStatus").textContent = missing.length ? `Required field to fill in: ${missing.join(", ")}` : `Header row ${P.header_row || "none"}${shown}`;
   $("#mapStatus").classList.toggle("warn", missing.length > 0);
   $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
   $("#btnMapOk").disabled = missing.length > 0;
@@ -738,7 +739,7 @@ function renderMapping() {
 
 const DEMO_ROWS = 3;
 
-// Premières valeurs non vides de chaque colonne, sous la ligne d'en-tête (pour les listes déroulantes)
+// First non-empty values of each column, below the header row (for the drop-down lists)
 function columnExamples(P) {
   const out = {};
   const data = P.rows.slice(Math.max(P.header_row, 0));
@@ -754,8 +755,8 @@ function columnExamples(P) {
   return out;
 }
 
-// Les premières lignes telles qu'elles seront lues : {line, values: {champ: valeur}}.
-// Valeurs calculées par le serveur quand c'est possible (normalisées), sinon lues dans le fichier brut.
+// The first lines as they will be read: {line, values: {field: value}}.
+// Values computed by the server when possible (normalised), otherwise read from the raw file.
 function sampleRows(P) {
   if (P.result && P.result.lines.length) {
     return P.result.lines.slice(0, DEMO_ROWS).map((l) => ({ line: l.line, values: l.values || {} }));
@@ -765,7 +766,7 @@ function sampleRows(P) {
     .slice(0, DEMO_ROWS).map(({ line, r }) => ({ line, values: Object.fromEntries(Object.entries(idx).map(([k, j]) => [k, r[j] || ""])) }));
 }
 
-// Après un changement d'attribution : les 3 premières lignes, champs modifiés en « avant → après »
+// After a mapping change: the first 3 lines, with changed fields shown as "before → after"
 function renderChangeDemo() {
   const box = $("#mapDemo"), P = mapCtx.preview, B = mapCtx.before;
   const changed = B ? P.fields.filter((f) => (B.columns[f.key] || "") !== (P.columns[f.key] || "")) : [];
@@ -773,17 +774,17 @@ function renderChangeDemo() {
   if (!changed.length) { box.innerHTML = ""; return; }
   const after = sampleRows(P);
   const shownFields = P.fields.filter((f) => P.columns[f.key] || changed.includes(f));
-  const col = (h) => h ? `« ${esc(h)} »` : "aucune colonne";
+  const col = (h) => h ? `“${esc(h)}”` : "no column";
   const val = (f, v) => cellValue(f.key, v ?? "");
   const rows = after.length ? after : B.samples;
   const prevByLine = Object.fromEntries(B.samples.map((r) => [r.line, r.values]));
-  box.innerHTML = `<div class="mapdemo-head"><b>Effet du changement</b> sur les ${rows.length} premières lignes : ` +
+  box.innerHTML = `<div class="mapdemo-head"><b>Effect of the change</b> on the first ${plural(rows.length, "line")}: ` +
     changed.map((f) => `${esc(f.label)} ${col(B.columns[f.key])} → ${col(P.columns[f.key])}`).join(" · ") +
-    `<button type="button" class="linkbtn" id="mapDemoClose">Masquer</button></div>` +
-    `<div class="tablewrap"><table class="grid"><thead><tr><th class="rownum">Ligne</th>${shownFields.map((f) =>
+    `<button type="button" class="linkbtn" id="mapDemoClose">Hide</button></div>` +
+    `<div class="tablewrap"><table class="grid"><thead><tr><th class="rownum">Line</th>${shownFields.map((f) =>
       `<th class="${changed.includes(f) ? "changed" : ""}">${esc(f.label)}</th>`).join("")}</tr></thead><tbody>` +
     rows.map((row) => {
-      const prev = prevByLine[row.line] || {}; // même ligne du fichier, avant le changement
+      const prev = prevByLine[row.line] || {}; // same file line, before the change
       return `<tr><td class="rownum">${row.line}</td>${shownFields.map((f) => {
         if (!changed.includes(f)) return `<td>${val(f, row.values[f.key])}</td>`;
         const before = prev[f.key] ?? "", now = row.values[f.key] ?? "";
@@ -793,15 +794,15 @@ function renderChangeDemo() {
   $("#mapDemoClose").addEventListener("click", () => { mapCtx.before = null; box.hidden = true; });
 }
 
-// Choix manuels par rapport à la détection automatique
+// Manual choices compared with automatic detection
 function renderManualChanges() {
   const P = mapCtx.preview;
-  const col = (h) => h ? `« ${esc(h)} »` : "aucune";
+  const col = (h) => h ? `“${esc(h)}”` : "none";
   const changed = P.fields.filter((f) => (P.columns[f.key] || "") !== (P.detected[f.key] || ""));
   $("#mapManual").hidden = !changed.length;
   $("#mapManual").innerHTML = changed.length
-    ? `<b>${changed.length} choix manuel${changed.length > 1 ? "s" : ""}</b> par rapport à la détection automatique : ` +
-      changed.map((f) => `${esc(f.label)} : <s>${col(P.detected[f.key])}</s> → ${col(P.columns[f.key])}`).join(" · ")
+    ? `<b>${plural(changed.length, "manual choice")}</b> compared with automatic detection: ` +
+      changed.map((f) => `${esc(f.label)}: <s>${col(P.detected[f.key])}</s> → ${col(P.columns[f.key])}`).join(" · ")
     : "";
 }
 
@@ -810,27 +811,26 @@ const cellValue = (field, v) => v === "" || v == null ? `<span class="muted">—
 function renderMapResult() {
   const P = mapCtx.preview, R = P.result, C = R.counts;
   const roles = P.fields.filter((f) => P.columns[f.key]);
-  const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
   if (!P.columns.mpn) {
     $("#mapSummary").innerHTML = "";
-    $("#mapResult").innerHTML = `<tbody><tr><td class="emptyrow">Choisissez la colonne de la référence fabricant pour voir comment le fichier sera lu.</td></tr></tbody>`;
+    $("#mapResult").innerHTML = `<tbody><tr><td class="emptyrow">Choose the manufacturer part number column to see how the file will be read.</td></tr></tbody>`;
     $("#mapFoot").textContent = "";
     return;
   }
   if (mapCtx.kind === "bom") {
     $("#mapSummary").innerHTML = [
-      `<span class="stat"><b>${C.lines}</b> ligne${C.lines > 1 ? "s" : ""} de composants</span>`,
-      `<span class="stat ok"><b>${C.in_base}</b> trouvée${C.in_base > 1 ? "s" : ""} en base</span>`,
-      C.lines - C.in_base ? `<span class="stat chk"><b>${C.lines - C.in_base}</b> absente${C.lines - C.in_base > 1 ? "s" : ""} de la base</span>` : "",
-      C.dnp ? `<span class="stat"><b>${C.dnp}</b> non montée${C.dnp > 1 ? "s" : ""}</span>` : "",
+      `<span class="stat"><b>${C.lines}</b> component line${C.lines > 1 ? "s" : ""}</span>`,
+      `<span class="stat ok"><b>${C.in_base}</b> found in database</span>`,
+      C.lines - C.in_base ? `<span class="stat chk"><b>${C.lines - C.in_base}</b> not in database</span>` : "",
+      C.dnp ? `<span class="stat"><b>${C.dnp}</b> not populated</span>` : "",
     ].join("");
   } else {
     $("#mapSummary").innerHTML = ["create", "update", "unchanged", "error"].filter((a) => C[a]).map((a) =>
       `<span class="stat"><span class="badge ${ACTION[a][1]}">${ACTION[a][0]}</span> <b>${C[a]}</b></span>`).join("") ||
-      `<span class="muted">Aucune ligne à importer.</span>`;
+      `<span class="muted">No line to import.</span>`;
   }
   const status = (l) => mapCtx.kind === "bom"
-    ? (l.in_base ? `<span class="badge b-conforme">En base</span>` : `<span class="badge b-inconnu">Absente</span>`)
+    ? (l.in_base ? `<span class="badge b-compliant">In database</span>` : `<span class="badge b-unknown">Missing</span>`)
     : `<span class="badge ${ACTION[l.action][1]}">${ACTION[l.action][0]}</span>` +
       (l.error ? `<div class="small errtxt">${esc(l.error)}</div>` : "");
   const cell = (l, f) => {
@@ -839,14 +839,14 @@ function renderMapResult() {
     return `<td>${cellValue(f.key, l.values[f.key])}</td>`;
   };
   $("#mapResult").innerHTML =
-    `<thead><tr><th class="rownum">Ligne</th><th>${mapCtx.kind === "bom" ? "Base" : "Action"}</th>${roles.map((f) =>
+    `<thead><tr><th class="rownum">Line</th><th>${mapCtx.kind === "bom" ? "Database" : "Action"}</th>${roles.map((f) =>
       `<th>${esc(f.label)}<div class="colname">${esc(P.columns[f.key])}</div></th>`).join("")}</tr></thead>` +
     `<tbody>${R.lines.map((l) => `<tr class="${l.action || ""}"><td class="rownum">${l.line}</td><td>${status(l)}</td>${roles.map((f) => cell(l, f)).join("")}</tr>`).join("") ||
-      `<tr><td class="emptyrow" colspan="${roles.length + 2}">Aucune ligne de composant sous la ligne d'en-tête.</td></tr>`}</tbody>`;
+      `<tr><td class="emptyrow" colspan="${roles.length + 2}">No component line below the header row.</td></tr>`}</tbody>`;
   const total = mapCtx.kind === "bom" ? C.lines : Object.values(C).reduce((a, b) => a + b, 0);
   $("#mapFoot").textContent = [
-    total > R.lines.length ? `Détail des ${R.lines.length} premières lignes ; le bilan porte sur tout le fichier (${plural(total, "ligne", "lignes")}).` : "",
-    mapCtx.kind === "components" ? "Composants déjà en base : les champs sans colonne et les cellules vides gardent leur valeur actuelle." : "",
+    total > R.lines.length ? `Detail of the first ${R.lines.length} lines; the summary covers the whole file (${plural(total, "line")}).` : "",
+    mapCtx.kind === "components" ? "Components already in the database: fields without a column and empty cells keep their current value." : "",
   ].filter(Boolean).join(" ");
 }
 
@@ -855,8 +855,8 @@ function renderMapRaw() {
   const labelOf = Object.fromEntries(P.fields.map((f) => [f.key, f.label]));
   const fieldOf = {};
   Object.entries(P.columns).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
-  const head = `<thead><tr><th class="rownum">Ligne</th>${P.headers.map((h) =>
-    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-conforme">${esc(fieldOf[h])}</span>` : `<span class="muted">ignorée</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th class="rownum">Line</th>${P.headers.map((h) =>
+    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-compliant">${esc(fieldOf[h])}</span>` : `<span class="muted">ignored</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
   const body = P.rows.map((r, i) => {
     const n = i + 1;
     const cls = n === P.header_row ? "hdr" : n < P.header_row ? "before" : "";
@@ -878,17 +878,17 @@ $$("[data-maptab]").forEach((b) => b.addEventListener("click", () => showMapTab(
 $("#mapFields").addEventListener("change", (ev) => {
   const sel = ev.target.closest("select");
   if (!sel) return;
-  // On garde l'état d'avant pour montrer l'effet du changement sur les premières lignes
+  // Keep the previous state to show the effect of the change on the first lines
   mapCtx.before = { columns: { ...mapCtx.preview.columns }, samples: sampleRows(mapCtx.preview) };
-  // Une colonne ne sert qu'à un seul champ : on la retire des autres
+  // A column serves only one field: remove it from the others
   if (sel.value) $$("#mapFields select").forEach((o) => { if (o !== sel && o.value === sel.value) o.value = ""; });
-  loadMapPreview(collectMapping()); // le serveur recalcule le résultat avec la nouvelle correspondance
+  loadMapPreview(collectMapping()); // the server recomputes the result with the new mapping
 });
 
-// Nouvelle ligne d'en-tête : les noms de colonnes changent, on relance la détection sur cette ligne
+// New header row: the column names change, so detection runs again on that row
 $("#mapHeaderRow").addEventListener("change", (ev) => {
   const n = Math.max(0, Math.min(Number(ev.target.value) || 0, mapCtx.preview.total_rows));
-  mapCtx.before = null; // nouvelle ligne d'en-tête : tout est redétecté, pas de comparaison ligne à ligne
+  mapCtx.before = null; // new header row: everything is detected again, no line-by-line comparison
   loadMapPreview({ _header_row: n });
 });
 
@@ -900,14 +900,14 @@ $("#mapForm").addEventListener("submit", (ev) => {
 });
 $("#btnMapCancel").addEventListener("click", () => dlgMap.close());
 
-/* ------------------------------------------------------------------ équivalents d'autres fabricants
-   Ouvert depuis une ligne de BOM (remplacement possible) ou depuis un composant de la base. */
+/* ------------------------------------------------------------------ equivalents from other manufacturers
+   Opened from a BOM line (replacement possible) or from a database component. */
 const dlgAlt = $("#dlgAlt");
-let altCtx = null; // { line?: <ligne de BOM>, compId?: <id composant> }
+let altCtx = null; // { line?: <BOM line>, compId?: <component id> }
 
 async function openAlternatives(ctx) {
   altCtx = ctx;
-  $("#altBody").innerHTML = `<p class="muted">Recherche d'équivalents…</p>`;
+  $("#altBody").innerHTML = `<p class="muted">Searching for equivalents…</p>`;
   $("#altRef").innerHTML = "";
   if (!dlgAlt.open) dlgAlt.showModal();
   const l = ctx.line;
@@ -921,50 +921,50 @@ async function openAlternatives(ctx) {
   try {
     renderAlternatives(await (await api(url)).json(), compId);
   } catch (e) {
-    $("#altBody").innerHTML = `<div class="alert error">Erreur : ${esc(e.message)}</div>`;
+    $("#altBody").innerHTML = `<div class="alert error">Error: ${esc(e.message)}</div>`;
   }
 }
 
 function renderAlternatives(data, compId) {
   const ref = data.reference, attr = data.attributes, l = altCtx.line;
-  const status = ref.rohs2 ? `${badge(ref.rohs2)} ${badge(ref.rohs3)} ${badge(ref.reach)}` : `<span class="muted">absent de la base</span>`;
+  const status = ref.rohs2 ? `${badge(ref.rohs2)} ${badge(ref.rohs3)} ${badge(ref.reach)}` : `<span class="muted">not in the database</span>`;
   const attrs = [attr.category_label, ...Object.values(attr.values).flat(), attr.package, attr.dielectric,
-    attr.tolerance != null ? attr.tolerance + " %" : "", attr.channel ? "canal " + attr.channel : ""].filter(Boolean);
+    attr.tolerance != null ? attr.tolerance + " %" : "", attr.channel ? attr.channel + "-channel" : ""].filter(Boolean);
   $("#altRef").innerHTML = `
-    <div class="altref-main"><span class="mono">${esc(ref.mpn)}</span> · ${esc(ref.manufacturer || "fabricant non renseigné")}</div>
+    <div class="altref-main"><span class="mono">${esc(ref.mpn)}</span> · ${esc(ref.manufacturer || "manufacturer not given")}</div>
     <div class="muted">${esc(ref.description || "")}</div>
-    <div class="altref-status">RoHS 2 / RoHS 3 / REACH : ${status}</div>
-    <div class="muted small">Caractéristiques reconnues : ${attrs.length ? attrs.map(esc).join(" · ") : "aucune (description trop vague)"}</div>
-    ${l && l.original_mpn ? `<div class="swapnote">Cette ligne remplace <span class="mono">${esc(l.original_mpn)}</span>.
-      <button type="button" class="btn small" id="altRevert">Revenir à la référence d'origine</button></div>` : ""}`;
+    <div class="altref-status">RoHS 2 / RoHS 3 / REACH: ${status}</div>
+    <div class="muted small">Recognised characteristics: ${attrs.length ? attrs.map(esc).join(" · ") : "none (description too vague)"}</div>
+    ${l && l.original_mpn ? `<div class="swapnote">This line replaces <span class="mono">${esc(l.original_mpn)}</span>.
+      <button type="button" class="btn small" id="altRevert">Go back to the original part number</button></div>` : ""}`;
   const rev = $("#altRevert");
   if (rev) rev.addEventListener("click", () => { delete state.substitutions[l.line]; dlgAlt.close(); runAnalysis(); });
 
   const alts = data.alternatives;
   if (!alts.length) {
-    $("#altBody").innerHTML = `<p class="muted">Aucun équivalent d'un autre fabricant trouvé dans la base.
-      ${attr.category ? "" : "La description ne permet pas d'identifier le type de composant."}
-      ${["microcontrôleur", "convertisseur DC-DC", "transceiver"].includes(attr.category_label) ? "Pour ce type de composant, seuls les équivalents confirmés sont proposés." : ""}</p>`;
+    $("#altBody").innerHTML = `<p class="muted">No equivalent from another manufacturer found in the database.
+      ${attr.category ? "" : "The description does not identify the component type."}
+      ${["microcontroller", "DC-DC converter", "transceiver"].includes(attr.category_label) ? "For this component type, only confirmed equivalents are offered." : ""}</p>`;
     return;
   }
   $("#altBody").innerHTML = `<div class="tablewrap"><table class="grid" id="altTable"><thead><tr>
-      <th>Référence</th><th>Fabricant</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Similarité</th><th></th>
+      <th>Part number</th><th>Manufacturer</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN</th><th>Similarity</th><th></th>
     </tr></thead><tbody>${alts.map((a) => {
       const c = a.component;
-      const sim = (a.confirmed ? `<span class="badge b-conforme">Équivalent confirmé</span>` : `<span class="score">${Math.min(100, a.score)} / 100</span>`) +
+      const sim = (a.confirmed ? `<span class="badge b-compliant">Confirmed equivalent</span>` : `<span class="score">${Math.min(100, a.score)} / 100</span>`) +
         (a.matches.length ? `<div class="small ok">✓ ${a.matches.map(esc).join(" · ")}</div>` : "") +
         (a.differences.length ? `<div class="small warn">⚠ ${a.differences.map(esc).join(" · ")}</div>` : "");
-      const use = l ? `<button type="button" class="btn small primary" data-use="${c.id}">Utiliser dans la BOM</button>` : "";
+      const use = l ? `<button type="button" class="btn small primary" data-use="${c.id}">Use in the BOM</button>` : "";
       const conf = compId ? (a.confirmed
-        ? `<button type="button" class="btn small" data-unconfirm="${c.id}">Retirer l'équivalence</button>`
-        : `<button type="button" class="btn small" data-confirm="${c.id}">Confirmer l'équivalence</button>`) : "";
-      // data-label : intitulé de colonne affiché quand le tableau passe en cartes (fenêtre étroite)
+        ? `<button type="button" class="btn small" data-unconfirm="${c.id}">Remove the equivalence</button>`
+        : `<button type="button" class="btn small" data-confirm="${c.id}">Confirm the equivalence</button>`) : "";
+      // data-label: column title shown when the table switches to cards (narrow window)
       return `<tr class="${a.compliant ? "" : "notcompliant"}">
         <td class="mono">${esc(c.mpn)}<div class="muted small nomono">${esc(c.description)}</div></td>
-        <td data-label="Fabricant">${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
+        <td data-label="Manufacturer">${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
         <td data-label="RoHS 2">${badge(c.rohs2)}</td><td data-label="RoHS 3">${badge(c.rohs3)}</td>
         <td data-label="REACH">${badge(c.reach)}</td><td data-label="ECCN">${eccnCell(c.eccn)}</td>
-        <td class="simcell" data-label="Similarité">${sim}</td><td class="actions-cell">${use}${conf}</td></tr>`;
+        <td class="simcell" data-label="Similarity">${sim}</td><td class="actions-cell">${use}${conf}</td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
 
@@ -996,16 +996,16 @@ $("#altBody").addEventListener("click", async (ev) => {
 });
 $("#btnAltClose").addEventListener("click", () => dlgAlt.close());
 
-// Bandeau des remplacements dans la BOM
+// Banner listing the replacements in the BOM
 function renderSwapBar() {
   const n = Object.keys(state.substitutions).length;
   $("#swapBar").hidden = n === 0;
-  $("#swapCount").textContent = `${n} ligne${n > 1 ? "s" : ""} remplacée${n > 1 ? "s" : ""} par un équivalent`;
+  $("#swapCount").textContent = `${plural(n, "line")} replaced by an equivalent`;
 }
 $("#btnSwapReset").addEventListener("click", () => { state.substitutions = {}; runAnalysis(); });
 $("#btnSwapExport").addEventListener("click", () => runAnalysis("bom"));
 
-// Boutons « Équivalents » de l'onglet Base et des fiches fabricant
+// "Equivalents" buttons in the Database tab and the manufacturer pages
 for (const sel of ["#comps", "#mfrComps"]) {
   $(sel).addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-alt]");
@@ -1013,7 +1013,7 @@ for (const sel of ["#comps", "#mfrComps"]) {
   });
 }
 
-/* ------------------------------------------------------------------ codes ECCN */
+/* ------------------------------------------------------------------ ECCN codes */
 let ECCNS = { codes: [], unknown_components: 0 };
 let currentEccn = null;
 
@@ -1022,7 +1022,7 @@ async function loadEccnList() {
     ECCNS = await (await api("/api/eccn")).json();
     renderEccnList();
   } catch (e) {
-    $("#eccns tbody").innerHTML = `<tr><td colspan="5">Erreur : ${esc(e.message)}</td></tr>`;
+    $("#eccns tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 $("#eccnSearch").addEventListener("input", renderEccnList);
@@ -1033,24 +1033,24 @@ function renderEccnList() {
   $("#eccns tbody").innerHTML = rows.map((e) => `<tr>
       <td>${eccnCell(e.code)}</td>
       <td>${esc(e.title || e.summary)}${e.official_heading ? `<div class="muted small">${esc(e.official_heading)}</div>` : ""}</td>
-      <td>${e.controlled ? `<span class="badge b-eccn">Contrôlé</span>` : `<span class="badge b-conforme">Non listé</span>`}</td>
+      <td>${e.controlled ? `<span class="badge b-eccn">Controlled</span>` : `<span class="badge b-compliant">Not listed</span>`}</td>
       <td>${e.components}</td>
       <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
-    || `<tr><td colspan="5" class="muted">Aucun code ECCN en base.</td></tr>`;
+    || `<tr><td colspan="5" class="muted">No ECCN code in the database.</td></tr>`;
   const u = ECCNS.unknown_components;
-  $("#eccnUnknown").textContent = u ? `${u} composant${u > 1 ? "s" : ""} sans ECCN renseigné.` : "";
+  $("#eccnUnknown").textContent = u ? `${plural(u, "component")} without an ECCN.` : "";
 }
 
 async function openEccn(code) {
   $("#eccnList").hidden = true;
   $("#eccnDetail").hidden = false;
   $("#eccnCode").textContent = code;
-  $("#eccnSummary").textContent = "Chargement…";
+  $("#eccnSummary").textContent = "Loading…";
   try {
     currentEccn = await (await api("/api/eccn/" + encodeURIComponent(code))).json();
   } catch (e) {
     currentEccn = null;
-    $("#eccnSummary").textContent = "Code introuvable : " + e.message;
+    $("#eccnSummary").textContent = "Code not found: " + e.message;
     $("#eccnParts").innerHTML = $("#eccnInfo").innerHTML = $("#eccnComps tbody").innerHTML = "";
     $("#btnEditEccn").hidden = true;
     return;
@@ -1061,7 +1061,7 @@ async function openEccn(code) {
 function renderEccn() {
   const e = currentEccn;
   $("#btnEditEccn").hidden = false;
-  $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-svhc">Soumis au contrôle export</span>` : `<span class="badge b-conforme">Non listé (EAR99)</span>`}`;
+  $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-svhc">Subject to export control</span>` : `<span class="badge b-compliant">Not listed (EAR99)</span>`}`;
   $("#eccnSummary").textContent = e.title || e.summary;
   $("#eccnParts").innerHTML = e.parts.length ? e.parts.map((p) => `<div class="vcard part">
       <div class="norm">${esc(p.label)}</div><div class="partcode mono">${esc(p.code)}</div>
@@ -1069,18 +1069,18 @@ function renderEccn() {
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
   const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
   $("#eccnInfo").innerHTML = `
-    ${e.official_heading ? `<dt>Intitulé officiel de l'entrée ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Texte de la Commerce Control List (eCFR${e.as_of ? `, version du ${esc(e.as_of)}` : ""}).</div></dd>` : ""}
-    <dt>Domaine d'application</dt><dd>${esc(e.explanation)}</dd>
-    ${e.control_scope ? `<dt>Portée du contrôle</dt><dd>${esc(e.control_scope)}</dd>` : ""}
-    <dt>Définition officielle</dt><dd>${links}</dd>
-    ${e.related_codes.length ? `<dt>Codes voisins en base</dt><dd>${e.related_codes.map((c) => eccnCell(c)).join(" ")}</dd>` : ""}
-    <dt>Fabricants</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
+    ${e.official_heading ? `<dt>Official heading of entry ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Commerce Control List text (eCFR${e.as_of ? `, version of ${esc(e.as_of)}` : ""}).</div></dd>` : ""}
+    <dt>Scope</dt><dd>${esc(e.explanation)}</dd>
+    ${e.control_scope ? `<dt>Extent of control</dt><dd>${esc(e.control_scope)}</dd>` : ""}
+    <dt>Official definition</dt><dd>${links}</dd>
+    ${e.related_codes.length ? `<dt>Related codes in the database</dt><dd>${e.related_codes.map((c) => eccnCell(c)).join(" ")}</dd>` : ""}
+    <dt>Manufacturers</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
     <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`;
   $("#eccnComps tbody").innerHTML = e.components.map((c) => `<tr>
     <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td><td>${country(c.country_of_origin)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Modifier</button></td></tr>`).join("")
-    || `<tr><td colspan="8" class="muted">Aucun composant de la base n'a ce code.</td></tr>`;
+    <td><button class="btn small" data-edit="${c.id}">Edit</button></td></tr>`).join("")
+    || `<tr><td colspan="8" class="muted">No database component has this code.</td></tr>`;
 }
 
 $("#eccnComps").addEventListener("click", async (ev) => {
@@ -1108,18 +1108,18 @@ eccnForm.addEventListener("submit", async (ev) => {
   } catch (e) { $("#eccnError").textContent = e.message; $("#eccnError").hidden = false; }
 });
 
-/* ------------------------------------------------------------------ exemptions RoHS */
+/* ------------------------------------------------------------------ RoHS exemptions */
 let EXEMPTIONS = { exemptions: [] };
 let currentExemption = null;
-const STATUS_BADGE = { en_vigueur: "b-conforme", bientot: "b-svhc", depassee: "b-non_conforme", sans_date: "b-ex-none", inconnue: "b-inconnu" };
-const statusBadge = (s) => `<span class="badge ${STATUS_BADGE[s.kind] || "b-inconnu"}">${esc(s.label)}</span>`;
+const STATUS_BADGE = { in_force: "b-compliant", expiring_soon: "b-svhc", expired: "b-non_compliant", no_date: "b-ex-none", unknown: "b-unknown" };
+const statusBadge = (s) => `<span class="badge ${STATUS_BADGE[s.kind] || "b-unknown"}">${esc(s.label)}</span>`;
 
 async function loadExemptionList() {
   try {
     EXEMPTIONS = await (await api("/api/exemptions")).json();
     renderExemptionList();
   } catch (e) {
-    $("#exempts tbody").innerHTML = `<tr><td colspan="6">Erreur : ${esc(e.message)}</td></tr>`;
+    $("#exempts tbody").innerHTML = `<tr><td colspan="6">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 $("#exemptSearch").addEventListener("input", renderExemptionList);
@@ -1129,19 +1129,19 @@ function renderExemptionList() {
   const rows = EXEMPTIONS.exemptions.filter((e) => !q || [e.code, e.key, e.description, e.parent, ...e.substances, ...e.manufacturers].join(" ").toLowerCase().includes(q));
   $("#exempts tbody").innerHTML = rows.map((e) => `<tr>
       <td class="nowrap"><a class="ex-link" href="${exHref(e.key)}">${esc(e.found ? e.code : e.key)}</a>
-        ${e.annex ? `<div class="muted small">Annexe ${esc(e.annex)}</div>` : ""}</td>
+        ${e.annex ? `<div class="muted small">Annex ${esc(e.annex)}</div>` : ""}</td>
       <td>${e.found ? esc(((e.parent ? e.parent + " " : "") + e.description).slice(0, 220)) + (((e.parent || "") + e.description).length > 220 ? "…" : "")
-        : `<span class="muted">Code absent des annexes III et IV : vérifiez l'écriture du code.</span>`}</td>
+        : `<span class="muted">Code not in Annexes III and IV: check how the code is written.</span>`}</td>
       <td class="small">${e.substances.map(esc).join(", ")}</td>
       <td>${statusBadge(e.status)}</td>
       <td>${e.components}</td>
       <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
-    || `<tr><td colspan="6" class="muted">Aucune exemption utilisée par les composants de la base.</td></tr>`;
+    || `<tr><td colspan="6" class="muted">No exemption used by the database components.</td></tr>`;
   const up = EXEMPTIONS.upcoming;
   $("#exemptSource").innerHTML = EXEMPTIONS.version
-    ? `Texte officiel : directive 2011/65/UE consolidée au ${esc(EXEMPTIONS.version)}
+    ? `Official text: Directive 2011/65/EU consolidated as of ${esc(EXEMPTIONS.version)}
        (<a href="${esc(EXEMPTIONS.source_url)}" target="_blank" rel="noopener noreferrer">EUR-Lex ↗</a>).
-       ${up ? `Version du ${esc(up.version)} déjà publiée : ${up.changes ? `${up.changes} exemption(s) modifiée(s)` : "aucun changement dans les annexes III et IV"}.` : ""}`
+       ${up ? `Version of ${esc(up.version)} already published: ${up.changes ? `${plural(up.changes, "exemption")} changed` : "no change in Annexes III and IV"}.` : ""}`
     : "";
 }
 
@@ -1149,12 +1149,12 @@ async function openExemption(code) {
   $("#exemptList").hidden = true;
   $("#exemptDetail").hidden = false;
   $("#exemptCode").textContent = code;
-  $("#exemptSummary").textContent = "Chargement…";
+  $("#exemptSummary").textContent = "Loading…";
   try {
     currentExemption = await (await api("/api/exemptions/" + encodeURIComponent(code))).json();
   } catch (e) {
     currentExemption = null;
-    $("#exemptSummary").textContent = "Erreur : " + e.message;
+    $("#exemptSummary").textContent = "Error: " + e.message;
     return;
   }
   renderExemption();
@@ -1163,31 +1163,31 @@ async function openExemption(code) {
 function renderExemption() {
   const e = currentExemption;
   $("#exemptCode").innerHTML = `${e.found ? `Exemption ${esc(e.code)}` : esc(e.input)} ${statusBadge(e.status)}`;
-  $("#exemptSummary").textContent = e.found ? e.annex_label : "Ce code ne correspond à aucune exemption des annexes III et IV.";
+  $("#exemptSummary").textContent = e.found ? e.annex_label : "This code does not match any exemption in Annexes III and IV.";
   const datesList = (e.dates || []).map((d) => {
     const past = d < new Date().toISOString().slice(0, 10);
-    return `<span class="badge ${past ? "b-non_conforme" : "b-conforme"}">${new Date(d + "T00:00:00").toLocaleDateString("fr-FR", { dateStyle: "long" })}</span>`;
+    return `<span class="badge ${past ? "b-non_compliant" : "b-compliant"}">${new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE, { dateStyle: "long" })}</span>`;
   }).join(" ");
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
   const up = e.upcoming;
   const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
   $("#exemptInfo").innerHTML = e.found ? `
-    ${e.group ? `<dt>Rubrique</dt><dd>${esc(e.group)}</dd>` : ""}
-    <dt>Texte officiel</dt><dd>${e.parent ? `<div class="muted">${esc(e.parent)}</div>` : ""}<q>${esc(e.description)}</q></dd>
-    <dt>Champ d'application et dates</dt><dd>${e.scope ? esc(e.scope) : `<span class="muted">Aucune précision (s'applique sans date d'expiration indiquée)</span>`}</dd>
-    ${datesList ? `<dt>Dates citées</dt><dd>${datesList}</dd>` : ""}
-    <dt>Substances concernées</dt><dd>${e.substances.length ? e.substances.map(esc).join(", ") : "—"}</dd>
-    <dt>Renouvellement</dt><dd>${esc(e.renewal_note)}</dd>
-    ${up ? `<dt>Version à venir</dt><dd>Version consolidée du ${esc(up.version)} : ${up.type === "aucun" ? "pas de changement pour cette exemption." : `exemption ${esc(up.type)}${up.scope ? ` — ${esc(up.scope)}` : ""}.`} <a href="${esc(up.url)}" target="_blank" rel="noopener noreferrer">Voir ↗</a></dd>` : ""}
-    <dt>Source officielle</dt><dd>${links}</dd>
-    <dt>Fabricants</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
+    ${e.group ? `<dt>Section</dt><dd>${esc(e.group)}</dd>` : ""}
+    <dt>Official text</dt><dd>${e.parent ? `<div class="muted">${esc(e.parent)}</div>` : ""}<q>${esc(e.description)}</q></dd>
+    <dt>Scope and dates</dt><dd>${e.scope ? esc(e.scope) : `<span class="muted">No detail given (applies without a stated expiry date)</span>`}</dd>
+    ${datesList ? `<dt>Dates mentioned</dt><dd>${datesList}</dd>` : ""}
+    <dt>Substances</dt><dd>${e.substances.length ? e.substances.map(esc).join(", ") : "—"}</dd>
+    <dt>Renewal</dt><dd>${esc(e.renewal_note)}</dd>
+    ${up ? `<dt>Upcoming version</dt><dd>Consolidated version of ${esc(up.version)}: ${up.type === "none" ? "no change for this exemption." : `exemption ${esc(up.type)}${up.scope ? ` — ${esc(up.scope)}` : ""}.`} <a href="${esc(up.url)}" target="_blank" rel="noopener noreferrer">See ↗</a></dd>` : ""}
+    <dt>Official source</dt><dd>${links}</dd>
+    <dt>Manufacturers</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
     <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`
-    : `<dt>Code saisi</dt><dd>${esc(e.input)}</dd><dt>Source officielle</dt><dd>${links}</dd>`;
+    : `<dt>Code entered</dt><dd>${esc(e.input)}</dd><dt>Official source</dt><dd>${links}</dd>`;
   $("#exemptComps tbody").innerHTML = e.components.map((c) => `<tr>
     <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Modifier</button> <button class="btn small" data-alt="${c.id}">Équivalents</button></td></tr>`).join("")
-    || `<tr><td colspan="7" class="muted">Aucun composant de la base n'utilise cette exemption.</td></tr>`;
+    <td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+    || `<tr><td colspan="7" class="muted">No database component uses this exemption.</td></tr>`;
 }
 
 $("#exemptComps").addEventListener("click", async (ev) => {
@@ -1216,12 +1216,12 @@ exemptForm.addEventListener("submit", async (ev) => {
   } catch (e) { $("#exemptError").textContent = e.message; $("#exemptError").hidden = false; }
 });
 
-/* ------------------------------------------------------------------ comptes et historique des BOM */
+/* ------------------------------------------------------------------ accounts and BOM history */
 const dlgAuth = $("#dlgAuth"), authForm = $("#authForm");
 let authMode = "login";
 
 function fmtDate(iso) {
-  try { return new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
+  try { return new Date(iso).toLocaleString(DATE_LOCALE, { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
 }
 
 async function loadUser() {
@@ -1234,9 +1234,9 @@ function renderAccount() {
   const u = state.user;
   $("#account").innerHTML = u
     ? `<span class="who" title="${esc(u.email)}">${esc(u.name)}</span>
-       <button class="btn small" id="btnMyBoms">Mes BOM</button>
-       <button class="btn small" id="btnLogout">Se déconnecter</button>`
-    : `<button class="btn small primary" id="btnLogin">Se connecter</button>`;
+       <button class="btn small" id="btnMyBoms">My BOMs</button>
+       <button class="btn small" id="btnLogout">Sign out</button>`
+    : `<button class="btn small primary" id="btnLogin">Sign in</button>`;
   $("#historyHint").hidden = !!u;
   $("#historyBox").hidden = !u;
 }
@@ -1244,7 +1244,7 @@ function renderAccount() {
 $("#account").addEventListener("click", async (ev) => {
   if (ev.target.closest("#btnLogin")) openAuth("login");
   else if (ev.target.closest("#btnMyBoms")) {
-    location.hash = "#analyse";
+    location.hash = "#analysis";
     $("#historyBox").scrollIntoView({ behavior: "smooth", block: "start" });
   } else if (ev.target.closest("#btnLogout")) {
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -1273,7 +1273,7 @@ function setAuthMode(mode) {
   $("#authNameRow").hidden = !signup;
   authForm.elements.password.autocomplete = signup ? "new-password" : "current-password";
   $("#authPwHint").hidden = !signup;
-  $("#authSubmit").textContent = signup ? "Créer mon compte" : "Se connecter";
+  $("#authSubmit").textContent = signup ? "Create my account" : "Sign in";
   $("#authError").hidden = true;
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
@@ -1290,7 +1290,7 @@ authForm.addEventListener("submit", async (ev) => {
     })).json();
     dlgAuth.close();
     renderAccount();
-    // Une BOM déjà ouverte est enregistrée dans l'historique dès la connexion
+    // A BOM that is already open is saved in the history as soon as the user signs in
     if (state.report && state.file) runAnalysis(); else loadHistory();
   } catch (e) {
     $("#authError").textContent = e.message;
@@ -1300,32 +1300,32 @@ authForm.addEventListener("submit", async (ev) => {
   }
 });
 
-const VERDICT_SHORT = { conforme: "Conforme", exemption: "Exemption", svhc: "SVHC", non_conforme: "Non conforme", a_verifier: "À vérifier" };
+const VERDICT_SHORT = { compliant: "Compliant", exemption: "Exemption", svhc: "SVHC", non_compliant: "Non-compliant", needs_review: "Needs review" };
 const verdictBadge = (v) => `<span class="badge b-${esc(v)}">${esc(VERDICT_SHORT[v] || v)}</span>`;
 
 async function loadHistory() {
   if (!state.user) return;
   let items;
   try { items = await (await api("/api/history")).json(); } catch (e) {
-    $("#historyList").innerHTML = `<p class="muted">Historique indisponible : ${esc(e.message)}</p>`;
+    $("#historyList").innerHTML = `<p class="muted">History unavailable: ${esc(e.message)}</p>`;
     return;
   }
-  $("#historyCount").textContent = items.length ? `${items.length} analyse${items.length > 1 ? "s" : ""}` : "";
+  $("#historyCount").textContent = items.length ? plural(items.length, "analysis", "analyses") : "";
   $("#historyList").innerHTML = items.length ? `<div class="tablewrap"><table class="grid" id="historyTable"><thead><tr>
-      <th>Fichier</th><th>Analysée le</th><th>Global</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Lignes</th><th></th>
+      <th>File</th><th>Analysed on</th><th>Overall</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>Lines</th><th></th>
     </tr></thead><tbody>${items.map((h) => {
       const s = h.summary || {};
       const swaps = Object.keys(h.substitutions || {}).length;
       return `<tr class="${h.id === state.historyId ? "current" : ""}">
-        <td><span class="mono">${esc(h.filename)}</span>${h.id === state.historyId ? ` <span class="tag">ouverte</span>` : ""}</td>
+        <td><span class="mono">${esc(h.filename)}</span>${h.id === state.historyId ? ` <span class="tag">open</span>` : ""}</td>
         <td class="nowrap">${esc(fmtDate(h.updated_at))}</td>
         <td>${s.overall ? verdictBadge(s.overall) : ""}</td><td>${s.rohs2 ? verdictBadge(s.rohs2) : ""}</td>
         <td>${s.rohs3 ? verdictBadge(s.rohs3) : ""}</td><td>${s.reach ? verdictBadge(s.reach) : ""}</td>
-        <td class="small">${s.lines ?? ""}${swaps ? `<div class="muted">${swaps} remplacement${swaps > 1 ? "s" : ""}</div>` : ""}</td>
-        <td class="nowrap"><button class="btn small primary" data-reopen="${h.id}">Rouvrir</button>
-          <button class="btn small" data-hdelete="${h.id}" title="Supprimer de l'historique">Supprimer</button></td></tr>`;
+        <td class="small">${s.lines ?? ""}${swaps ? `<div class="muted">${plural(swaps, "replacement")}</div>` : ""}</td>
+        <td class="nowrap"><button class="btn small primary" data-reopen="${h.id}">Reopen</button>
+          <button class="btn small" data-hdelete="${h.id}" title="Delete from the history">Delete</button></td></tr>`;
     }).join("")}</tbody></table></div>`
-    : `<p class="muted">Aucune BOM analysée pour l'instant : déposez un fichier ci-dessus, il sera enregistré ici.</p>`;
+    : `<p class="muted">No BOM analysed yet: drop a file above and it will be saved here.</p>`;
   state.historyItems = items;
 }
 
@@ -1344,11 +1344,11 @@ $("#historyList").addEventListener("click", async (ev) => {
       await runAnalysis();
       $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
-      $("#error").textContent = "Impossible de rouvrir cette BOM : " + e.message;
+      $("#error").textContent = "Could not reopen this BOM: " + e.message;
       $("#error").hidden = false;
     }
   } else if (del) {
-    if (!confirm("Supprimer cette BOM de votre historique ?")) return;
+    if (!confirm("Delete this BOM from your history?")) return;
     try {
       await api(`/api/history/${del.dataset.hdelete}`, { method: "DELETE" });
       if (String(state.historyId) === del.dataset.hdelete) state.historyId = null;
@@ -1357,12 +1357,12 @@ $("#historyList").addEventListener("click", async (ev) => {
   }
 });
 
-/* ------------------------------------------------------------------ démarrage */
+/* ------------------------------------------------------------------ start-up */
 loadStats();
 loadUser();
 api("/api/countries").then((r) => r.json()).then((c) => {
   COUNTRIES = c;
   $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");
-  route(); // ré-affiche la vue avec les noms de pays
+  route(); // redraw the view with the country names
 }).catch(() => {});
 route();

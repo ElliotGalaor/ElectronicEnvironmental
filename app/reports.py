@@ -1,4 +1,4 @@
-"""Export du rapport d'analyse en Excel ou CSV, et export/import de la base."""
+"""Exporting the analysis report as Excel or CSV, and exporting the database."""
 
 from __future__ import annotations
 
@@ -8,47 +8,47 @@ import io
 from .db import FIELDS, country_name
 
 LABELS = {
-    "conforme": "Conforme",
-    "exemption": "Conforme (exemption)",
-    "svhc": "SVHC > 0,1 %",
-    "non_conforme": "NON CONFORME",
-    "a_verifier": "À vérifier",
-    "non_monte": "Non monté",
+    "compliant": "Compliant",
+    "exemption": "Compliant (exemption)",
+    "svhc": "SVHC > 0.1 %",
+    "non_compliant": "NON-COMPLIANT",
+    "needs_review": "Needs review",
+    "dnp": "Not populated",
 }
 
 MATCH_LABELS = {
-    "exact": "Exacte",
-    "mpn": "Référence seule",
-    "approchant": "Approchante",
-    "mpn_autre_fabricant": "Autre fabricant",
-    "partiel": "Partielle",
-    "ambigu": "Ambiguë",
-    "introuvable": "Introuvable",
+    "exact": "Exact",
+    "mpn": "Part number only",
+    "close": "Close",
+    "mpn_other_manufacturer": "Other manufacturer",
+    "partial": "Partial",
+    "ambiguous": "Ambiguous",
+    "not_found": "Not found",
     "-": "-",
 }
 
 COLUMNS = [
-    ("Ligne", lambda l: l["line"]),
-    ("Repères", lambda l: l["designator"]),
-    ("Qté", lambda l: l["quantity"]),
-    ("Réf. BOM", lambda l: l["bom_mpn"]),
-    ("Remplace", lambda l: (l["original_mpn"] + (f" ({l['original_manufacturer']})" if l["original_manufacturer"] else "")) if l.get("original_mpn") else ""),
-    ("Fabricant BOM", lambda l: l["bom_manufacturer"]),
-    ("Description BOM", lambda l: l["bom_description"]),
-    ("Correspondance", lambda l: MATCH_LABELS.get(l["match"], l["match"])),
-    ("Réf. base", lambda l: (l["component"] or {}).get("mpn", "")),
-    ("Fabricant base", lambda l: (l["component"] or {}).get("manufacturer", "")),
+    ("Line", lambda l: l["line"]),
+    ("Designators", lambda l: l["designator"]),
+    ("Qty", lambda l: l["quantity"]),
+    ("BOM part number", lambda l: l["bom_mpn"]),
+    ("Replaces", lambda l: (l["original_mpn"] + (f" ({l['original_manufacturer']})" if l["original_manufacturer"] else "")) if l.get("original_mpn") else ""),
+    ("BOM manufacturer", lambda l: l["bom_manufacturer"]),
+    ("BOM description", lambda l: l["bom_description"]),
+    ("Match", lambda l: MATCH_LABELS.get(l["match"], l["match"])),
+    ("Database part number", lambda l: (l["component"] or {}).get("mpn", "")),
+    ("Database manufacturer", lambda l: (l["component"] or {}).get("manufacturer", "")),
     ("RoHS 2", lambda l: _status(l, "rohs2")),
     ("RoHS 3", lambda l: _status(l, "rohs3")),
     ("REACH", lambda l: _status(l, "reach")),
-    ("Exemptions RoHS", lambda l: l["exemptions"]),
+    ("RoHS exemptions", lambda l: l["exemptions"]),
     ("SVHC", lambda l: l["svhc_list"]),
     ("ECCN", lambda l: (l["component"] or {}).get("eccn", "")),
-    ("Pays d'origine", lambda l: _country((l["component"] or {}).get("country_of_origin", ""))),
+    ("Country of origin", lambda l: _country((l["component"] or {}).get("country_of_origin", ""))),
     ("Source", lambda l: (l["component"] or {}).get("source", "")),
-    ("Vérifié le", lambda l: (l["component"] or {}).get("last_checked", "")),
+    ("Last checked", lambda l: (l["component"] or {}).get("last_checked", "")),
     ("Suggestions", lambda l: ", ".join(f"{s['mpn']} ({s['manufacturer']})" for s in l["suggestions"])),
-    ("Remarques", lambda l: " | ".join(l["notes"])),
+    ("Notes", lambda l: " | ".join(l["notes"])),
 ]
 
 def _country(code: str) -> str:
@@ -56,22 +56,22 @@ def _country(code: str) -> str:
 
 
 def _status(line: dict, norm: str) -> str:
-    """Statut d'une norme, avec sa provenance quand il ne vient pas directement de la base."""
+    """Status for one regulation, with its origin when it does not come directly from the database."""
     text = LABELS.get(line[norm], line[norm])
     if line.get(f"{norm}_inferred"):
-        text += " (déduit)"
+        text += " (inferred)"
     if norm in line.get("from_bom", []):
-        text += " (selon la BOM)"
+        text += " (from the BOM)"
     return text
 
 
 FILLS = {
-    "conforme": "C6EFCE",
+    "compliant": "C6EFCE",
     "exemption": "DDEBF7",
     "svhc": "FFE699",
-    "non_conforme": "FFC7CE",
-    "a_verifier": "FCE4D6",
-    "non_monte": "EDEDED",
+    "non_compliant": "FFC7CE",
+    "needs_review": "FCE4D6",
+    "dnp": "EDEDED",
 }
 
 
@@ -91,57 +91,57 @@ def report_xlsx(report: dict) -> bytes:
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Synthèse"
+    ws.title = "Summary"
     s = report["summary"]
     bold = Font(bold=True)
-    ws.append(["Rapport de conformité environnementale"])
+    ws.append(["Environmental compliance report"])
     ws["A1"].font = Font(bold=True, size=14)
-    ws.append(["Fichier BOM", report.get("filename", "")])
-    ws.append(["Analysé le", report["analyzed_at"]])
-    ws.append(["Composants en base", report["database_size"]])
+    ws.append(["BOM file", report.get("filename", "")])
+    ws.append(["Analysed on", report["analyzed_at"]])
+    ws.append(["Components in database", report["database_size"]])
     ws.append([])
-    ws.append(["Lignes de BOM", s["lines"]])
-    ws.append(["Non montées (DNP)", s["dnp"]])
-    ws.append(["Trouvées en base", s["found"]])
-    ws.append(["Correspondances incertaines", s["uncertain"]])
-    ws.append(["Introuvables", s["not_found"]])
+    ws.append(["BOM lines", s["lines"]])
+    ws.append(["Not populated (DNP)", s["dnp"]])
+    ws.append(["Found in database", s["found"]])
+    ws.append(["Uncertain matches", s["uncertain"]])
+    ws.append(["Not found", s["not_found"]])
     if s.get("substituted"):
-        ws.append(["Lignes remplacées par un équivalent", s["substituted"]])
+        ws.append(["Lines replaced by an equivalent", s["substituted"]])
     ex = s.get("export", {})
     if ex:
         ws.append([])
-        ws.append(["Export / douane (composants identifiés)"])
+        ws.append(["Export / customs (identified components)"])
         ws.cell(ws.max_row, 1).font = bold
-        ws.append(["ECCN contrôlé (hors EAR99)", ex["eccn_controlled"]])
+        ws.append(["Controlled ECCN (not EAR99)", ex["eccn_controlled"]])
         ws.append(["ECCN EAR99", ex["eccn_ear99"]])
-        ws.append(["ECCN inconnu", ex["eccn_unknown"]])
-        ws.append(["Pays d'origine inconnu", ex["country_unknown"]])
+        ws.append(["ECCN unknown", ex["eccn_unknown"]])
+        ws.append(["Country of origin unknown", ex["country_unknown"]])
         if ex["countries"]:
-            ws.append(["Pays d'origine", ", ".join(f"{_country(c)} : {n}" for c, n in ex["countries"].items())])
+            ws.append(["Countries of origin", ", ".join(f"{_country(c)}: {n}" for c, n in ex["countries"].items())])
     ws.append([])
-    ws.append(["Norme", "Verdict BOM", "Conformes", "Exemption", "SVHC", "Non conformes", "À vérifier"])
+    ws.append(["Regulation", "BOM verdict", "Compliant", "Exemption", "SVHC", "Non-compliant", "Needs review"])
     for c in ws[ws.max_row]:
         c.font = bold
-    for norm, label in (("rohs2", "RoHS 2 (2011/65/UE)"), ("rohs3", "RoHS 3 (UE 2015/863)"), ("reach", "REACH (CE 1907/2006)")):
+    for norm, label in (("rohs2", "RoHS 2 (2011/65/EU)"), ("rohs3", "RoHS 3 (EU 2015/863)"), ("reach", "REACH (EC 1907/2006)")):
         d = s[norm]
         counts = d["counts"]
         ws.append([
             label,
             LABELS.get(d["verdict"], d["verdict"]),
-            counts.get("conforme", 0),
+            counts.get("compliant", 0),
             counts.get("exemption", 0),
             counts.get("svhc", 0),
-            counts.get("non_conforme", 0),
-            counts.get("a_verifier", 0),
+            counts.get("non_compliant", 0),
+            counts.get("needs_review", 0),
         ])
         ws.cell(ws.max_row, 2).fill = PatternFill("solid", fgColor=FILLS.get(d["verdict"], "FFFFFF"))
     ws.append([])
-    ws.append(["Statuts issus de la base de données serveur. Vérifier les déclarations fabricants avant toute attestation."])
+    ws.append(["Statuses taken from the server database. Check the manufacturers' declarations before any certification."])
     ws.column_dimensions["A"].width = 30
     for col in "BCDEFG":
         ws.column_dimensions[col].width = 16
 
-    wd = wb.create_sheet("Détail")
+    wd = wb.create_sheet("Detail")
     wd.append([c for c, _ in COLUMNS])
     for c in wd[1]:
         c.font = bold
