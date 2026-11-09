@@ -13,7 +13,9 @@ python -m venv .venv
 .venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Then open http://localhost:8000 (API documentation: http://localhost:8000/docs).
+Then open http://localhost:8000 (API documentation: http://localhost:8000/docs). The home page presents the
+tool; its "Try with an example BOM" button analyses [`examples/bom_example.csv`](../examples/bom_example.csv),
+served at `/examples/bom_example.csv`.
 
 > ⚠ The demo data (`data/seed_components.csv`) is there to try the tool:
 > - 26 example components (source "DEMO - to be checked", 3 of them fictitious `DEMO-…`);

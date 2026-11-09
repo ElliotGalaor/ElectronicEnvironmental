@@ -13,6 +13,7 @@ RUN pip install -r requirements.txt
 
 COPY app ./app
 COPY data/seed_components.csv data/ccl_headings.json data/rohs_exemptions.json ./data/
+COPY examples ./examples
 COPY cli.py docker-entrypoint.sh ./
 
 # Unprivileged user; the SQLite database lives in a volume (/data)

@@ -76,6 +76,7 @@ jobs:
           cat stats.json
           python3 -c "import json; d = json.load(open('stats.json')); assert d['total'] > 100, d; print('components in database:', d['total'])"
           curl -fsS http://127.0.0.1:8000/ | grep -q "RoHS / REACH Checker"
+          curl -fsS -o example.csv http://127.0.0.1:8000/examples/bom_example.csv && head -1 example.csv   # home page example
           docker logs app
 
       - name: Log in to GHCR
