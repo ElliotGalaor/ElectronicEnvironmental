@@ -7,7 +7,7 @@
   --ko-bg: #fde4e4; --ko: #a31f1f;
   --chk-bg: #fdecdc; --chk: #9a4a0b;
   --skip-bg: #eceef1; --skip: #667085;
-  /* Camemberts de statut : palette validée (daltonisme et vision normale) sur fond clair */
+  /* Status pie charts: palette validated (colour blindness and normal vision) on a light background */
   --pie-ok: #1a7f5a; --pie-ex: #4f8fe6; --pie-svhc: #e0b02a; --pie-chk: #a3abb8; --pie-ko: #ef7a64;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
 }
@@ -78,11 +78,11 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .vcard .verdict { font-size: 19px; font-weight: 700; margin-top: 4px; }
 .vcard .detail { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
 .vcard.global { border-width: 2px; }
-.v-conforme .verdict { color: var(--ok); }  .vcard.global.v-conforme { border-color: var(--ok); }
+.v-compliant .verdict { color: var(--ok); }  .vcard.global.v-compliant { border-color: var(--ok); }
 .v-exemption .verdict { color: var(--ex); }
 .v-svhc .verdict { color: var(--svhc); }
-.v-non_conforme .verdict { color: var(--ko); } .vcard.global.v-non_conforme { border-color: var(--ko); }
-.v-a_verifier .verdict { color: var(--chk); } .vcard.global.v-a_verifier { border-color: var(--chk); }
+.v-non_compliant .verdict { color: var(--ko); } .vcard.global.v-non_compliant { border-color: var(--ko); }
+.v-needs_review .verdict { color: var(--chk); } .vcard.global.v-needs_review { border-color: var(--chk); }
 
 .counts { display: flex; gap: 18px; flex-wrap: wrap; margin: 14px 2px; color: var(--muted); font-size: 13px; }
 .counts b { color: var(--text); }
@@ -115,13 +115,13 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .sugg { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.b-conforme { background: var(--ok-bg); color: var(--ok); }
+.b-compliant { background: var(--ok-bg); color: var(--ok); }
 .b-exemption { background: var(--ex-bg); color: var(--ex); }
 .b-svhc { background: var(--svhc-bg); color: var(--svhc); }
-.b-non_conforme { background: var(--ko-bg); color: var(--ko); }
-.b-a_verifier, .b-inconnu { background: var(--chk-bg); color: var(--chk); }
+.b-non_compliant { background: var(--ko-bg); color: var(--ko); }
+.b-needs_review, .b-unknown { background: var(--chk-bg); color: var(--chk); }
 .b-eccn { background: var(--svhc-bg); color: var(--svhc); font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
-.b-non_monte { background: var(--skip-bg); color: var(--skip); }
+.b-dnp { background: var(--skip-bg); color: var(--skip); }
 .inferred { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
 .match { font-size: 12.5px; }
 .match.warn { color: var(--chk); font-weight: 600; }
@@ -172,7 +172,7 @@ textarea { font: inherit; color: var(--text); background: var(--surface); border
 
 .swapbar[hidden] { display: none; }
 
-/* Comptes et historique */
+/* Accounts and history */
 .topright { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .account { display: flex; align-items: center; gap: 8px; }
 .account .who { font-weight: 600; font-size: 13px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -192,13 +192,13 @@ dialog.narrow { width: min(420px, calc(100vw - 32px)); }
 .formgrid.single { grid-template-columns: 1fr; }
 .formgrid label[hidden] { display: none; }
 
-/* Compteur de lignes et tableau vide */
+/* Line counter and empty table */
 #lineCount { margin-left: 4px; white-space: nowrap; }
 #lineCount.filtered { color: var(--chk); font-weight: 600; }
 td.emptyrow { padding: 18px 12px; color: var(--muted); }
 td.emptyrow .btn { margin-left: 8px; }
 
-/* Exemptions RoHS */
+/* RoHS exemptions */
 a.ex-link { color: var(--ex); text-decoration: underline dotted; text-underline-offset: 3px; }
 a.ex-link:hover { color: var(--accent); }
 .b-ex-none { background: var(--surface-2); color: var(--muted); }
@@ -208,7 +208,7 @@ a.ex-link:hover { color: var(--accent); }
 #exemptInfo q { font-style: normal; }
 #exemptSource a, #exemptInfo a { color: var(--accent); }
 
-/* Codes ECCN */
+/* ECCN codes */
 a.eccn-link { color: inherit; text-decoration: none; }
 a.eccn-link.mono { text-decoration: underline dotted; text-underline-offset: 3px; }
 a.eccn-link:hover .badge, a.eccn-link:hover { filter: brightness(1.08); color: var(--accent); }
@@ -220,7 +220,7 @@ a.eccn-link .badge { cursor: pointer; }
 #eccns td:first-child { white-space: nowrap; }
 #eccnComps { min-width: 900px; }
 
-/* Camemberts par norme */
+/* Pie charts per regulation */
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
 .chart { display: flex; gap: 16px; align-items: center; }
 .chart h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
@@ -253,8 +253,8 @@ dialog.wide { width: min(1240px, calc(100vw - 32px)); }
 #altTable .actions-cell { min-width: 190px; }
 #altTable .actions-cell .btn { display: flex; justify-content: center; width: 100%; }
 #altTable .actions-cell .btn + .btn { margin-top: 6px; }
-/* Quand la fenêtre est trop étroite pour le tableau, chaque équivalent devient une carte :
-   les boutons d'action restent visibles sans défilement horizontal. */
+/* When the window is too narrow for the table, each equivalent becomes a card:
+   the action buttons stay visible without horizontal scrolling. */
 #altBody { container-type: inline-size; }
 @container (max-width: 1080px) {
   #altTable { min-width: 0; }
@@ -281,7 +281,7 @@ a.mpn-link:hover { color: var(--accent); }
 #lines tr.swapped td { background: color-mix(in srgb, var(--ex-bg) 55%, transparent); }
 .swapbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--ex-bg); color: var(--ex); font-weight: 600; }
 
-/* Correspondance des colonnes */
+/* Column mapping */
 .maphead { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin: 4px 0 14px; }
 .maphead label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
 .maphead input { width: 90px; }

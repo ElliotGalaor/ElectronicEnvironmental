@@ -1,164 +1,165 @@
 <div align="center">
 
-# ♻️ Vérificateur RoHS · REACH · ECCN
+# ♻️ RoHS · REACH · ECCN Checker
 
-**Analyse de conformité environnementale et de contrôle export d'une nomenclature électronique (BOM)**
+**Environmental compliance and export control analysis of an electronic bill of materials (BOM)**
 
 [![CI](https://github.com/ElliotGalaor/ElectronicEnvironmental/actions/workflows/ci.yml/badge.svg)](https://github.com/ElliotGalaor/ElectronicEnvironmental/actions/workflows/ci.yml)
 [![CD](https://github.com/ElliotGalaor/ElectronicEnvironmental/actions/workflows/cd.yml/badge.svg)](https://github.com/ElliotGalaor/ElectronicEnvironmental/actions/workflows/cd.yml)
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-70%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-72%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
-<img src="docs/images/analyse.png" alt="Analyse d'une BOM : verdicts RoHS 2, RoHS 3 et REACH avec la répartition des statuts" width="100%">
+<img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
 
 </div>
 
-## En bref
+## At a glance
 
 | | |
 |---|---|
-| **Le problème** | Avant de mettre une carte électronique sur le marché européen, il faut prouver que chacun de ses composants respecte **RoHS** (substances dangereuses : plomb, mercure, cadmium, phtalates…) et **REACH** (substances extrêmement préoccupantes), et savoir lesquels sont soumis au **contrôle export** (ECCN). Vérifier une nomenclature de plusieurs dizaines de références à la main est long et source d'erreurs. |
-| **La solution** | Une application web qui lit la nomenclature exportée de l'outil de CAO, retrouve chaque composant dans une base de référence et donne en quelques secondes un verdict par norme, avec les composants à problème, les exemptions qui vont expirer et des **équivalents conformes d'autres fabricants**. |
-| **Les sources** | Textes officiels : directive 2011/65/UE sur **EUR-Lex** (161 exemptions), Commerce Control List américaine sur l'**eCFR** (622 entrées ECCN). Données composants relevées chez le distributeur LCSC. |
+| **The problem** | Before an electronic board can be sold on the European market, every one of its components must be shown to comply with **RoHS** (hazardous substances: lead, mercury, cadmium, phthalates…) and **REACH** (substances of very high concern), and you need to know which ones are subject to **export control** (ECCN). Checking a bill of materials with dozens of part numbers by hand is slow and error-prone. |
+| **The solution** | A web application that reads the bill of materials exported from the CAD tool, finds each component in a reference database and returns a verdict per regulation within seconds, with the problem components, the exemptions about to expire and **compliant equivalents from other manufacturers**. |
+| **The sources** | Official texts: Directive 2011/65/EU on **EUR-Lex** (163 exemptions), the US Commerce Control List on the **eCFR** (622 ECCN entries). Component data collected from the distributor LCSC. |
 
-## Fonctionnalités
+## Features
 
-### 📋 Analyse d'une nomenclature
-Dépôt d'un fichier **CSV ou Excel** exporté de n'importe quel outil de CAO, ERP ou distributeur : la ligne d'en-tête et les colonnes (référence fabricant, fabricant, repères, quantité, non monté, statuts RoHS / REACH déclarés…) sont détectées automatiquement, en français comme en anglais. Chaque ligne est rapprochée de la base (exacte, approchante, partielle) et reçoit un statut **RoHS 2**, **RoHS 3** et **REACH**. Résultat : un verdict global, un camembert par norme et un rapport **Excel** téléchargeable.
+### 📋 Bill of materials analysis
+Upload a **CSV or Excel** file exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation and a downloadable **Excel** report.
 
-<img src="docs/images/lignes.png" alt="Tableau des lignes de la BOM avec statut par norme, ECCN et remarques" width="100%">
+<img src="docs/images/lines.png" alt="Table of BOM lines with the status per regulation, ECCN and notes" width="100%">
 
-### 🧩 Fichiers de tout format : correspondance des colonnes
-Quand un fichier ne ressemble à aucun format connu, par exemple un export d'ERP avec un cartouche et des en-têtes maison, une fenêtre permet d'**indiquer à la main quelle colonne correspond à chaque champ**. On peut aussi choisir la ligne d'en-tête, ou indiquer que le fichier n'en a pas. Avant de valider, on voit :
-- **l'effet de chaque changement** sur les premières lignes (ancienne valeur barrée → nouvelle) ;
-- **le résultat**, ligne par ligne : référence trouvée ou absente de la base, ou, pour l'import en base, ce qui sera **créé, modifié ou refusé**, simulé sans rien écrire ;
-- les **choix manuels** par rapport à la détection automatique.
+### 🧩 Files in any format: column mapping
+When a file does not look like any known format, for example an ERP export with a title block and custom headers, a dialog lets you **choose by hand which column matches each field**. You can also choose the header row, or say that the file has none. Before confirming, you can see:
+- **the effect of each change** on the first lines (old value struck through → new value);
+- **the result**, line by line: part number found or missing in the database, or, for a database import, what will be **created, changed or rejected**, simulated without writing anything;
+- the **manual choices** compared with automatic detection.
 
-Les statuts RoHS / REACH présents dans la BOM sont utilisés. Si le composant est en base, c'est la base qui fait foi : un désaccord passe la ligne en « à vérifier ». S'il est absent, le statut de la BOM est repris et marqué « selon la BOM ».
+The RoHS / REACH statuses found in the BOM are used. If the component is in the database, the database is authoritative: a disagreement turns the line into "needs review". If it is missing, the BOM status is used and marked "from the BOM".
 
-<img src="docs/images/correspondance.png" alt="Fenêtre de correspondance des colonnes : choix manuels, effet du changement sur les 3 premières lignes et résultat de la lecture" width="100%">
+<img src="docs/images/column_mapping.png" alt="Column mapping dialog: manual choices, effect of the change on the first 3 lines and result of the reading" width="100%">
 
-### 🔁 Équivalents d'autres fabricants et remplacement dans la BOM
-Pour un composant non conforme ou bientôt sans exemption, l'outil propose des **composants similaires d'autres fabricants** (même valeur, boîtier, tension…) avec leur statut de conformité, explique ce qui correspond et ce qui diffère, et permet de **les substituer dans la BOM** en un clic. La BOM modifiée se télécharge avec la trace des remplacements. Sur un écran étroit (portable, tablette, mobile), chaque suggestion s'affiche en carte : les boutons restent toujours visibles.
+### 🔁 Equivalents from other manufacturers and replacement in the BOM
+For a non-compliant component, or one whose exemption is about to expire, the tool offers **similar components from other manufacturers** (same value, package, voltage…) with their compliance status, explains what matches and what differs, and lets you **substitute them in the BOM** in one click. The modified BOM can be downloaded with a record of the replacements. On a narrow screen (laptop, tablet, phone), each suggestion is shown as a card: the buttons always stay visible.
 
-<img src="docs/images/equivalents.png" alt="Fenêtre des équivalents : composants similaires d'autres fabricants avec leur statut RoHS et REACH" width="100%">
+<img src="docs/images/equivalents.png" alt="Equivalents dialog: similar components from other manufacturers with their RoHS and REACH status" width="100%">
 
-<img src="docs/images/remplacement.png" alt="Après remplacement : nouveau verdict et téléchargement de la BOM modifiée" width="100%">
+<img src="docs/images/replacement.png" alt="After replacement: new verdict and download of the modified BOM" width="100%">
 
-### ⏳ Exemptions RoHS : texte officiel et dates d'expiration
-Chaque exemption utilisée (ex. `7(c)-I`, plomb dans le verre des résistances) a sa fiche : **texte officiel en français** extrait d'EUR-Lex, champ d'application, dates d'expiration, règle de renouvellement et composants concernés, pour anticiper un remplacement avant l'échéance.
+### ⏳ RoHS exemptions: official text and expiry dates
+Each exemption in use (e.g. `7(c)-I`, lead in the glass of resistors) has its own page: **official text** extracted from EUR-Lex, scope, expiry dates, renewal rule and components concerned, so a replacement can be planned before the deadline.
 
-<img src="docs/images/exemption.png" alt="Fiche de l'exemption RoHS 7(c)-I avec texte officiel, dates et composants concernés" width="100%">
+<img src="docs/images/exemption.png" alt="Page of RoHS exemption 7(c)-I with official text, dates and components concerned" width="100%">
 
-### 🌐 Contrôle export : codes ECCN
-Chaque code ECCN est décomposé (catégorie, groupe de produits, motif de contrôle), relié à son **intitulé officiel** et à sa définition sur le site du gouvernement américain.
+### 🌐 Export control: ECCN codes
+Each ECCN code is broken down (category, product group, reason for control), linked to its **official heading** and to its definition on the US government website.
 
-<img src="docs/images/eccn.png" alt="Fiche du code ECCN 3A991.a.2 décomposé avec intitulé officiel et lien eCFR" width="100%">
+<img src="docs/images/eccn.png" alt="Page of ECCN code 3A991.a.2 broken down with official heading and eCFR link" width="100%">
 
-### Et aussi
-- **Fiches fabricants** : site web, siège, statistiques de conformité et liste des composants en base.
-- **Import de datasheet PDF** : extraction de la référence, du fabricant, des statuts RoHS/REACH, de l'ECCN et du pays d'origine (par règles, ou par l'**API Claude** si une clé est configurée), avec les extraits justificatifs.
-- **Comptes utilisateurs** : historique des dernières BOM analysées, rouvertes avec la base à jour.
-- **Pays d'origine**, **base de composants** éditable, import/export CSV et Excel (une mise à jour ne modifie que les colonnes fournies), API REST documentée (`/docs`).
+### And also
+- **Manufacturer pages**: website, headquarters, compliance statistics and list of components in the database.
+- **PDF datasheet import**: extraction of the part number, manufacturer, RoHS/REACH statuses, ECCN and country of origin (rule-based, or with the **Claude API** if a key is configured), with the supporting excerpts.
+- **User accounts**: history of the latest analysed BOMs, reopened against the up-to-date database.
+- **Country of origin**, editable **component database**, CSV and Excel import/export (an update only changes the columns provided), documented REST API (`/docs`).
 
 <details>
-<summary>Voir la fiche fabricant</summary>
+<summary>See the manufacturer page</summary>
 
-<img src="docs/images/fabricant.png" alt="Fiche fabricant Texas Instruments avec statistiques et composants" width="100%">
+<img src="docs/images/manufacturer.png" alt="Texas Instruments manufacturer page with statistics and components" width="100%">
 </details>
 
-## Stack technique
+## Tech stack
 
-| Domaine | Technologies |
+| Area | Technologies |
 |---|---|
-| Back-end | **Python 3.12+**, **FastAPI**, Pydantic, SQLite (migrations au démarrage) |
-| Front-end | HTML / CSS / **JavaScript sans framework**, graphiques SVG faits main, thème clair et sombre, affichage adaptatif jusqu'au mobile (*container queries*) |
-| Documents | openpyxl (Excel), pypdf (datasheets), API **Claude** (extraction optionnelle, sorties structurées) |
-| Sécurité | Mots de passe hachés **scrypt**, sessions par cookie `HttpOnly` / `SameSite`, limitation des tentatives de connexion |
-| Qualité | **pytest** (70 tests), **ruff** (lint), captures d'écran automatisées (Playwright) |
-| DevOps | **GitHub Actions** : CI (lint + tests sur 3 versions de Python) et CD (image **Docker** publiée sur GHCR, test de fumée, release automatique) |
+| Back end | **Python 3.12+**, **FastAPI**, Pydantic, SQLite (migrations at start-up) |
+| Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
+| Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
+| Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling |
+| Quality | **pytest** (72 tests), **ruff** (lint), automated screenshots (Playwright) |
+| DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release) |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    U["Navigateur<br/>interface web"] -->|"HTTP / JSON"| API["API FastAPI<br/>app/main.py"]
-    API --> AN["Lecture et analyse<br/>tables.py · analyzer.py · importer.py"]
-    API --> ALT["Équivalents<br/>alternates.py"]
-    API --> DS["Datasheets PDF<br/>datasheet.py"]
-    API --> REF["Référentiels<br/>exemptions.py · eccn.py"]
-    API --> ACC["Comptes et historique<br/>auth.py · history.py"]
+    U["Browser<br/>web interface"] -->|"HTTP / JSON"| API["FastAPI API<br/>app/main.py"]
+    API --> AN["Reading and analysis<br/>tables.py · analyzer.py · importer.py"]
+    API --> ALT["Equivalents<br/>alternates.py"]
+    API --> DS["PDF datasheets<br/>datasheet.py"]
+    API --> REF["Reference texts<br/>exemptions.py · eccn.py"]
+    API --> ACC["Accounts and history<br/>auth.py · history.py"]
     AN --> DB[("SQLite")]
     ALT --> DB
     ACC --> DB
-    REF --> TXT[("Textes officiels<br/>EUR-Lex · eCFR")]
-    DS -. "optionnel" .-> CL["API Claude"]
+    REF --> TXT[("Official texts<br/>EUR-Lex · eCFR")]
+    DS -. "optional" .-> CL["Claude API"]
 ```
 
-## Méthode de travail
+## Way of working
 
-Le projet suit un fonctionnement d'équipe sur GitHub :
-- **issues** pour chaque évolution ou bug, avec critères d'acceptation ([backlog](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues)) ;
-- **une branche et une pull request par changement**, liée à son issue et relue avant fusion ;
-- **intégration continue** obligatoire sur chaque PR (lint + tests sur Python 3.12, 3.13, 3.14) ;
-- **livraison continue** : chaque fusion sur `main` publie une image Docker testée ; chaque tag `v*` crée une release.
+The project follows a team workflow on GitHub:
+- **issues** for every change or bug, with acceptance criteria ([backlog](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues));
+- **one branch and one pull request per change**, linked to its issue and reviewed before merging;
+- mandatory **continuous integration** on every PR (lint + tests on Python 3.12, 3.13, 3.14);
+- **continuous delivery**: every merge to `main` publishes a tested Docker image; every `v*` tag creates a release.
 
-## Historique des versions
+## Release history
 
-Chaque évolution passe par une pull request relue, liée à son issue.
+Every change goes through a reviewed pull request, linked to its issue.
 
-| Version | Pull request | Contenu |
+| Version | Pull request | Content |
 |---|---|---|
-| [**v1.0.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.0.0) | [#10](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/10) | **Intégration continue** : lint `ruff` et tests sur Python 3.12, 3.13 et 3.14 à chaque push et pull request |
-| | [#11](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/11) | **Livraison continue** : image Docker testée et publiée sur GitHub Container Registry, release automatique sur tag |
-| | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Fenêtre des équivalents lisible sur tous les écrans : affichage en cartes quand la place manque |
-| | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | README de présentation avec captures d'écran, guide technique séparé |
-| [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Correspondance manuelle des colonnes** pour les fichiers de format inconnu : aperçu du résultat et de chaque changement, import en base simulé avant écriture, statuts RoHS / REACH lus dans la BOM ; correction : une mise à jour en base n'efface plus les champs absents du fichier |
+| [**v1.0.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.0.0) | [#10](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/10) | **Continuous integration**: `ruff` lint and tests on Python 3.12, 3.13 and 3.14 on every push and pull request |
+| | [#11](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/11) | **Continuous delivery**: Docker image tested and published to GitHub Container Registry, automatic release on tag |
+| | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Equivalents dialog readable on every screen: cards when space runs out |
+| | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | Presentation README with screenshots, separate technical guide |
+| [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Manual column mapping** for files in an unknown format: preview of the result and of each change, database import simulated before writing, RoHS / REACH statuses read from the BOM; fix: a database update no longer erases the fields missing from the file |
+| *next* (v2.0.0) | this pull request | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
 
-## Démarrage rapide
+## Quick start
 
-**Avec Docker** (aucune installation de Python nécessaire) :
+**With Docker** (no Python installation needed):
 
 ```bash
 docker run -p 8000:8000 -v rohs-data:/data ghcr.io/elliotgalaor/electronicenvironmental
 ```
 
-Puis ouvrir http://localhost:8000. La base est initialisée avec 129 composants de démonstration. Pour une version précise, ajouter son numéro à l'image (`…/electronicenvironmental:1.0.0`).
+Then open http://localhost:8000. The database is initialised with 129 demo components. For a specific version, add its number to the image (`…/electronicenvironmental:1.1.0`).
 
-Pour essayer : déposer [`exemples/bom_exemple.csv`](exemples/bom_exemple.csv) (format CAO, colonnes reconnues automatiquement) puis [`exemples/bom_format_erp.csv`](exemples/bom_format_erp.csv) (format inconnu : la fenêtre de correspondance s'ouvre).
+To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens).
 
-**En local** :
+**Locally**:
 
 ```bash
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements-dev.txt   # Windows ; .venv/bin/python sous Linux/macOS
+.venv/Scripts/python -m pip install -r requirements-dev.txt   # Windows; .venv/bin/python on Linux/macOS
 .venv/Scripts/python cli.py seed
 .venv/Scripts/python -m uvicorn app.main:app --port 8000
 .venv/Scripts/python -m pytest                                  # tests
 ```
 
-## Feuille de route
+## Roadmap
 
-Prochaines évolutions suivies en issues :
-- [ ] Statut REACH des composants issus du distributeur ([#4](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/4))
-- [ ] Alerte d'expiration d'exemption dans l'analyse de BOM ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
-- [ ] Réinitialisation du mot de passe ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
-- [ ] Guide de déploiement HTTPS ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
-- [ ] Corpus de vraies datasheets pour l'extraction ([#8](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/8))
-- [ ] Validation des exports KiCad, Altium, Eagle ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
+Next changes, tracked as issues:
+- [ ] REACH status of the components from the distributor ([#4](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/4))
+- [ ] Exemption expiry alert in the BOM analysis ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
+- [ ] Password reset ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
+- [ ] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
+- [ ] Corpus of real datasheets for the extraction ([#8](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/8))
+- [ ] Validation of KiCad, Altium and Eagle exports ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
 
 ## Documentation
 
-- **[Guide technique](docs/GUIDE.md)** : fonctionnement détaillé, règles de rapprochement et de conformité, API REST, variables d'environnement, mise à jour des textes officiels.
-- Documentation interactive de l'API : `http://localhost:8000/docs` une fois l'application lancée.
+- **[Technical guide](docs/GUIDE.md)**: detailed behaviour, matching and compliance rules, REST API, environment variables, updating the official texts.
+- Interactive API documentation: `http://localhost:8000/docs` once the application is running.
 
-> ⚠️ Les données de démonstration servent à présenter l'outil. Une attestation de conformité doit s'appuyer sur les déclarations des fabricants.
+> ⚠️ The demo data is there to showcase the tool. A statement of compliance must rely on the manufacturers' declarations.
 
 ---
 
 <div align="center">
-Projet réalisé par <a href="https://github.com/ElliotGalaor">ElliotGalaor</a>
+Project by <a href="https://github.com/ElliotGalaor">ElliotGalaor</a>
 </div>

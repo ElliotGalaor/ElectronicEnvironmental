@@ -1,21 +1,21 @@
 Designator;Qty;Manufacturer;Manufacturer Part Number;Description;DNP
 U1;1;STMicroelectronics;STM32F103C8T6;MCU Cortex-M3;
 U2;1;TI;LM1117IMPX-3.3/NOPB;LDO 3.3V;
-U3;1;Texas Instruments;LM358DR;Ampli-op double;
-U4;1;Microchip;MCP2551-I/SN;Transceiver CAN;
+U3;1;Texas Instruments;LM358DR;Dual op-amp;
+U4;1;Microchip;MCP2551-I/SN;CAN transceiver;
 C1,C2,C3,C4,C5;5;Murata;GRM188R71H104KA93D;100nF 0603;
 C6,C7;2;Samsung Electro-Mechanics;CL10A106KP8NNNC;10uF 0603;
 R1,R2,R3,R4;4;Yageo;RC0603FR-0710KL;10k 0603;
 R5;1;Vishay Dale;CRCW060310K0FKEA;10k 0603;
-D1;1;Diodes Inc;1N4148W-7-F;Diode signal;
+D1;1;Diodes Inc;1N4148W-7-F;Signal diode;
 D2;1;Littelfuse;SMBJ5.0A;TVS 5V;
 Q1;1;Infineon;IRLML6344TRPBF;MOSFET N;
 Q2;1;ON Semiconductor;BSS138LT1G;MOSFET N SOT-23;
-LED1;1;Lite-On;LTST-C191KRKT;LED rouge;
-Y1;1;Abracon;ABM8-16.000MHZ-B2-T;Quartz 16MHz;
-K1;1;Exemple Corp;DEMO-RELAY-12V;Relais 12V;
-U5;1;Exemple Corp;DEMO-LEADED-DIP8;Ampli ancien;
-J1;1;Wurth;61300311121;Barrette 3 pts;
-L1;1;Bourns;SRR1260-470M;Inductance 47uH;
+LED1;1;Lite-On;LTST-C191KRKT;Red LED;
+Y1;1;Abracon;ABM8-16.000MHZ-B2-T;Crystal 16MHz;
+K1;1;Example Corp;DEMO-RELAY-12V;Relay 12V;
+U5;1;Example Corp;DEMO-LEADED-DIP8;Legacy op-amp;
+J1;1;Wurth;61300311121;Header 3 pins;
+L1;1;Bourns;SRR1260-470M;Inductor 47uH;
 R6;1;Yageo;RC0603FR-07100KL;100k 0603;
-TP1;1;;;Point de test;DNP
+TP1;1;;;Test point;DNP

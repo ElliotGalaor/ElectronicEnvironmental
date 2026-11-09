@@ -1,14 +1,15 @@
-"""Extraction des informations d'un composant depuis sa datasheet PDF (sans IA).
+"""Extracting a component's information from its PDF datasheet (without AI).
 
-Approche heuristique :
-  - texte extrait avec pypdf (les PDF scannés, sans texte, ne sont pas exploitables ici) ;
-  - fabricant : nom de domaine (www.ti.com…), mention de copyright, fréquence des noms connus ;
-  - référence : jetons de type « référence » (lettres + chiffres) notés selon leur fréquence,
-    leur présence en page 1, dans le titre du PDF, le nom du fichier ou un tableau de commande ;
-  - conformité : phrases mentionnant RoHS / 2011/65 / 2015/863 / REACH / SVHC / exemptions.
+Heuristic approach:
+  - text extracted with pypdf (scanned PDFs, with no text, cannot be used here);
+  - manufacturer: domain name (www.ti.com...), copyright notice, frequency of known names;
+  - part number: part-number-like tokens (letters + digits) scored by frequency, presence on
+    page 1, in the PDF title, in the file name or in an ordering table;
+  - compliance: sentences mentioning RoHS / 2011/65 / 2015/863 / REACH / SVHC / exemptions.
 
-Le résultat est une proposition : l'utilisateur la relit avant enregistrement.
-Une datasheet n'indique souvent pas la conformité : les statuts restent alors « inconnu ».
+The result is a proposal: the user reviews it before saving.
+A datasheet often says nothing about compliance: the statuses then stay "unknown".
+French-language patterns are kept so that French datasheets are also understood.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ class DatasheetError(ValueError):
     pass
 
 
-# Nom affiché -> (alias recherchés dans le texte, domaines web)
+# Display name -> (aliases searched in the text, web domains)
 MANUFACTURERS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "Texas Instruments": (("texas instruments",), ("ti.com",)),
     "STMicroelectronics": (("stmicroelectronics", "st microelectronics"), ("st.com",)),
@@ -66,7 +67,7 @@ MANUFACTURERS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "Omron": (("omron",), ("omron.com",)),
 }
 
-# Jetons qui ressemblent à des références mais n'en sont pas
+# Tokens that look like part numbers but are not
 _NOT_MPN = [
     re.compile(p)
     for p in (
@@ -80,8 +81,8 @@ _NOT_MPN = [
         r"^(RoHS|ROHS|REACH|SVHC|CAS)\d*$",
         r"^\d+(\.\d+)?[-/]\d+(\.\d+)?$",  # 3.3/5, 1-2
         r"^\d{1,3}(\.\d+)?[A-Z]$",  # 5V, 10K...
-        r"^[A-Z]{1,2}\d{1,2}$",  # R1, C10, U2 (repères)
-        r"^\d{2,7}-\d{2}-\d$",  # numéros CAS
+        r"^[A-Z]{1,2}\d{1,2}$",  # R1, C10, U2 (designators)
+        r"^\d{2,7}-\d{2}-\d$",  # CAS numbers
         r"^PAGE\d",
         r"^(I2C|I2S|SPI|USB\d?|UART|CAN|LIN|PCIE|DDR\d|LPDDR\d|MIPI|HDMI|SATA|GPIO\d*|ADC\d*|DAC\d*|PWM\d*|ESD|HBM|CDM|MSL\d?|ARM|RISC-V|CORTEX-M\d+|X\d+R|C0G|NP0|X5R|X7R|X7S|Y5V|Z5U|AC|DC)$",
     )
@@ -97,18 +98,18 @@ def _text_pages(data: bytes) -> tuple[list[str], dict]:
     try:
         from pypdf import PdfReader
     except ImportError as exc:  # pragma: no cover
-        raise DatasheetError("Le module pypdf est requis pour lire les PDF (pip install pypdf)") from exc
+        raise DatasheetError("The pypdf module is required to read PDFs (pip install pypdf)") from exc
     if not data.startswith(b"%PDF"):
-        raise DatasheetError("Le fichier n'est pas un PDF")
+        raise DatasheetError("The file is not a PDF")
     try:
         reader = PdfReader(io.BytesIO(data))
         if reader.is_encrypted:
             try:
                 reader.decrypt("")
             except Exception as exc:
-                raise DatasheetError("PDF protégé par mot de passe") from exc
+                raise DatasheetError("Password-protected PDF") from exc
         pages = []
-        for page in reader.pages[:60]:  # les datasheets très longues : on se limite aux 60 premières pages
+        for page in reader.pages[:60]:  # very long datasheets: only the first 60 pages are read
             try:
                 pages.append(page.extract_text() or "")
             except Exception:
@@ -123,7 +124,7 @@ def _text_pages(data: bytes) -> tuple[list[str], dict]:
     except DatasheetError:
         raise
     except Exception as exc:
-        raise DatasheetError(f"PDF illisible : {exc}") from exc
+        raise DatasheetError(f"Unreadable PDF: {exc}") from exc
     return pages, meta
 
 
@@ -141,7 +142,7 @@ def _snippet(page: int, line: str) -> dict:
     return {"page": page, "text": line[:240]}
 
 
-# ------------------------------------------------------------------ fabricant
+# ------------------------------------------------------------------ manufacturer
 
 def detect_manufacturer(pages: list[str], meta: dict, lines: list[tuple[int, str]]) -> tuple[list[dict], list[dict]]:
     full = "\n".join(pages)
@@ -154,11 +155,11 @@ def detect_manufacturer(pages: list[str], meta: dict, lines: list[tuple[int, str
             m = re.search(r"(?:www\.|https?://|@)(?:[\w-]+\.)*" + re.escape(d) + r"\b", low)
             if m:
                 scores[name] += 12
-                evidence.setdefault(name, {"page": _page_of(pages, m.start()), "text": f"site web : {full[m.start():m.end()]}"})
+                evidence.setdefault(name, {"page": _page_of(pages, m.start()), "text": f"website: {full[m.start():m.end()]}"})
         for a in aliases:
             hits = list(re.finditer(r"(?<![a-z])" + re.escape(a) + r"(?![a-z])", low))
             if hits:
-                # On plafonne pour qu'un nom très répété ne domine pas tout
+                # Capped so that a heavily repeated name does not dominate everything
                 scores[name] += min(len(hits), 10) * (2 if len(a) > 6 else 1)
                 h = hits[0]
                 evidence.setdefault(name, {"page": _page_of(pages, h.start()), "text": _around(full, h.start(), h.end())})
@@ -194,7 +195,7 @@ def _around(text: str, start: int, end: int, width: int = 80) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-# ------------------------------------------------------------------ référence
+# ------------------------------------------------------------------ part number
 
 def _is_mpn_like(tok: str) -> bool:
     if not (4 <= len(tok) <= 36):
@@ -232,7 +233,7 @@ def detect_mpn(pages: list[str], meta: dict, lines: list[tuple[int, str]], filen
                 scores[tok] += 25
             elif lt.startswith(stem) or stem.startswith(lt):
                 scores[tok] += 8
-        # Les familles (LM358) et variantes commandables (LM358DR) se renforcent mutuellement
+        # Families (LM358) and orderable variants (LM358DR) reinforce each other
         if len(lt) >= 5:
             family = sum(1 for o in scores if o != tok and loose_mpn(o).startswith(lt))
             scores[tok] += min(family, 5)
@@ -265,7 +266,7 @@ def detect_description(pages: list[str], meta: dict, lines: list[tuple[int, str]
         v = meta.get(key, "")
         c = clean(v)
         if len(c.split()) >= 3 and not _DESC_SKIP.search(c) and loose_mpn(c) != mpn_l:
-            return c[:160], [{"page": 0, "text": f"métadonnée PDF « {key} » : {v[:200]}"}]
+            return c[:160], [{"page": 0, "text": f"PDF metadata “{key}”: {v[:200]}"}]
 
     page1 = [(p, l) for p, l in lines if p == 1][:40]
     for p, l in page1:
@@ -274,18 +275,18 @@ def detect_description(pages: list[str], meta: dict, lines: list[tuple[int, str]
         letters = sum(ch.isalpha() for ch in c)
         if 3 <= len(words) <= 16 and 15 <= len(c) <= 140 and letters / max(len(c), 1) > 0.6 and not _DESC_SKIP.search(c):
             if c.endswith(".") and len(words) > 10:
-                continue  # phrase de texte courant, pas un titre
+                continue  # running text sentence, not a title
             return c, [_snippet(p, l)]
     return "", []
 
 
-# ------------------------------------------------------------------ conformité
+# ------------------------------------------------------------------ compliance
 
 _ROHS_NEG = re.compile(r"\b(not|non)[\s-]*rohs|rohs[\s-]*non[\s-]*compliant|not\s+(be\s+)?(rohs[\s-]*)?compliant\s+(with|to)\s+rohs|non[\s-]*conforme?\s+(à\s+la\s+)?rohs", re.I)
 _ROHS3 = re.compile(r"2015\s*/\s*863|rohs\s*[-]?\s*(3|iii)\b|\b10\s+(eu\s+)?(rohs\s+)?(restricted\s+)?substances|four\s+phthalates|4\s+phtalates", re.I)
 _ROHS2 = re.compile(r"2011\s*/\s*65|rohs\s*[-]?\s*(2|ii)\b", re.I)
 _ROHS_POS = re.compile(r"rohs[\s-]*(compliant|conforme?|conformity|compliance|certified|:?\s*(yes|y)\b)|rohs\s*(&|and)\s*green|compl(y|ies|iant)\s+(with\s+)?(the\s+)?(eu\s+)?rohs|meets?\s+(the\s+)?(eu\s+)?rohs|conforme?s?\s+(à|a)\s+(la\s+)?(directive\s+)?rohs|rohs\s+directive", re.I)
-_ROHS_BARE = re.compile(r"^\W*rohs\W*$", re.I)  # puce « • RoHS » seule dans une liste de caractéristiques
+_ROHS_BARE = re.compile(r"^\W*rohs\W*$", re.I)  # "• RoHS" bullet alone in a feature list
 _EXEMPT = re.compile(r"exempt", re.I)
 _LEAD_FREE = re.compile(r"pb[\s-]*free|lead[\s-]*free|sans\s+plomb|green\s+(product|package)|halogen[\s-]*free", re.I)
 _REACH = re.compile(r"\bREACH\b|1907\s*/\s*2006|\bSVHC\b")
@@ -296,14 +297,14 @@ _REACH_NEG = re.compile(r"not\s+reach[\s-]*compliant|non[\s-]*reach[\s-]*complia
 
 
 def detect_compliance(lines: list[tuple[int, str]]) -> tuple[dict, dict, list[str]]:
-    # On travaille sur des fenêtres de 2 lignes : les phrases sont souvent coupées.
+    # Work on 2-line windows: sentences are often split across lines.
     windows = []
     for i, (p, l) in enumerate(lines):
         nxt = lines[i + 1][1] if i + 1 < len(lines) and lines[i + 1][0] == p else ""
         windows.append((p, l, f"{l} {nxt}"))
 
     ev: dict[str, list[dict]] = defaultdict(list)
-    res = {"rohs2": "inconnu", "rohs3": "inconnu", "reach": "inconnu", "rohs_exemptions": "", "svhc_list": ""}
+    res = {"rohs2": "unknown", "rohs3": "unknown", "reach": "unknown", "rohs_exemptions": "", "svhc_list": ""}
     notes: list[str] = []
     flags = Counter()
     exemptions: list[str] = []
@@ -365,41 +366,41 @@ def detect_compliance(lines: list[tuple[int, str]]) -> tuple[dict, dict, list[st
 
     # --- RoHS
     if flags["rohs_neg"]:
-        res["rohs2"] = res["rohs3"] = "non_conforme"
-        notes.append("La datasheet indique une non-conformité RoHS")
+        res["rohs2"] = res["rohs3"] = "non_compliant"
+        notes.append("The datasheet states RoHS non-compliance")
     elif flags["rohs3"] or flags["rohs2"] or flags["rohs_pos"]:
-        res["rohs2"] = "conforme"
+        res["rohs2"] = "compliant"
         if flags["rohs3"]:
-            res["rohs3"] = "conforme"
+            res["rohs3"] = "compliant"
         else:
-            notes.append("RoHS mentionné sans préciser la directive (UE) 2015/863 : RoHS 3 laissé « inconnu », à confirmer")
+            notes.append("RoHS mentioned without referring to Directive (EU) 2015/863: RoHS 3 left “unknown”, to be confirmed")
         if flags["exempt"]:
             res["rohs2"] = "exemption"
-            if res["rohs3"] == "conforme":
+            if res["rohs3"] == "compliant":
                 res["rohs3"] = "exemption"
     elif flags["lead_free"]:
-        notes.append("Seules des mentions « sans plomb / Pb-free / green » ont été trouvées : insuffisant pour conclure sur RoHS")
+        notes.append("Only “lead-free / Pb-free / green” mentions were found: not enough to conclude on RoHS")
     if exemptions:
         res["rohs_exemptions"] = ", ".join(exemptions)
 
     # --- REACH
     if flags["reach_neg"]:
-        res["reach"] = "non_conforme"
+        res["reach"] = "non_compliant"
     elif flags["reach_svhc"]:
         res["reach"] = "svhc"
         if svhc_names:
             res["svhc_list"] = ", ".join(svhc_names)
     elif flags["reach_pos"]:
-        res["reach"] = "conforme"
+        res["reach"] = "compliant"
     elif flags["reach_mention"]:
-        notes.append("REACH est mentionné sans statut clair : à vérifier dans la déclaration du fabricant")
+        notes.append("REACH is mentioned without a clear status: check the manufacturer's declaration")
 
-    if all(res[k] == "inconnu" for k in ("rohs2", "rohs3", "reach")):
-        notes.append("Aucune information de conformité trouvée : consultez la déclaration RoHS/REACH du fabricant")
+    if all(res[k] == "unknown" for k in ("rohs2", "rohs3", "reach")):
+        notes.append("No compliance information found: see the manufacturer's RoHS/REACH declaration")
     return res, dict(ev), notes
 
 
-# ------------------------------------------------------------------ export / douane
+# ------------------------------------------------------------------ export / customs
 
 _ECCN_LINE = re.compile(r"\b(?:US\s*|EU\s*)?ECCN\b\s*(?:code|number|no\.?|n°)?\s*[:=\-]?\s*(EAR\s?99|\d[A-E]\d{3}(?:\.[a-z0-9]+)*)", re.I)
 _COO_LINE = re.compile(
@@ -437,15 +438,15 @@ def detect_export(lines: list[tuple[int, str]]) -> tuple[dict, dict, list[str]]:
     if eccns:
         res["eccn"] = eccns[0]
         if len(eccns) > 1:
-            notes.append(f"Plusieurs ECCN cités ({', '.join(eccns)}) : vérifiez celui de la référence exacte")
+            notes.append(f"Several ECCNs mentioned ({', '.join(eccns)}): check the one for the exact part number")
     if countries:
         res["country_of_origin"] = countries[0]
         if len(countries) > 1:
-            notes.append(f"Plusieurs pays d'origine cités ({', '.join(countries)}) : dépend du site de fabrication")
+            notes.append(f"Several countries of origin mentioned ({', '.join(countries)}): depends on the manufacturing site")
     return res, ev, notes
 
 
-# ------------------------------------------------------------------ point d'entrée
+# ------------------------------------------------------------------ entry point
 
 def extract(data: bytes, filename: str = "") -> dict:
     pages, meta = _text_pages(data)
@@ -453,7 +454,7 @@ def extract(data: bytes, filename: str = "") -> dict:
     text_chars = sum(len(p) for p in pages)
     warnings: list[str] = []
     if text_chars < 200:
-        warnings.append("Le PDF contient très peu de texte (document scanné ?) : l'extraction automatique est limitée")
+        warnings.append("The PDF contains very little text (scanned document?): automatic extraction is limited")
 
     mpn_cands, mpn_ev = detect_mpn(pages, meta, lines, filename)
     mfr_cands, mfr_ev = detect_manufacturer(pages, meta, lines)
@@ -465,11 +466,11 @@ def extract(data: bytes, filename: str = "") -> dict:
     notes += export_notes
 
     if len(mpn_cands) > 1 and mpn_cands[1]["score"] >= mpn_cands[0]["score"] * 0.8:
-        notes.insert(0, "Plusieurs références possibles : vérifiez la référence exacte (variante commandable)")
+        notes.insert(0, "Several possible part numbers: check the exact part number (orderable variant)")
 
     evidence = {"mpn": mpn_ev, "manufacturer": mfr_ev, "description": desc_ev, **comp_ev, **export_ev}
     return {
-        "method": "heuristique",
+        "method": "heuristic",
         "fields": {
             "mpn": mpn,
             "manufacturer": manufacturer,
