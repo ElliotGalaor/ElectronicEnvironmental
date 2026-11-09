@@ -68,6 +68,39 @@ To stay on a given version instead of following `main`, replace `:latest` with t
 Service page → **Environment** → add `ANTHROPIC_API_KEY` with your Claude API key, then save (Render
 redeploys). The variables added in the dashboard are kept when the Blueprint is synchronised.
 
+## Optional: protect sign-ups
+
+Anyone can create an account on a public site. Two protections limit this, and each one can be used without
+the other (behaviour in the [technical guide](GUIDE.md#limiting-sign-ups)).
+
+**E-mail confirmation with Brevo** (free plan: 300 e-mails per day). Render's free plan blocks outgoing SMTP,
+so the application sends through Brevo's HTTPS API.
+
+1. Create a free account on [brevo.com](https://www.brevo.com).
+2. Add the address the e-mails will come from in the [senders](https://account.brevo.com/senders), then
+   click the link Brevo sends to it: Brevo only sends from verified addresses.
+3. Create an API key on the [API keys page](https://app.brevo.com/settings/keys/api) (**Generate a new API
+   key**) and copy it: it is shown only once.
+4. In Render, service page → **Environment**: add `RRC_BREVO_API_KEY` (the key) and `RRC_MAIL_FROM` (the
+   verified address), then save.
+
+With a free address as sender (free.fr, gmail.com…), Brevo shows one of its own addresses instead, to meet
+Gmail's and Yahoo's sender rules: the e-mails arrive, but land in spam more often. A domain name of your own,
+authenticated in Brevo, avoids this.
+
+**Captcha with Cloudflare Turnstile** (free).
+
+1. Create a free account on [Cloudflare](https://dash.cloudflare.com/sign-up), then open **Turnstile** →
+   **Add widget**.
+2. Name the widget, add the service's hostname (for example `rohs-checker.onrender.com`), keep the
+   **Managed** mode and create it.
+3. In Render, **Environment**: add `RRC_TURNSTILE_SITE_KEY` (site key) and `RRC_TURNSTILE_SECRET_KEY`
+   (secret key), then save.
+
+Render redeploys after each save, and these variables are kept when the Blueprint is synchronised. The
+"Create an account" tab then shows the captcha, and new accounts wait for the e-mail confirmation. On the free
+plan, a sign-up waiting for confirmation is lost if the service goes to sleep before the link is opened.
+
 ## Keeping the data
 
 A free service cannot keep files. To keep accounts, history and database edits:
@@ -102,5 +135,9 @@ A free service cannot keep files. To keep accounts, history and database edits:
   in the Database tab.
 - **Sign-in does not persist**: `FORWARDED_ALLOW_IPS` must be `*` (set by `render.yaml`); without it, the
   application does not see that the visit is over HTTPS.
+- **"The confirmation e-mail could not be sent"**: check `RRC_BREVO_API_KEY`, and that `RRC_MAIL_FROM` is
+  a verified sender in Brevo. The service logs (**Logs**) show Brevo's answer.
+- **"Captcha check failed" for everyone**: the site's hostname must be listed in the Turnstile widget, and
+  both keys must come from that widget.
 - **The "Deploy to Render" job fails with HTTP 404**: the hook URL was regenerated or mistyped; update the
   `RENDER_DEPLOY_HOOK_URL` secret.

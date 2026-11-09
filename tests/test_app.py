@@ -539,6 +539,180 @@ def test_login_throttling():
     assert c.post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 429
 
 
+# ---------------------------------------------------------------- sign-up confirmed by e-mail, captcha
+
+import re  # noqa: E402
+import urllib.error  # noqa: E402
+import urllib.parse  # noqa: E402
+from collections import defaultdict  # noqa: E402
+
+from app import captcha as captcha_mod  # noqa: E402
+from app import mailer as mailer_mod  # noqa: E402
+from app import main as main_mod  # noqa: E402
+
+SIGNUP_ENV = ("RRC_MAIL_LOG", "RRC_BREVO_API_KEY", "RRC_MAIL_FROM", "RRC_PUBLIC_URL", "RENDER_EXTERNAL_URL",
+              "RRC_TURNSTILE_SITE_KEY", "RRC_TURNSTILE_SECRET_KEY")
+# Cloudflare's documented test keys and the token their widget produces
+TS_SITE, TS_SECRET, TS_TOKEN = "1x00000000000000000000AA", "1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX"
+
+
+@pytest.fixture
+def clean_signup_env(monkeypatch):
+    for key in SIGNUP_ENV:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(main_mod, "_signup_attempts", defaultdict(list))
+
+
+@pytest.fixture
+def mailbox(clean_signup_env, monkeypatch):
+    """Sign-up confirmed by e-mail; the messages are captured instead of being sent."""
+    sent = []
+    monkeypatch.setenv("RRC_MAIL_LOG", "1")
+    monkeypatch.setattr(mailer_mod, "send", lambda to, subject, html: sent.append({"to": to, "subject": subject, "html": html}))
+    return sent
+
+
+def link_token(mail) -> str:
+    return re.search(r"#confirm/([\w-]+)", mail["html"]).group(1)
+
+
+def new_email() -> str:
+    return f"new-{uuid.uuid4().hex[:8]}@example.com"
+
+
+def test_signup_settings_default(clean_signup_env):
+    assert client.get("/api/auth/config").json() == {"email_confirmation": False, "captcha_site_key": None}
+
+
+def test_signup_confirmed_by_email(mailbox):
+    c, email = TestClient(app), new_email()
+    r = c.post("/api/auth/register", json={"email": email.upper(), "password": "password123", "name": "Ann <b>Spam</b>"})
+    assert r.status_code == 202 and r.json() == {"pending": True, "email": email, "hours": 24}
+    assert "set-cookie" not in r.headers and c.get("/api/auth/me").json() is None
+    [mail] = mailbox
+    token = link_token(mail)
+    assert mail["to"] == email and "Spam" not in mail["html"]             # the typed name never reaches the e-mail
+    assert mail["html"].count(f"http://testserver/#confirm/{token}") == 2  # link + address to copy
+
+    # No sign-in before confirmation; a clear message when the password is the one of the sign-up
+    assert c.post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 403
+    assert c.post("/api/auth/login", json={"email": email, "password": "another-pass"}).status_code == 401
+
+    assert c.post("/api/auth/confirm", json={"token": token, "password": "another-pass"}).status_code == 400
+    r = c.post("/api/auth/confirm", json={"token": token, "password": "password123"})
+    assert r.status_code == 200 and r.json()["name"] == "Ann <b>Spam</b>"
+    assert c.get("/api/auth/me").json()["email"] == email
+
+    # The link works once, and the address is now taken
+    assert TestClient(app).post("/api/auth/confirm", json={"token": token, "password": "password123"}).status_code == 400
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 409
+
+
+def test_signup_cannot_be_taken_over(mailbox):
+    """Someone who signs up first with another person's address never gets the account."""
+    email = new_email()
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "attacker-pass"}).status_code == 202
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "owner-password"}).status_code == 202
+    attacker_link, owner_link = (link_token(m) for m in mailbox)
+
+    owner = TestClient(app)
+    # The owner opens the wrong e-mail first: their password does not match that attempt
+    assert owner.post("/api/auth/confirm", json={"token": attacker_link, "password": "owner-password"}).status_code == 400
+    assert owner.post("/api/auth/confirm", json={"token": owner_link, "password": "owner-password"}).status_code == 200
+    # The other attempts are dropped: the attacker's password opens nothing
+    assert TestClient(app).post("/api/auth/confirm", json={"token": attacker_link, "password": "attacker-pass"}).status_code == 400
+    assert TestClient(app).post("/api/auth/login", json={"email": email, "password": "attacker-pass"}).status_code == 401
+
+
+def test_signup_link_expiry_and_limit_per_address(mailbox):
+    email = new_email()
+    for _ in range(3):
+        assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 202
+    r = TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"})
+    assert r.status_code == 429 and "mailbox" in r.json()["detail"]
+
+    with db.session() as conn:
+        conn.execute("UPDATE signup_requests SET expires_at = '2000-01-01T00:00:00+00:00' WHERE email = ?", (email,))
+    r = TestClient(app).post("/api/auth/confirm", json={"token": link_token(mailbox[0]), "password": "password123"})
+    assert r.status_code == 400 and "expired" in r.json()["detail"]
+    # Expired attempts no longer count
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 202
+
+
+def test_signup_limit_per_connection(mailbox):
+    c = TestClient(app)
+    for _ in range(10):
+        assert c.post("/api/auth/register", json={"email": new_email(), "password": "password123"}).status_code == 202
+    assert c.post("/api/auth/register", json={"email": new_email(), "password": "password123"}).status_code == 429
+
+
+def test_signup_email_not_sent(mailbox, monkeypatch):
+    def fail(*_):
+        raise mailer_mod.MailError("Brevo HTTP 401")
+    monkeypatch.setattr(mailer_mod, "send", fail)
+    email = new_email()
+    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 502
+    with db.session() as conn:  # the attempt is not kept
+        assert conn.execute("SELECT COUNT(*) FROM signup_requests WHERE email = ?", (email,)).fetchone()[0] == 0
+
+
+def test_signup_link_uses_public_address(mailbox, monkeypatch):
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://rohs-checker.onrender.com")
+    TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    monkeypatch.setenv("RRC_PUBLIC_URL", "https://bom.example.org/")
+    TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    assert "https://rohs-checker.onrender.com/#confirm/" in mailbox[0]["html"]
+    assert "https://bom.example.org/#confirm/" in mailbox[1]["html"]
+
+
+def test_captcha_on_signup(clean_signup_env, monkeypatch):
+    monkeypatch.setenv("RRC_TURNSTILE_SITE_KEY", TS_SITE)
+    monkeypatch.setenv("RRC_TURNSTILE_SECRET_KEY", TS_SECRET)
+    calls = []
+
+    def fake_siteverify(req, timeout):  # Cloudflare's answer, as with its test keys
+        fields = urllib.parse.parse_qs(req.data.decode())
+        calls.append((req.full_url, fields))
+        ok = fields["response"] == [TS_TOKEN]
+        return io.BytesIO(json.dumps({"success": ok, "error-codes": [] if ok else ["invalid-input-response"]}).encode())
+    monkeypatch.setattr(captcha_mod.urllib.request, "urlopen", fake_siteverify)
+
+    assert client.get("/api/auth/config").json()["captcha_site_key"] == TS_SITE
+    body = {"email": new_email(), "password": "password123"}
+    assert TestClient(app).post("/api/auth/register", json=body).status_code == 400            # no token: Cloudflare not called
+    assert calls == []
+    assert TestClient(app).post("/api/auth/register", json=body | {"captcha": "forged"}).status_code == 400
+    c = TestClient(app)
+    assert c.post("/api/auth/register", json=body | {"captcha": TS_TOKEN}).status_code == 201
+    assert c.get("/api/auth/me").json()["email"] == body["email"]
+    url, fields = calls[-1]
+    assert url == captcha_mod.SITEVERIFY_URL and fields["secret"] == [TS_SECRET] and fields["remoteip"] == ["testclient"]
+
+
+def test_brevo_request(clean_signup_env, monkeypatch):
+    monkeypatch.setenv("RRC_BREVO_API_KEY", "xkeysib-test")
+    monkeypatch.setenv("RRC_MAIL_FROM", "sender@example.org")
+    requests = []
+
+    def fake_brevo(req, timeout):
+        requests.append(req)
+        return io.BytesIO(b'{"messageId": "<1@relay>"}')
+    monkeypatch.setattr(mailer_mod.urllib.request, "urlopen", fake_brevo)
+    assert mailer_mod.available()
+    mailer_mod.send("to@example.com", "Subject", "<p>Hello</p>")
+    [req] = requests
+    assert req.full_url == "https://api.brevo.com/v3/smtp/email" and req.get_method() == "POST"
+    assert req.get_header("Api-key") == "xkeysib-test" and req.get_header("Content-type") == "application/json"
+    assert json.loads(req.data) == {"sender": {"name": "RoHS / REACH Checker", "email": "sender@example.org"},
+                                    "to": [{"email": "to@example.com"}], "subject": "Subject", "htmlContent": "<p>Hello</p>"}
+
+    def refused(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", None, io.BytesIO(b'{"code": "unauthorized"}'))
+    monkeypatch.setattr(mailer_mod.urllib.request, "urlopen", refused)
+    with pytest.raises(mailer_mod.MailError):
+        mailer_mod.send("to@example.com", "Subject", "<p>Hello</p>")
+
+
 def test_history_saved_and_isolated():
     c, _ = new_client_with_account()
     bom = "MPN,Manufacturer\nNE555P,TI\nDEMO-LEADED-DIP8,Example Corp\n"

@@ -61,7 +61,13 @@ function showTab(name) {
 
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
-  if (h.startsWith("manufacturer/")) {
+  if (h.startsWith("confirm/")) {
+    // Link from the sign-up confirmation e-mail: the token is removed from the address bar at once
+    confirmToken = h.slice("confirm/".length);
+    history.replaceState(null, "", location.pathname + location.search + "#analysis");
+    showTab("analysis");
+    openAuth("confirm");
+  } else if (h.startsWith("manufacturer/")) {
     showTab("manufacturers");
     openManufacturer(h.slice("manufacturer/".length));
   } else if (h.startsWith("exemption/")) {
@@ -1219,6 +1225,11 @@ exemptForm.addEventListener("submit", async (ev) => {
 /* ------------------------------------------------------------------ accounts and BOM history */
 const dlgAuth = $("#dlgAuth"), authForm = $("#authForm");
 let authMode = "login";
+let authConfig = null;     // { email_confirmation, captcha_site_key } from the server
+let authConfigLoading = null;
+let confirmToken = "";     // token of the link from the sign-up confirmation e-mail
+let captchaWidget = null;  // Cloudflare Turnstile widget, created on first use
+let turnstileLoading = null;
 
 function fmtDate(iso) {
   try { return new Date(iso).toLocaleString(DATE_LOCALE, { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
@@ -1258,45 +1269,109 @@ $("#historyHint").addEventListener("click", (ev) => {
   if (b) openAuth(b.dataset.auth);
 });
 
+// mode: "login", "register" or "confirm" (link from the confirmation e-mail)
 function openAuth(mode) {
-  setAuthMode(mode);
   authForm.reset();
-  $("#authError").hidden = true;
-  dlgAuth.showModal();
-  authForm.elements.email.focus();
+  setAuthMode(mode);
+  if (!dlgAuth.open) dlgAuth.showModal();
+  (mode === "confirm" ? authForm.elements.password : authForm.elements.email).focus();
+  authConfigLoading ||= api("/api/auth/config").then((r) => r.json())
+    .then((c) => { authConfig = c; showCaptcha(); }).catch(() => { authConfigLoading = null; });
+}
+
+function showAuthError(msg) {
+  $("#authError").textContent = msg;
+  $("#authError").hidden = !msg;
 }
 
 function setAuthMode(mode) {
   authMode = mode;
+  const signup = mode === "register", confirming = mode === "confirm";
   $$("#dlgAuth .authtab").forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
-  const signup = mode === "register";
+  $("#dlgAuth .authtabs").hidden = confirming;
+  $("#authTitle").hidden = $("#authIntro").hidden = !confirming;
+  $("#authFields").hidden = false;
   $("#authNameRow").hidden = !signup;
+  $("#authEmailRow").hidden = confirming;
+  authForm.elements.email.required = !confirming;
   authForm.elements.password.autocomplete = signup ? "new-password" : "current-password";
   $("#authPwHint").hidden = !signup;
-  $("#authSubmit").textContent = signup ? "Create my account" : "Sign in";
-  $("#authError").hidden = true;
+  $("#authSubmit").hidden = false;
+  $("#authSubmit").textContent = signup ? "Create my account" : confirming ? "Confirm my account" : "Sign in";
+  $("#btnAuthCancel").textContent = "Cancel";
+  $("#authInfo").hidden = true;
+  showAuthError("");
+  showCaptcha();
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
 $("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
 
+// Turnstile captcha on the sign-up form, when the server has one configured (script loaded on demand)
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve();
+  turnstileLoading ||= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => { turnstileLoading = null; s.remove(); reject(new Error("The captcha could not be loaded: check your connection or content blocker")); };
+    document.head.appendChild(s);
+  });
+  return turnstileLoading;
+}
+
+async function showCaptcha() {
+  const box = $("#authCaptcha"), key = authConfig && authConfig.captcha_site_key;
+  box.hidden = !(key && authMode === "register");
+  if (box.hidden) return;
+  try {
+    await loadTurnstile();
+    if (captchaWidget === null) captchaWidget = turnstile.render(box, { sitekey: key, theme: "auto", size: "flexible" });
+  } catch (e) { showAuthError(e.message); }
+}
+
+function showSignupSent(data) {
+  $("#authFields").hidden = true;
+  $("#authSubmit").hidden = true;
+  $("#btnAuthCancel").textContent = "Close";
+  $("#authInfo").innerHTML = `A confirmation link was sent to <strong>${esc(data.email)}</strong>.
+    Open it within ${data.hours} hours to activate your account (check the spam folder too).`;
+  $("#authInfo").hidden = false;
+}
+
 authForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  const body = { email: authForm.elements.email.value, password: authForm.elements.password.value };
-  if (authMode === "register") body.name = authForm.elements.name.value;
+  const password = authForm.elements.password.value;
+  let url = "/api/auth/login", body = { email: authForm.elements.email.value, password };
+  if (authMode === "confirm") {
+    url = "/api/auth/confirm";
+    body = { token: confirmToken, password };
+  } else if (authMode === "register") {
+    url = "/api/auth/register";
+    body.name = authForm.elements.name.value;
+    if (authConfig && authConfig.captcha_site_key) {
+      body.captcha = (captchaWidget !== null && window.turnstile && turnstile.getResponse(captchaWidget)) || "";
+      if (!body.captcha) { showAuthError("Tick the “Verify you are human” box first."); return; }
+    }
+  }
   $("#authSubmit").disabled = true;
   try {
-    state.user = await (await api(authMode === "register" ? "/api/auth/register" : "/api/auth/login", {
+    const data = await (await api(url, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     })).json();
+    if (data && data.pending) { showSignupSent(data); return; }
+    state.user = data;
+    confirmToken = "";
     dlgAuth.close();
     renderAccount();
     // A BOM that is already open is saved in the history as soon as the user signs in
     if (state.report && state.file) runAnalysis(); else loadHistory();
   } catch (e) {
-    $("#authError").textContent = e.message;
-    $("#authError").hidden = false;
+    showAuthError(e.message);
   } finally {
     $("#authSubmit").disabled = false;
+    // A captcha token can only be used once
+    if (authMode === "register" && captchaWidget !== null && window.turnstile) turnstile.reset(captchaWidget);
   }
 });
 

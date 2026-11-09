@@ -63,7 +63,7 @@ def _public(row: sqlite3.Row) -> dict:
     return {"id": row["id"], "email": row["email"], "name": row["name"] or row["email"].split("@")[0], "created_at": row["created_at"]}
 
 
-def create_user(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> dict:
+def _check_new_account(conn: sqlite3.Connection, email: str, password: str) -> str:
     email = normalize_email(email)
     if not _EMAIL_RE.match(email):
         raise db.ValidationError("Invalid e-mail address")
@@ -71,11 +71,78 @@ def create_user(conn: sqlite3.Connection, email: str, password: str, name: str =
         raise db.ValidationError(f"The password must be at least {MIN_PASSWORD} characters long")
     if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
         raise AuthError("An account already exists with this e-mail address")
+    return email
+
+
+def _insert_user(conn: sqlite3.Connection, email: str, name: str, password_hash: str) -> dict:
     cur = conn.execute(
         "INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)",
-        (email, (name or "").strip()[:80], hash_password(password), _now().isoformat()),
+        (email, (name or "").strip()[:80], password_hash, _now().isoformat()),
     )
     return _public(conn.execute("SELECT * FROM users WHERE id = ?", (cur.lastrowid,)).fetchone())
+
+
+def create_user(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> dict:
+    email = _check_new_account(conn, email, password)
+    return _insert_user(conn, email, name, hash_password(password))
+
+
+# ---------------------------------------------------------------- sign-up confirmed by e-mail
+#
+# Each attempt keeps the password typed in that attempt, and the link only works with that password.
+# Someone who signs up first with another person's address therefore cannot take over the account:
+# the owner of the mailbox confirms with their own password, and only their own attempt matches.
+
+SIGNUP_HOURS = 24
+SIGNUP_MAX_PER_EMAIL = 3   # pending attempts per address, to limit e-mails sent to someone else's mailbox
+
+
+class TooManyRequests(AuthError):
+    """Too many confirmation e-mails for one address."""
+
+
+def create_signup_request(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> str:
+    """Records a sign-up attempt and returns the token for the confirmation link."""
+    email = _check_new_account(conn, email, password)
+    now = _now()
+    conn.execute("DELETE FROM signup_requests WHERE expires_at < ?", (now.isoformat(),))  # clean-up
+    pending = conn.execute("SELECT COUNT(*) FROM signup_requests WHERE email = ?", (email,)).fetchone()[0]
+    if pending >= SIGNUP_MAX_PER_EMAIL:
+        raise TooManyRequests("Several confirmation e-mails were already sent to this address: "
+                              "check your mailbox (and spam folder) or try again tomorrow")
+    token = secrets.token_urlsafe(32)
+    conn.execute(
+        "INSERT INTO signup_requests (token_hash, email, name, password_hash, created_at, expires_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (_token_hash(token), email, (name or "").strip()[:80], hash_password(password), now.isoformat(),
+         (now + timedelta(hours=SIGNUP_HOURS)).isoformat()),
+    )
+    return token
+
+
+def confirm_signup(conn: sqlite3.Connection, token: str, password: str) -> dict:
+    """Creates the account of a confirmed sign-up. The password must be the one chosen at sign-up."""
+    row = conn.execute(
+        "SELECT * FROM signup_requests WHERE token_hash = ? AND expires_at > ?",
+        (_token_hash(token or "x"), _now().isoformat()),
+    ).fetchone()
+    if not row:
+        raise AuthError("This confirmation link is invalid or has expired: create the account again")
+    if not verify_password(password or "", row["password_hash"]):
+        raise AuthError("This is not the password chosen when creating the account")
+    conn.execute("DELETE FROM signup_requests WHERE email = ?", (row["email"],))
+    if conn.execute("SELECT 1 FROM users WHERE email = ?", (row["email"],)).fetchone():
+        raise AuthError("This address is already confirmed: sign in")
+    return _insert_user(conn, row["email"], row["name"], row["password_hash"])
+
+
+def signup_pending(conn: sqlite3.Connection, email: str, password: str) -> bool:
+    """True if a sign-up with this address and password is waiting for confirmation."""
+    rows = conn.execute(
+        "SELECT password_hash FROM signup_requests WHERE email = ? AND expires_at > ?",
+        (normalize_email(email), _now().isoformat()),
+    ).fetchall()
+    return any(verify_password(password or "", r["password_hash"]) for r in rows)
 
 
 def authenticate(conn: sqlite3.Connection, email: str, password: str) -> dict:
