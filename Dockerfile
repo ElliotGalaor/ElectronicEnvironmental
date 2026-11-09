@@ -1,4 +1,4 @@
-# Image de l'application : API FastAPI + interface web
+# Application image: FastAPI API + web interface
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,7 +15,7 @@ COPY app ./app
 COPY data/seed_components.csv data/ccl_headings.json data/rohs_exemptions.json ./data/
 COPY cli.py docker-entrypoint.sh ./
 
-# Utilisateur sans privilèges ; la base SQLite vit dans un volume (/data)
+# Unprivileged user; the SQLite database lives in a volume (/data)
 RUN useradd --create-home --uid 10001 appuser \
     && mkdir -p /data && chown appuser /data \
     && chmod +x docker-entrypoint.sh

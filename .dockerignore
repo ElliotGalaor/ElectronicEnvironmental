@@ -8,7 +8,7 @@
 data/*.db
 tests
 tools
-exemples
+examples
 docs
 *.md
 .claude

@@ -1,4 +1,4 @@
-"""Moteur d'analyse : rapproche chaque ligne de BOM de la base et calcule la conformité."""
+"""Analysis engine: matches each BOM line against the database and computes compliance."""
 
 from __future__ import annotations
 
@@ -23,27 +23,27 @@ from .tables import BomLine, ColumnMapping
 
 NORMS = ("rohs2", "rohs3", "reach")
 NORM_LABELS = {"rohs2": "RoHS 2", "rohs3": "RoHS 3", "reach": "REACH"}
-STATUS_LABELS = {"conforme": "conforme", "exemption": "conforme avec exemption", "svhc": "SVHC > 0,1 %",
-                 "non_conforme": "non conforme", "inconnu": "inconnu"}
+STATUS_LABELS = {"compliant": "compliant", "exemption": "compliant with exemption", "svhc": "SVHC > 0.1 %",
+                 "non_compliant": "non-compliant", "unknown": "unknown"}
 
-# Qualité du rapprochement
-MATCH_EXACT = "exact"            # MPN + fabricant identiques
-MATCH_MPN = "mpn"                # MPN identique, fabricant absent de la BOM
-MATCH_MPN_OTHER_MFR = "mpn_autre_fabricant"  # MPN identique, fabricant différent -> à vérifier
-MATCH_LOOSE = "approchant"       # identique hors ponctuation (ex. "LM358-DR" vs "LM358DR")
-MATCH_PREFIX = "partiel"         # préfixe commun (suffixe d'emballage différent) -> à vérifier
-MATCH_AMBIGUOUS = "ambigu"       # plusieurs candidats possibles
-MATCH_NONE = "introuvable"
+# Match quality
+MATCH_EXACT = "exact"            # same MPN + manufacturer
+MATCH_MPN = "mpn"                # same MPN, no manufacturer in the BOM
+MATCH_MPN_OTHER_MFR = "mpn_other_manufacturer"  # same MPN, different manufacturer -> needs review
+MATCH_LOOSE = "close"            # identical except for punctuation (e.g. "LM358-DR" vs "LM358DR")
+MATCH_PREFIX = "partial"         # common prefix (different packaging suffix) -> needs review
+MATCH_AMBIGUOUS = "ambiguous"    # several possible candidates
+MATCH_NONE = "not_found"
 
 RELIABLE_MATCHES = {MATCH_EXACT, MATCH_MPN, MATCH_LOOSE}
 
-# Verdict d'une ligne pour une norme
-OK = "conforme"
-OK_EXEMPTION = "exemption"   # RoHS : conforme avec exemption
-SVHC = "svhc"                # REACH : SVHC > 0,1 % (obligation d'information)
-KO = "non_conforme"
-CHECK = "a_verifier"         # info manquante ou correspondance incertaine
-SKIPPED = "non_monte"
+# Verdict of a line for one regulation
+OK = "compliant"
+OK_EXEMPTION = "exemption"   # RoHS: compliant with exemption
+SVHC = "svhc"                # REACH: SVHC > 0.1 % (information duty)
+KO = "non_compliant"
+CHECK = "needs_review"       # missing information or uncertain match
+SKIPPED = "dnp"
 
 
 @dataclass
@@ -68,11 +68,11 @@ class LineResult:
     notes: list[str] = field(default_factory=list)
     original_mpn: str = ""
     original_manufacturer: str = ""
-    from_bom: list[str] = field(default_factory=list)  # normes dont le statut vient de la BOM
+    from_bom: list[str] = field(default_factory=list)  # regulations whose status comes from the BOM
 
 
 def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
-    """Statuts RoHS / REACH déclarés dans la BOM, normalisés. Retourne (statuts connus, notes d'erreur)."""
+    """RoHS / REACH statuses declared in the BOM, normalised. Returns (known statuses, error notes)."""
     declared, notes = {}, []
     for n in NORMS:
         raw = getattr(line, n, "")
@@ -81,9 +81,9 @@ def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
         try:
             status = clean_status(raw, REACH_STATUSES if n == "reach" else ROHS_STATUSES, n)
         except ValidationError:
-            notes.append(f"{NORM_LABELS[n]} déclaré dans la BOM non reconnu : « {raw} »")
+            notes.append(f"Unrecognised {NORM_LABELS[n]} status in the BOM: “{raw}”")
             continue
-        if status != "inconnu":
+        if status != "unknown":
             declared[n] = status
     return declared, notes
 
@@ -118,7 +118,7 @@ def _candidates(conn: sqlite3.Connection, line: BomLine) -> tuple[str, list[dict
                 return MATCH_LOOSE, same
             return MATCH_AMBIGUOUS, loose
 
-    # Préfixe : la BOM porte un suffixe d'emballage (ex. "-TR", "/NOPB") absent de la base, ou l'inverse.
+    # Prefix: the BOM has a packaging suffix (e.g. "-TR", "/NOPB") missing from the database, or the reverse.
     if len(mpn_l) >= 6:
         rows = fetch(
             "SELECT * FROM components WHERE (? LIKE mpn_loose || '%' AND length(mpn_loose) >= 6) "
@@ -137,7 +137,7 @@ def _candidates(conn: sqlite3.Connection, line: BomLine) -> tuple[str, list[dict
 def _mfr_equal(a: str, b: str) -> bool:
     if a == b:
         return True
-    # Tolère "texas instruments" vs "texas instruments incorporated" etc.
+    # Accept "texas instruments" vs "texas instruments incorporated", etc.
     return bool(a and b) and (a.startswith(b + " ") or b.startswith(a + " "))
 
 
@@ -155,13 +155,13 @@ def _suggest(conn: sqlite3.Connection, mpn: str, all_mpns: list[tuple[int, str, 
 
 
 def _line_status(status: str, norm: str) -> str:
-    if status == "conforme":
+    if status == "compliant":
         return OK
     if status == "exemption":
         return OK_EXEMPTION
     if status == "svhc":
         return SVHC
-    if status == "non_conforme":
+    if status == "non_compliant":
         return KO
     return CHECK
 
@@ -184,14 +184,14 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         original_manufacturer=line.original_manufacturer,
     )
     if line.original_mpn:
-        res.notes.append(f"Remplace {line.original_mpn}" + (f" ({line.original_manufacturer})" if line.original_manufacturer else ""))
+        res.notes.append(f"Replaces {line.original_mpn}" + (f" ({line.original_manufacturer})" if line.original_manufacturer else ""))
     if line.dnp:
         res.rohs2 = res.rohs3 = res.reach = SKIPPED
         res.match = "-"
-        res.notes.append("Composant non monté (DNP) : exclu de l'analyse")
+        res.notes.append("Component not populated (DNP): excluded from the analysis")
         return res
     if not line.mpn:
-        res.notes.append("Référence fabricant absente de la BOM")
+        res.notes.append("No manufacturer part number in the BOM")
         return res
 
     match, cands = _candidates(conn, line)
@@ -206,17 +206,17 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
             setattr(res, n, _line_status(status, n))
             res.from_bom.append(n)
         if declared:
-            res.notes.append(f"Statuts repris de la BOM ({reason}) : " + ", ".join(NORM_LABELS[n] for n in declared))
+            res.notes.append(f"Statuses taken from the BOM ({reason}): " + ", ".join(NORM_LABELS[n] for n in declared))
 
     if match == MATCH_NONE:
-        res.notes.append("Référence absente de la base")
+        res.notes.append("Part number not in the database")
         res.suggestions = _suggest(conn, line.mpn, all_mpns)
-        use_declared("composant absent de la base")
+        use_declared("component not in the database")
         return res
     if match == MATCH_AMBIGUOUS:
-        res.notes.append("Plusieurs composants correspondent : précisez le fabricant dans la BOM")
+        res.notes.append("Several components match: specify the manufacturer in the BOM")
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
-        use_declared("plusieurs composants possibles en base")
+        use_declared("several possible components in the database")
         return res
 
     comp = cands[0]
@@ -224,51 +224,51 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
     statuses = {n: comp[n] for n in NORMS}
     conflicts = []
     for n, status in declared.items():
-        if statuses[n] == "inconnu":
+        if statuses[n] == "unknown":
             statuses[n] = status
             res.from_bom.append(n)
-            res.notes.append(f"{NORM_LABELS[n]} repris de la BOM (inconnu dans la base)")
+            res.notes.append(f"{NORM_LABELS[n]} taken from the BOM (unknown in the database)")
         elif statuses[n] != status:
             conflicts.append(n)
-            res.notes.append(f"{NORM_LABELS[n]} : la BOM déclare « {STATUS_LABELS[status]} », "
-                             f"la base indique « {STATUS_LABELS[statuses[n]]} » : à vérifier")
+            res.notes.append(f"{NORM_LABELS[n]}: the BOM declares “{STATUS_LABELS[status]}”, "
+                             f"the database says “{STATUS_LABELS[statuses[n]]}”: needs review")
 
-    # RoHS 3 (UE 2015/863) = RoHS 2 (2011/65/UE) + 4 phtalates : on peut déduire certains statuts.
-    if statuses["rohs2"] == "inconnu" and statuses["rohs3"] in ("conforme", "exemption"):
+    # RoHS 3 (EU 2015/863) = RoHS 2 (2011/65/EU) + 4 phthalates: some statuses can be inferred.
+    if statuses["rohs2"] == "unknown" and statuses["rohs3"] in ("compliant", "exemption"):
         statuses["rohs2"] = statuses["rohs3"]
         res.rohs2_inferred = True
-        res.notes.append("RoHS 2 déduit de la conformité RoHS 3")
-    if statuses["rohs3"] == "inconnu" and statuses["rohs2"] == "non_conforme":
-        statuses["rohs3"] = "non_conforme"
+        res.notes.append("RoHS 2 inferred from RoHS 3 compliance")
+    if statuses["rohs3"] == "unknown" and statuses["rohs2"] == "non_compliant":
+        statuses["rohs3"] = "non_compliant"
         res.rohs3_inferred = True
-        res.notes.append("RoHS 3 déduit de la non-conformité RoHS 2")
+        res.notes.append("RoHS 3 inferred from RoHS 2 non-compliance")
 
     for n in NORMS:
         setattr(res, n, CHECK if n in conflicts else _line_status(statuses[n], n))
-    unknown = [label for n, label in (("rohs2", "RoHS 2"), ("rohs3", "RoHS 3"), ("reach", "REACH")) if statuses[n] == "inconnu"]
+    unknown = [NORM_LABELS[n] for n in NORMS if statuses[n] == "unknown"]
     if unknown:
-        res.notes.append(f"Statut inconnu dans la base : {', '.join(unknown)}")
+        res.notes.append(f"Status unknown in the database: {', '.join(unknown)}")
     res.exemptions = comp.get("rohs_exemptions", "")
     res.svhc_list = comp.get("svhc_list", "")
 
     if match not in RELIABLE_MATCHES:
-        # Correspondance incertaine : les statuts "conformes" deviennent "à vérifier".
+        # Uncertain match: "compliant" statuses become "needs review".
         for n in NORMS:
             if getattr(res, n) in (OK, OK_EXEMPTION, SVHC):
                 setattr(res, n, CHECK)
         if match == MATCH_MPN_OTHER_MFR:
             res.notes.append(
-                f"Référence trouvée mais pour un autre fabricant ({comp['manufacturer']}) : vérifier la source"
+                f"Part number found but for another manufacturer ({comp['manufacturer']}): check the source"
             )
         elif match == MATCH_PREFIX:
-            res.notes.append(f"Correspondance partielle avec {comp['mpn']} (suffixe différent) : vérifier")
+            res.notes.append(f"Partial match with {comp['mpn']} (different suffix): check")
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
     if res.exemptions and OK_EXEMPTION in (res.rohs2, res.rohs3):
-        res.notes.append(f"Exemption RoHS : {res.exemptions} (vérifier sa date d'expiration)")
+        res.notes.append(f"RoHS exemption: {res.exemptions} (check its expiry date)")
     if eccn_is_controlled(comp.get("eccn", "")):
-        res.notes.append(f"ECCN {comp['eccn']} : composant soumis au contrôle export, vérifier les licences")
+        res.notes.append(f"ECCN {comp['eccn']}: component subject to export control, check licences")
     if res.reach == SVHC:
-        res.notes.append("Contient une SVHC > 0,1 % : obligation d'information (REACH art. 33) et déclaration SCIP")
+        res.notes.append("Contains an SVHC > 0.1 %: information duty (REACH art. 33) and SCIP notification")
     return res
 
 
@@ -297,7 +297,7 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
         summary[n] = {"verdict": _global_verdict(vals, n), "counts": dict(Counter(vals))}
     matches = Counter(r.match for r in results)
 
-    # Export / douane : sur les composants montés et identifiés en base
+    # Export / customs: on populated components identified in the database
     known = [r.component for r in results if r.component and not r.dnp]
     export = {
         "eccn_controlled": sum(1 for c in known if eccn_is_controlled(c.get("eccn", ""))),

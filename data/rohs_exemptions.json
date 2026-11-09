@@ -1,476 +1,476 @@
 {
- "source": "Directive 2011/65/UE (RoHS), annexes III et IV, texte consolidé EUR-Lex",
+ "source": "Directive 2011/65/EU (RoHS), Annexes III and IV, EUR-Lex consolidated text",
  "version": "2026-07-01",
- "url": "https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=CELEX:02011L0065-20260701",
+ "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02011L0065-20260701",
  "exemptions": {
   "1": {
    "code": "1",
    "annex": "III",
-   "description": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):",
+   "description": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):",
    "scope": "",
    "dates": []
   },
   "1A": {
-   "code": "1 a)",
+   "code": "1(a)",
    "annex": "III",
-   "description": "à usage général d’éclairage < 30 W: 2,5 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "For general lighting purposes < 30 W: 2,5 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "1B": {
-   "code": "1 b)",
+   "code": "1(b)",
    "annex": "III",
-   "description": "à usage général d’éclairage ≥ 30 W et < 50 W: 3,5 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "For general lighting purposes ≥ 30 W and < 50 W: 3,5 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "1C": {
-   "code": "1 c)",
+   "code": "1(c)",
    "annex": "III",
-   "description": "à usage général d’éclairage ≥ 50 W et < 150 W: 5 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "For general lighting purposes ≥ 50 W and < 150 W: 5 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "1D": {
-   "code": "1 d)",
+   "code": "1(d)",
    "annex": "III",
-   "description": "à usage général d’éclairage ≥ 150 W: 15 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "For general lighting purposes ≥ 150 W: 15 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "1E": {
-   "code": "1 e)",
+   "code": "1(e)",
    "annex": "III",
-   "description": "à usage général d’éclairage, avec une structure de forme circulaire ou carrée et un tube d’un diamètre ≤ 17 mm: 5 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "For general lighting purposes with circular or square structural shape and tube diameter ≤ 17 mm: 5 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "1G": {
-   "code": "1 g)",
+   "code": "1(g)",
    "annex": "III",
-   "description": "À usage d’éclairage général de moins de 30 W et à durée de vie égale ou supérieure à 20 000 h: 3,5 mg",
-   "scope": "Expire le 24 août 2023",
+   "description": "For general lighting purposes < 30 W with a lifetime equal or above 20 000 h: 3,5 mg",
+   "scope": "Expires on 24 August 2023",
    "dates": [
     "2023-08-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes (compactes) à simple culot ne dépassant pas (par brûleur):"
+   "parent": "Mercury in single capped (compact) fluorescent lamps not exceeding (per burner):"
   },
   "2A": {
-   "code": "2 a)",
+   "code": "2(a)",
    "annex": "III",
-   "description": "Le mercure dans les lampes fluorescentes linéaires à double culot à usage général d’éclairage ne dépassant pas (par lampe):",
+   "description": "Mercury in double-capped linear fluorescent lamps for general lighting purposes not exceeding (per lamp):",
    "scope": "",
    "dates": []
   },
   "2B": {
-   "code": "2 b)",
+   "code": "2(b)",
    "annex": "III",
-   "description": "Le mercure dans d’autres lampes fluorescentes ne dépassant pas (par lampe):",
+   "description": "Mercury in other fluorescent lamps not exceeding (per lamp):",
    "scope": "",
    "dates": []
   },
   "3": {
    "code": "3",
    "annex": "III",
-   "description": "Le mercure dans les lampes fluorescentes à cathode froide et les lampes fluorescentes à électrode externe (CCFL et EEFL) à usage spécial se trouvant dans des EEE mis sur le marché avant le 24 février 2022, ne dépassant pas (par lampe):",
+   "description": "Mercury in cold cathode fluorescent lamps and external electrode fluorescent lamps (CCFL and EEFL) for special purposes used in EEE placed on the market before 24 February 2022 not exceeding (per lamp):",
    "scope": "",
    "dates": []
   },
   "3A": {
-   "code": "3 a)",
+   "code": "3(a)",
    "annex": "III",
-   "description": "de petite taille (≤ 500 mm): 3,5 mg",
-   "scope": "Expire le 24 février 2025",
+   "description": "Short length (≤ 500 mm): 3,5 mg",
+   "scope": "Expires on 24 February 2025",
    "dates": [
     "2025-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes à cathode froide et les lampes fluorescentes à électrode externe (CCFL et EEFL) à usage spécial se trouvant dans des EEE mis sur le marché avant le 24 février 2022, ne dépassant pas (par lampe):"
+   "parent": "Mercury in cold cathode fluorescent lamps and external electrode fluorescent lamps (CCFL and EEFL) for special purposes used in EEE placed on the market before 24 February 2022 not exceeding (per lamp):"
   },
   "3B": {
-   "code": "3 b)",
+   "code": "3(b)",
    "annex": "III",
-   "description": "de taille moyenne (> 500 mm et ≤ 1 500 mm): 5 mg",
-   "scope": "Expire le 24 février 2025",
+   "description": "Medium length (> 500 mm and ≤ 1 500 mm): 5 mg",
+   "scope": "Expires on 24 February 2025",
    "dates": [
     "2025-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes à cathode froide et les lampes fluorescentes à électrode externe (CCFL et EEFL) à usage spécial se trouvant dans des EEE mis sur le marché avant le 24 février 2022, ne dépassant pas (par lampe):"
+   "parent": "Mercury in cold cathode fluorescent lamps and external electrode fluorescent lamps (CCFL and EEFL) for special purposes used in EEE placed on the market before 24 February 2022 not exceeding (per lamp):"
   },
   "3C": {
-   "code": "3 c)",
+   "code": "3(c)",
    "annex": "III",
-   "description": "de grande taille (> 1 500 mm): 13 mg",
-   "scope": "Expire le 24 février 2025",
+   "description": "Long length (> 1 500 mm): 13 mg",
+   "scope": "Expires on 24 February 2025",
    "dates": [
     "2025-02-24"
    ],
-   "parent": "Le mercure dans les lampes fluorescentes à cathode froide et les lampes fluorescentes à électrode externe (CCFL et EEFL) à usage spécial se trouvant dans des EEE mis sur le marché avant le 24 février 2022, ne dépassant pas (par lampe):"
+   "parent": "Mercury in cold cathode fluorescent lamps and external electrode fluorescent lamps (CCFL and EEFL) for special purposes used in EEE placed on the market before 24 February 2022 not exceeding (per lamp):"
   },
   "4A": {
-   "code": "4 a)",
+   "code": "4(a)",
    "annex": "III",
-   "description": "Le mercure dans d’autres lampes à décharge basse pression (par lampe): 15 mg",
-   "scope": "Expire le 24 février 2023",
+   "description": "Mercury in other low pressure discharge lamps (per lamp): 15 mg",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ]
   },
   "4A-I": {
-   "code": "4 a)-I",
+   "code": "4(a)-I",
    "annex": "III",
-   "description": "Le mercure dans les lampes à décharge basse pression dépourvues de couche de phosphore, lorsque l’application exige que la gamme principale de leur spectre d’émission se situe dans le spectre ultraviolet: jusqu’à 15 mg de mercure peuvent être utilisés par lampe",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in low pressure non-phosphor coated discharge lamps, where the application requires the main range of the lamp-spectral output to be in the ultraviolet spectrum: up to 15 mg mercury may be used per lamp",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4B": {
-   "code": "4 b)",
+   "code": "4(b)",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de sodium haute pression à usage général d’éclairage qui présentent un indice de rendu des couleurs amélioré Ra > 80 et ne dépassent pas (par brûleur) P ≤ 105 W: 16 mg peuvent être utilisés par brûleur",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in High Pressure Sodium (vapour) lamps for general lighting purposes not exceeding (per burner) in lamps with improved colour rendering index Ra > 80: P ≤ 105 W: 16 mg may be used per burner",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4B-I": {
-   "code": "4 b)-I",
+   "code": "4(b)-I",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de sodium haute pression à usage général d’éclairage qui présentent un indice de rendu des couleurs amélioré Ra > 60 et ne dépassent pas (par brûleur) P ≤ 155 W: 30 mg peuvent être utilisés par brûleur",
-   "scope": "Expire le 24 février 2023",
+   "description": "Mercury in High Pressure Sodium (vapour) lamps for general lighting purposes not exceeding (per burner) in lamps with improved colour rendering index Ra > 60: P ≤ 155 W: 30 mg may be used per burner",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ]
   },
   "4B-II": {
-   "code": "4 b)-II",
+   "code": "4(b)-II",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de sodium haute pression à usage général d’éclairage qui présentent un indice de rendu des couleurs amélioré Ra > 60 et ne dépassent pas (par brûleur) 155 W < P ≤ 405 W: 40 mg peuvent être utilisés par brûleur",
-   "scope": "Expire le 24 février 2023",
+   "description": "Mercury in High Pressure Sodium (vapour) lamps for general lighting purposes not exceeding (per burner) in lamps with improved colour rendering index Ra > 60: 155 W < P ≤ 405 W: 40 mg may be used per burner",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ]
   },
   "4B-III": {
-   "code": "4 b)-III",
+   "code": "4(b)-III",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de sodium haute pression à usage général d’éclairage qui présentent un indice de rendu des couleurs amélioré Ra > 60 et ne dépassent pas (par brûleur) P > 405 W: 40 mg peuvent être utilisés par brûleur",
-   "scope": "Expire le 24 février 2023",
+   "description": "Mercury in High Pressure Sodium (vapour) lamps for general lighting purposes not exceeding (per burner) in lamps with improved colour rendering index Ra > 60: P > 405 W: 40 mg may be used per burner",
+   "scope": "Expires on 24 February 2023",
    "dates": [
     "2023-02-24"
    ]
   },
   "4C": {
-   "code": "4 c)",
+   "code": "4(c)",
    "annex": "III",
-   "description": "Le mercure dans d'autres lampes à vapeur de sodium haute pression à usage général d'éclairage ne dépassant pas (par brûleur):",
+   "description": "Mercury in other High Pressure Sodium (vapour) lamps for general lighting purposes not exceeding (per burner):",
    "scope": "",
    "dates": []
   },
   "4C-I": {
-   "code": "4 c)-I",
+   "code": "4(c)-I",
    "annex": "III",
    "description": "P ≤ 155 W: 20 mg",
-   "scope": "Expire le 24 février 2027",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4C-II": {
-   "code": "4 c)-II",
+   "code": "4(c)-II",
    "annex": "III",
    "description": "155 W < P ≤ 405 W: 25 mg",
-   "scope": "Expire le 24 février 2027",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4C-III": {
-   "code": "4 c)-III",
+   "code": "4(c)-III",
    "annex": "III",
    "description": "P > 405 W: 25 mg",
-   "scope": "Expire le 24 février 2027",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4D": {
-   "code": "4 d)",
+   "code": "4(d)",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de mercure haute pression",
-   "scope": "Expire le 13 avril 2015",
+   "description": "Mercury in High Pressure Mercury (vapour) lamps (HPMV)",
+   "scope": "Expires on 13 April 2015",
    "dates": [
     "2015-04-13"
    ]
   },
   "4E": {
-   "code": "4 e)",
+   "code": "4(e)",
    "annex": "III",
-   "description": "Mercure dans les lampes aux halogénures métalliques (MH)",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in metal halide lamps (MH)",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4F-I": {
-   "code": "4 f)-I",
+   "code": "4(f)-I",
    "annex": "III",
-   "description": "Le mercure dans d’autres lampes à décharge à usage spécial non précisées dans la présente annexe",
-   "scope": "Expire le 24 février 2025",
+   "description": "Mercury in other discharge lamps for special purposes not specifically mentioned in this Annex",
+   "scope": "Expires on 24 February 2025",
    "dates": [
     "2025-02-24"
    ]
   },
   "4F-II": {
-   "code": "4 f)-II",
+   "code": "4(f)-II",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de mercure à haute pression utilisées dans les projecteurs lorsqu’une puissance ≥ 2000 lumens ANSI est requise",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in high pressure mercury vapour lamps used in projectors where an output ≥ 2000 lumen ANSI is required",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4F-III": {
-   "code": "4 f)-III",
+   "code": "4(f)-III",
    "annex": "III",
-   "description": "Le mercure dans les lampes à vapeur de sodium à haute pression utilisées pour l’éclairage en horticulture",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in high pressure sodium vapour lamps used for horticulture lighting",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4F-IV": {
-   "code": "4 f)-IV",
+   "code": "4(f)-IV",
    "annex": "III",
-   "description": "Le mercure dans les lampes émettant de la lumière dans le spectre ultraviolet",
-   "scope": "Expire le 24 février 2027",
+   "description": "Mercury in lamps emitting light in the ultraviolet spectrum",
+   "scope": "Expires on 24 February 2027",
    "dates": [
     "2027-02-24"
    ]
   },
   "4G": {
-   "code": "4 g)",
+   "code": "4(g)",
    "annex": "III",
-   "description": "Le mercure dans les tubes lumineux à décharge de fabrication artisanale qui sont utilisés pour les enseignes et la signalétique lumineuses, l'éclairage décoratif ou architectural et spécialisé et les créations lumineuses, sans dépasser les quantités suivantes: a) 20 mg par paire d'électrodes + 0,3 mg par centimètre de longueur de tube, sans dépasser 80 mg, pour les applications à l'extérieur ou à l'intérieur des locaux avec température ambiante inférieure à 20 °C; b) 15 mg par paire d'électrodes + 0,24 mg par centimètre de longueur de tube, sans dépasser 80 mg, pour toutes les autres applications à l'intérieur des locaux.",
-   "scope": "Expire le 31 décembre 2018",
+   "description": "Mercury in hand crafted luminous discharge tubes used for signs, decorative or architectural and specialist lighting and light-artwork, where the mercury content shall be limited as follows: (a) 20 mg per electrode pair + 0,3 mg per tube length in cm, but not more than 80 mg, for outdoor applications and indoor applications exposed to temperatures below 20 °C; (b) 15 mg per electrode pair + 0,24 mg per tube length in cm, but not more than 80 mg, for all other indoor applications.",
+   "scope": "Expires on 31 December 2018",
    "dates": [
     "2018-12-31"
    ]
   },
   "5A": {
-   "code": "5 a)",
+   "code": "5(a)",
    "annex": "III",
-   "description": "Le plomb dans le verre des tubes cathodiques",
+   "description": "Lead in glass of cathode ray tubes",
    "scope": "",
    "dates": []
   },
   "5B": {
-   "code": "5 b)",
+   "code": "5(b)",
    "annex": "III",
-   "description": "Le plomb dans le verre des tubes fluorescents ne dépassant pas 0,2 % en poids",
+   "description": "Lead in glass of fluorescent tubes not exceeding 0,2 % by weight",
    "scope": "",
    "dates": []
   },
   "6A": {
-   "code": "6 a)",
+   "code": "6(a)",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans l’acier destiné à l’usinage et dans l’acier galvanisé contenant jusqu’à 0,35 % de plomb en poids",
-   "scope": "Expire le 11 décembre 2026.",
+   "description": "Lead as an alloying element in steel for machining purposes and in galvanised steel containing up to 0,35 % lead by weight",
+   "scope": "Expires on 11 december 2026",
    "dates": [
     "2026-12-11"
    ]
   },
   "6A-I": {
-   "code": "6 a)-I",
+   "code": "6(a)-I",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans l’acier destiné à l’usinage contenant jusqu’à 0,35 % de plomb en poids",
-   "scope": "Expire le 30 juin 2027 pour toutes les catégories.",
+   "description": "Lead as an alloying element in steel for machining purposes containing up to 0,35 % lead by weight",
+   "scope": "Expires on 30 June 2027 for all categories.",
    "dates": [
     "2027-06-30"
    ]
   },
   "6A-II": {
-   "code": "6 a)-II",
+   "code": "6(a)-II",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans les composants en acier galvanisé à chaud par lots contenant jusqu’à 0,2 % de plomb en poids",
-   "scope": "Expire le 30 juin 2027 pour toutes les catégories.",
+   "description": "Lead as an alloying element in batch hot-dip galvanised steel components containing up to 0,2 % lead by weight",
+   "scope": "Expires on 30 June 2027 for all categories.",
    "dates": [
     "2027-06-30"
    ]
   },
   "6B": {
-   "code": "6 b)",
+   "code": "6(b)",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans l’aluminium contenant jusqu’à 0,4 % de plomb en poids",
-   "scope": "Expire le 11 juin 2027.",
+   "description": "Lead as an alloying element in aluminium containing up to 0,4 % lead by weight",
+   "scope": "Expires on 11 June 2027",
    "dates": [
     "2027-06-11"
    ]
   },
   "6B-I": {
-   "code": "6 b)-I",
+   "code": "6(b)-I",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans l’aluminium contenant jusqu’à 0,4 % de plomb en poids, à condition qu’il provienne du recyclage de débris d’aluminium contenant du plomb",
-   "scope": "Expire le 11 décembre 2026 pour les catégories 1 à 7 et 10. Expire le 30 juin 2027 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead as an alloying element in aluminium containing up to 0,4 % lead by weight, provided it stems from lead-bearing aluminium scrap recycling",
+   "scope": "Expires on 11 december 2026 for categories 1-7, 10. Expires on 30 June 2027 for categories 9 industrial monitoring and control instruments, and 11.",
    "dates": [
     "2026-12-11",
     "2027-06-30"
    ]
   },
   "6B-II": {
-   "code": "6 b)-II",
+   "code": "6(b)-II",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans l’aluminium destiné à l’usinage contenant jusqu’à 0,4 % de plomb en poids",
-   "scope": "Expire le 11 juin 2027 pour les catégories 1 à 7 et 10. Expire le 30 juin 2027 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11 .",
+   "description": "Lead as an alloying element in aluminium for machining purposes with a lead content up to 0,4 % by weight",
+   "scope": "Expires on 11 June 2027 for categories 1-7, 10. Expires on 30 June 2027 for categories 9 industrial monitoring and control instruments and 11 .",
    "dates": [
     "2027-06-11",
     "2027-06-30"
    ]
   },
   "6B-III": {
-   "code": "6 b)-III",
+   "code": "6(b)-III",
    "annex": "III",
-   "description": "Le plomb en tant qu’élément d’alliage dans les alliages de coulée d’aluminium contenant jusqu’à 0,3 % de plomb en poids, à condition qu’il provienne du recyclage de débris d’aluminium contenant du plomb",
-   "scope": "Expire le 30 juin 2027 pour les catégories 1 à 8, pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 10.",
+   "description": "Lead as an alloying element in aluminium casting alloys containing up to 0,3 % lead by weight provided it stems from lead-bearing aluminium scrap recycling",
+   "scope": "Expires on 30 June 2027 for categories 1-8, 9 other than industrial monitoring and control instruments, and 10.",
    "dates": [
     "2027-06-30"
    ]
   },
   "6C": {
-   "code": "6 c)",
+   "code": "6(c)",
    "annex": "III",
-   "description": "Alliage de cuivre contenant jusqu’à 4 % de plomb en poids",
-   "scope": "Expire le 30 juin 2027.",
+   "description": "Copper alloy containing up to 4 % lead by weight",
+   "scope": "Expires on 30 June 2027.",
    "dates": [
     "2027-06-30"
    ]
   },
   "7A": {
-   "code": "7 a)",
+   "code": "7(a)",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids)",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 30 juin 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead)",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 30 June 2027.",
    "dates": [
     "2027-06-30"
    ]
   },
   "7A-I": {
-   "code": "7 a)-I",
+   "code": "7(a)-I",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) pour les interconnexions internes destinées à la fixation de puces ou d’autres composants avec une puce dans un assemblage de semi-conducteurs, avec des courants en régime permanent ou transitoires/impulsionnels de 0,1 A ou plus, ou des tensions de blocage supérieures à 10 V, ou des dimensions de bord de puce supérieures à 0,3 mm × 0,3 mm",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) for internal interconnections for attaching die, or other components along with a die in semiconductor assembly with steady state or transient/impulse currents of 0,1 A or greater or blocking voltages beyond 10 V, or die edge sizes larger than 0,3 mm × 0,3 mm",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-II": {
-   "code": "7 a)-II",
+   "code": "7(a)-II",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) pour les connexions intégrales (c.-à-d. internes et externes) de fixation de puces dans des composants électriques et électroniques, si toutes les conditions suivantes sont remplies: — la conductivité thermique du matériau de fixation de puce durci/fritté est > 35 W/(m × K), — la conductivité électrique du matériau de fixation de puce durci/fritté est > 4,7 MS/m, — la température de solidus est supérieure à 260 °C.",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) for integral (meaning internal and external) connections of die attach in electrical and electronic components, if all the following conditions are met: — the thermal conductivity of the cured/sintered die-attach material is > 35 W/(m × K), — the electrical conductivity of the cured/sintered die-attach material is > 4,7 MS/m, — solidus melting temperature is higher than 260 °C",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-III": {
-   "code": "7 a)-III",
+   "code": "7(a)-III",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) dans les soudures de premier niveau (connexions internes ou intégrales c.-à-d. internes et externes) pour la fabrication de composants, de manière que le montage ultérieur de composants électroniques sur des sous-ensembles (p.ex. modules, sous-circuits imprimés, substrats ou soudures point à point) au moyen d’une soudure secondaire ne provoque pas la refusion de la soudure de premier niveau. Cette sous-exemption exclut les applications de fixation de puces et les scellements hermétiques.",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) in first level solder joints (internal or integral connections – meaning internal and external) for manufacturing components so that subsequent mounting of electronic components onto subassemblies (i.e. modules, sub-circuit boards, substrates, or point-to-point soldering) with a secondary solder does not reflow the first level solder. This sub-entry excludes die attach applications and hermetic sealings",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-IV": {
-   "code": "7 a)-IV",
+   "code": "7(a)-IV",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) dans les joints de soudure de deuxième niveau pour la fixation de composants sur des cartes de circuit imprimé ou des cadres de connexion: 1) dans des billes de soudure pour la fixation des matrices de billes BGA (Ball Grid Array) en céramique; 2) dans les surmoulages plastiques haute température (> 220 °C).",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) in second level solder joints for the attachment of components to printed circuit board or lead frames: (1) in solder balls for the attachment of ceramic ball-grid-array (BGA); (2) in high temperature plastic overmouldings (> 220 °C)",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-V": {
-   "code": "7 a)-V",
+   "code": "7(a)-V",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) en tant que matériau de scellement hermétique entre: 1) un boîtier ou un connecteur en céramique et un boîtier métallique; 2) des terminaisons de composants et une sous-partie interne.",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) as a hermetic sealing material between: (1) a ceramic package or plug and a metal case; (2) component terminations and an internal sub-part",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-VI": {
-   "code": "7 a)-VI",
+   "code": "7(a)-VI",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) pour établir des connexions électriques entre des composants de lampe dans les lampes à réflecteur à incandescence pour chauffage infrarouge, les lampes à décharge à haute intensité ou les lampes de four",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) for establishing electrical connections between lamp components in incandescent reflector lamps for infrared heating, high intensity discharge lamps, or oven lamps",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7A-VII": {
-   "code": "7 a)-VII",
+   "code": "7(a)-VII",
    "annex": "III",
-   "description": "Le plomb dans les soudures à haute température de fusion (c.-à-d. les alliages de plomb contenant au moins 85 % de plomb en poids) pour des transducteurs audio dont la température de fonctionnement maximale dépasse 200 °C",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 24 de la présente annexe) et expire le 31 décembre 2027.",
+   "description": "Lead in high melting temperature type solders (i.e. lead-based alloys containing 85 % by weight or more lead) for audio transducers where the peak operating temperature exceeds 200 °C",
+   "scope": "Applies to all categories (except applications covered by point 24 of this Annex) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7B": {
-   "code": "7 b)",
+   "code": "7(b)",
    "annex": "III",
-   "description": "Le plomb dans les soudures pour les serveurs, les systèmes de stockage et de matrices de stockage, les équipements d’infrastructure de réseaux destinés à la commutation, la signalisation, la transmission et la gestion de réseaux dans le domaine des télécommunications",
+   "description": "Lead in solders for servers, storage and storage array systems, network infrastructure equipment for switching, signalling, transmission, and network management for telecommunications",
    "scope": "",
    "dates": []
   },
   "7C-I": {
-   "code": "7 c)-I",
+   "code": "7(c)-I",
    "annex": "III",
-   "description": "Les composants électriques et électroniques contenant du plomb dans du verre ou des matériaux céramiques autres que les céramiques diélectriques utilisées dans les condensateurs (par exemple, les dispositifs piézoélectriques) ou dans un composé matriciel à base de verre ou de céramique",
-   "scope": "S’applique à toutes les catégories et expire le 30 juin 2027.",
+   "description": "Electrical and electronic components containing lead in a glass or ceramic other than dielectric ceramic in capacitors, e.g. piezoelectronic devices, or in a glass or ceramic matrix compound",
+   "scope": "Applies to all categories and expires on 30 June 2027.",
    "dates": [
     "2027-06-30"
    ]
   },
   "7C-II": {
-   "code": "7 c)-II",
+   "code": "7(c)-II",
    "annex": "III",
-   "description": "Le plomb dans les céramiques diélectriques dans les condensateurs pour une tension nominale de 125 V CA ou 250 V CC ou plus",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 7 c)-I ou le point 7 c)-IV et expire le 31 décembre 2027.",
+   "description": "Lead in dielectric ceramic in capacitors for a rated voltage of 125 V AC or 250 V DC or higher",
+   "scope": "Applies to all categories (except applications covered by point 7(c)-I or 7(c)-IV) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7C-III": {
-   "code": "7 c)-III",
+   "code": "7(c)-III",
    "annex": "III",
-   "description": "Le plomb dans les céramiques diélectriques dans les condensateurs pour une tension nominale de moins de 125 V CA ou 250 V CC",
-   "scope": "Expire le 1 er janvier 2013; après cette date, il peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 1 er janvier 2013",
+   "description": "Lead in dielectric ceramic in capacitors for a rated voltage of less than 125 V AC or 250 V DC",
+   "scope": "Expires on 1 January 2013 and after that date may be used in spare parts for EEE placed on the market before 1 January 2013",
    "dates": [
     "2013-01-01"
    ]
   },
   "7C-IV": {
-   "code": "7 c)-IV",
+   "code": "7(c)-IV",
    "annex": "III",
-   "description": "Plomb dans les matériaux céramiques diélectriques de type PZT de condensateurs faisant partie de circuits intégrés ou de semi-conducteurs discrets",
-   "scope": "Expire: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead in PZT based dielectric ceramic materials for capacitors which are part of integrated circuits or discrete semiconductors",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10; — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -478,37 +478,37 @@
    ]
   },
   "7C-V": {
-   "code": "7 c)-V",
+   "code": "7(c)-V",
    "annex": "III",
-   "description": "Les composants électriques et électroniques contenant du plomb dans un verre ou un composé matriciel à base de verre qui remplit l’une des fonctions suivantes: 1) la protection et l’isolation électrique dans les billes de verre de diodes à haute tension et les couches de verre pour plaquettes (wafers); 2) pour le scellement hermétique entre les parties en céramique, en métal et/ou en verre; 3) à des fins de liaison dans une fenêtre de paramètres de procédé avec une température inférieure à 500 °C combinée à une viscosité de 1 013,3 dPas (température de transition vitreuse); 4) l’utilisation en tant que matériau résistif tel que l’encre, avec une résistivité comprise entre 1 ohm/carré et 100 mégohms/carré, à l’exclusion des potentiomètres ajustables; 5) l’utilisation dans des surfaces de verre modifiées chimiquement pour galettes de microcanaux (GMC), multiplicateurs d’électrons à canal (CEM) et produits en verre résistifs.",
-   "scope": "S’applique à toutes les catégories et expire le 31 décembre 2027.",
+   "description": "Electrical and electronic components containing lead in a glass or glass matrix compound that fulfils any of the following functions: (1) for protection and electrical insulation in glass beads of high-voltage diodes and glass layers for wafers; (2) for hermetic sealing between ceramic, metal and/or glass parts; (3) for bonding purposes in a process parameter window for < 500 °C combined with a viscosity of 1 013,3 dPas (‘glass-transition temperature’); (4) for use as a resistive material such as ink, with a resistivity range from 1 ohm/square to 100 megohm/square, excluding trimmer potentiometers; (5) for use in chemically modified glass surfaces for microchannel plates (MCPs), channel electron multipliers (CEMs) and resistive glass products (RGPs).",
+   "scope": "Applies to all categories and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "7C-VI": {
-   "code": "7 c)-VI",
+   "code": "7(c)-VI",
    "annex": "III",
-   "description": "Les composants électriques et électroniques contenant du plomb dans un matériau céramique qui remplit l’une des fonctions suivantes: 1) l’utilisation dans des céramiques piézoélectriques de type titano-zirconates de plomb (PZT); 2) la production de céramiques ayant un coefficient de température positif.",
-   "scope": "S’applique à toutes les catégories (à l’exception des applications couvertes par le point 7 c)-II, 7 c)-III et 7 c)-IV de la présente annexe ainsi que par le point 14 de l’annexe IV, et expire le 31 décembre 2027.",
+   "description": "Electrical and electronic components containing lead in a ceramic that fulfils any of the following functions: (1) for use in piezoelectric lead zirconium titanate (PZT) ceramics; (2) for providing ceramics with a positive temperature coefficient (PTC).",
+   "scope": "Applies to all categories (except applications covered by points 7(c)-II, 7(c)-III and 7(c)-IV of this Annex as well as point 14 of Annex IV) and expires on 31 December 2027.",
    "dates": [
     "2027-12-31"
    ]
   },
   "8A": {
-   "code": "8 a)",
+   "code": "8(a)",
    "annex": "III",
-   "description": "Le cadmium et ses composés dans les fusibles thermiques à pastille à usage unique",
-   "scope": "Expire le 1 er janvier 2012; après cette date, il peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 1 er janvier 2012",
+   "description": "Cadmium and its compounds in one shot pellet type thermal cut-offs",
+   "scope": "Expires on 1 January 2012 and after that date may be used in spare parts for EEE placed on the market before 1 January 2012",
    "dates": [
     "2012-01-01"
    ]
   },
   "8B": {
-   "code": "8 b)",
+   "code": "8(b)",
    "annex": "III",
-   "description": "Le cadmium et ses composés dans les contacts électriques",
-   "scope": "S'applique aux catégories 8, 9 et 11 et expire aux dates suivantes: — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9, ainsi que pour la catégorie 11.",
+   "description": "Cadmium and its compounds in electrical contacts",
+   "scope": "Applies to categories 8, 9 and 11 and expires on: — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -516,10 +516,10 @@
    ]
   },
   "8B-I": {
-   "code": "8 b)-I",
+   "code": "8(b)-I",
    "annex": "III",
-   "description": "Le cadmium et ses composés dans les contacts électriques utilisés dans: — les disjoncteurs; — les commandes de capteurs thermiques; — les protections thermiques pour moteurs (à l'exclusion des protections thermiques hermétiques); — les commutateurs C.A. prévus pour: — — 6 A et plus à 250 V et plus en courant alternatif, ou — 12 A et plus à 125 V et plus en courant alternatif; — les commutateurs C.C. prévus pour 20 A et plus à 18 V et plus en courant continu; et — les commutateurs prévus pour une tension d'alimentation de fréquence ≥ 200 Hz.",
-   "scope": "S'applique aux catégories 1 à 7 et 10 et expire le 21 juillet 2021.",
+   "description": "Cadmium and its compounds in electrical contacts used in: — circuit breakers, — thermal sensing controls, — thermal motor protectors (excluding hermetic thermal motor protectors), — AC switches rated at: — — 6 A and more at 250 V AC and more, or — 12 A and more at 125 V AC and more, — DC switches rated at 20 A and more at 18 V DC and more, and — switches for use at voltage supply frequency ≥ 200 Hz.",
+   "scope": "Applies to categories 1 to 7 and 10 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -527,8 +527,8 @@
   "9": {
    "code": "9",
    "annex": "III",
-   "description": "Le chrome hexavalent comme agent anticorrosion dans les systèmes de refroidissement en acier au carbone des réfrigérateurs à absorption (jusqu’à 0,75 % en poids dans la solution de refroidissement)",
-   "scope": "S’applique aux catégories 8, 9 et 11 et expire aux dates suivantes: — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9, ainsi que pour la catégorie 11.",
+   "description": "Hexavalent chromium as an anticorrosion agent of the carbon steel cooling system in absorption refrigerators up to 0,75 % by weight in the cooling solution",
+   "scope": "Applies to categories 8, 9 and 11 and expires on: — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments, — 21 July 2023 for category 8 in vitro diagnostic medical devices, — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -536,37 +536,37 @@
    ]
   },
   "9A-I": {
-   "code": "9 a)-I",
+   "code": "9(a)-I",
    "annex": "III",
-   "description": "Le chrome hexavalent, jusqu’à 0,75 % en poids, utilisé comme agent anticorrosion dans la solution de refroidissement des systèmes de refroidissement en acier au carbone des réfrigérateurs à absorption (y compris les minibars) destinés à fonctionner totalement ou en partie avec un système chauffant électrique d’une puissance utile absorbée moyenne < 75 W, en conditions constantes de marche",
-   "scope": "S’applique aux catégories 1 à 7 et 10 et expire le 5 mars 2021.",
+   "description": "Up to 0,75 % hexavalent chromium by weight, used as an anticorrosion agent in the cooling solution of carbon steel cooling systems of absorption refrigerators (including minibars) designed to operate fully or partly with electrical heater, having an average utilised power input < 75 W at constant running conditions",
+   "scope": "Applies to categories 1-7 and 10 and expires on 5 March 2021.",
    "dates": [
     "2021-03-05"
    ]
   },
   "9A-II": {
-   "code": "9 a)-II",
+   "code": "9(a)-II",
    "annex": "III",
-   "description": "Le chrome hexavalent, jusqu’à 0,75 % en poids, utilisé comme agent anticorrosion dans la solution de refroidissement des systèmes de refroidissement en acier au carbone des réfrigérateurs à absorption: — destinés à fonctionner totalement ou en partie avec un système chauffant électrique d’une puissance utile absorbée moyenne ≥ 75 W, en conditions constantes de marche, — destinés à fonctionner totalement avec un système chauffant non électrique.",
-   "scope": "S’applique aux catégories 1 à 7 et 10 et expire le 21 juillet 2021.",
+   "description": "Up to 0,75 % hexavalent chromium by weight, used as an anticorrosion agent in the cooling solution of carbon steel cooling systems of absorption refrigerators: — designed to operate fully or partly with electrical heater, having an average utilised power input ≥ 75 W at constant running conditions, — designed to fully operate with non-electrical heater.",
+   "scope": "Applies to categories 1-7 and 10 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
   },
   "9A-III": {
-   "code": "9 a)-III",
+   "code": "9(a)-III",
    "annex": "III",
-   "description": "Jusqu’à 0,7 % de chrome hexavalent en poids, utilisé comme anticorrosif dans le fluide de travail du circuit scellé en acier au carbone des pompes à chaleur à absorption à gaz, pour le chauffage des locaux et de l’eau",
-   "scope": "S’applique à la catégorie 1 et expire le 31 décembre 2026.",
+   "description": "Up to 0,7 % hexavalent chromium by weight, used as an anticorrosion agent in the working fluid of the carbon steel sealed circuit of gas absorption heat pumps for space and water heating",
+   "scope": "Applies to category 1 and expires on 31 December 2026.",
    "dates": [
     "2026-12-31"
    ]
   },
   "9B": {
-   "code": "9 b)",
+   "code": "9(b)",
    "annex": "III",
-   "description": "Le plomb dans les coussinets et demi-coussinets des compresseurs contenant du réfrigérant destinés aux applications liées au chauffage, à la ventilation, à la climatisation et à la réfrigération",
-   "scope": "S'applique aux catégories 8, 9 et 11 et expire aux dates suivantes: — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11, — le 21 juillet 2021 pour les autres sous-catégories des catégories 8 et 9.",
+   "description": "Lead in bearing shells and bushes for refrigerant-containing compressors for heating, ventilation, air conditioning and refrigeration (HVACR) applications",
+   "scope": "Applies to categories 8, 9 and 11; expires on: — 21 July 2023 for category 8 in vitro diagnostic medical devices, — 21 July 2024 for category 9 industrial monitoring and control instruments and for category 11, — 21 July 2021 for other subcategories of categories 8 and 9.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -574,28 +574,28 @@
    ]
   },
   "9B-I": {
-   "code": "9 b)-I",
+   "code": "9(b)-I",
    "annex": "III",
-   "description": "Le plomb dans les coussinets et demi-coussinets des compresseurs de réfrigérant hermétiques à spirale d'une puissance absorbée déclarée inférieure ou égale à 9 kW, pour les applications liées au chauffage, à la ventilation, à la climatisation et à la réfrigération",
-   "scope": "S'applique à la catégorie 1 et expire le 21 juillet 2019.",
+   "description": "Lead in bearing shells and bushes for refrigerant-containing hermetic scroll compressors with a stated electrical power input equal or below 9 kW for heating, ventilation, air conditioning and refrigeration (HVACR) applications",
+   "scope": "Applies to category 1; expires on 21 July 2019.",
    "dates": [
     "2019-07-21"
    ]
   },
   "11A": {
-   "code": "11 a)",
+   "code": "11(a)",
    "annex": "III",
-   "description": "Le plomb utilisé dans les systèmes à connecteurs à broches conformes «C-press»",
-   "scope": "Peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 24 septembre 2010",
+   "description": "Lead used in C-press compliant pin connector systems",
+   "scope": "May be used in spare parts for EEE placed on the market before 24 September 2010",
    "dates": [
     "2010-09-24"
    ]
   },
   "11B": {
-   "code": "11 b)",
+   "code": "11(b)",
    "annex": "III",
-   "description": "Le plomb utilisé dans d’autres systèmes que les systèmes à connecteurs à broches conformes «C-press»",
-   "scope": "Expire le 1 er janvier 2013; après cette date, il peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 1 er janvier 2013",
+   "description": "Lead used in other than C-press compliant pin connector systems",
+   "scope": "Expires on 1 January 2013 and after that date may be used in spare parts for EEE placed on the market before 1 January 2013",
    "dates": [
     "2013-01-01"
    ]
@@ -603,17 +603,17 @@
   "12": {
    "code": "12",
    "annex": "III",
-   "description": "Le plomb en tant que matériau de revêtement pour l’anneau en C du module thermoconducteur",
-   "scope": "Peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 24 septembre 2010",
+   "description": "Lead as a coating material for the thermal conduction module C-ring",
+   "scope": "May be used in spare parts for EEE placed on the market before 24 September 2010",
    "dates": [
     "2010-09-24"
    ]
   },
   "13A": {
-   "code": "13 a)",
+   "code": "13(a)",
    "annex": "III",
-   "description": "Le plomb dans le verre blanc destiné aux applications optiques",
-   "scope": "S'applique à toutes les catégories et expire aux dates suivantes: — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11, — le 21 juillet 2021 pour toutes les autres catégories et sous-catégories.",
+   "description": "Lead in white glasses used for optical applications",
+   "scope": "Applies to all categories; expires on: — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments and for category 11; — 21 July 2021 for all other categories and subcategories",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -621,10 +621,10 @@
    ]
   },
   "13B": {
-   "code": "13 b)",
+   "code": "13(b)",
    "annex": "III",
-   "description": "Le cadmium et le plomb dans le verre filtrant et le verre utilisé pour les étalons de réflexion",
-   "scope": "S'applique aux catégories 8, 9 et 11 et expire aux dates suivantes: — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11, — le 21 juillet 2021 pour les autres sous-catégories des catégories 8 et 9.",
+   "description": "Cadmium and lead in filter glasses and glasses used for reflectance standards",
+   "scope": "Applies to categories 8, 9 and 11; expires on: — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments and for category 11; — 21 July 2021 for other subcategories of categories 8 and 9",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -632,33 +632,33 @@
    ]
   },
   "13B-I": {
-   "code": "13 b)-I",
+   "code": "13(b)-I",
    "annex": "III",
-   "description": "Le plomb dans les verres optiques filtrants teintés par addition d'ions.",
-   "scope": "S'applique aux catégories 1 à 7 et 10 et expire le 21 juillet 2021 pour les catégories 1 à 7 et 10.",
+   "description": "Lead in ion coloured optical filter glass types",
+   "scope": "Applies to categories 1 to 7 and 10; expires on 21 July 2021 for categories 1 to 7 and 10",
    "dates": [
     "2021-07-21"
    ]
   },
   "13B-II": {
-   "code": "13 b)-II",
+   "code": "13(b)-II",
    "annex": "III",
-   "description": "Le cadmium dans les verres optiques filtrants teintés par solutions colloïdales et traitement thermique; à l'exclusion des applications relevant du point 39 de la présente annexe.",
+   "description": "Cadmium in striking optical filter glass types; excluding applications falling under point 39 of this Annex",
    "scope": "",
    "dates": []
   },
   "13B-III": {
-   "code": "13 b)-III",
+   "code": "13(b)-III",
    "annex": "III",
-   "description": "Le cadmium et le plomb dans les verres destinés aux étalons de réflexion.",
+   "description": "Cadmium and lead in glazes used for reflectance standards",
    "scope": "",
    "dates": []
   },
   "14": {
    "code": "14",
    "annex": "III",
-   "description": "Le plomb dans les soudures comportant plus de deux éléments pour la connexion entre les broches et le boîtier de microprocesseurs, à teneur en plomb comprise entre 80 et 85 % en poids",
-   "scope": "A expiré le 1 er janvier 2011; après cette date, il peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 1 er janvier 2011",
+   "description": "Lead in solders consisting of more than two elements for the connection between the pins and the package of microprocessors with a lead content of more than 80 % and less than 85 % by weight",
+   "scope": "Expired on 1 January 2011 and after that date may be used in spare parts for EEE placed on the market before 1 January 2011",
    "dates": [
     "2011-01-01"
    ]
@@ -666,8 +666,8 @@
   "15": {
    "code": "15",
    "annex": "III",
-   "description": "Le plomb dans les soudures visant à réaliser une connexion électrique durable entre la puce et le substrat du semi-conducteur dans les boîtiers de circuits intégrés à puce retournée",
-   "scope": "S'applique aux catégories 8, 9 et 11 et expire aux dates suivantes: — le 21 juillet 2021 pour les EEE des catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead in solders to complete a viable electrical connection between semiconductor die and carrier within integrated circuit flip chip packages",
+   "scope": "Applies to categories 8, 9 and 11 and expires on: — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -675,10 +675,10 @@
    ]
   },
   "15A": {
-   "code": "15 a)",
+   "code": "15(a)",
    "annex": "III",
-   "description": "Le plomb dans les soudures visant à réaliser une connexion électrique durable entre la puce et le substrat du semi-conducteur dans les boîtiers de circuits intégrés à puce retournée, lorsqu'au moins une des conditions suivantes est remplie: — un nœud technologique de semi-conducteur de 90 nm ou plus, — une puce unique de 300 mm 2 ou plus dans tout nœud technologique de semi-conducteur, — des boîtiers à puces empilées avec puce de 300 mm 2 ou plus, ou des interposeurs en silicium de 300 mm 2 ou plus.",
-   "scope": "S'applique aux catégories 1 à 7 et 10 et expire le 21 juillet 2021.",
+   "description": "Lead in solders to complete a viable electrical connection between the semiconductor die and carrier within integrated circuit flip chip packages where at least one of the following criteria applies: — a semiconductor technology node of 90 nm or larger; — a single die of 300 mm 2 or larger in any semiconductor technology node; — stacked die packages with die of 300 mm 2 or larger, or silicon interposers of 300 mm 2 or larger.",
+   "scope": "Applies to categories 1 to 7 and 10 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -686,8 +686,8 @@
   "16": {
    "code": "16",
    "annex": "III",
-   "description": "Le plomb dans les lampes à incandescence linéaires dont les tubes ont un revêtement de silicate",
-   "scope": "Expire le 1 er septembre 2013",
+   "description": "Lead in linear incandescent lamps with silicate coated tubes",
+   "scope": "Expires on 1 September 2013",
    "dates": [
     "2013-09-01"
    ]
@@ -695,24 +695,24 @@
   "17": {
    "code": "17",
    "annex": "III",
-   "description": "L’halogénure de plomb utilisé comme activateur de rayonnement dans les lampes à décharge à haute intensité (HID) destinées aux applications de reprographie professionnelle",
+   "description": "Lead halide as radiant agent in high intensity discharge (HID) lamps used for professional reprography applications",
    "scope": "",
    "dates": []
   },
   "18A": {
-   "code": "18 a)",
+   "code": "18(a)",
    "annex": "III",
-   "description": "Le plomb utilisé comme activateur dans la poudre fluorescente (maximum 1 % de plomb en poids) des lampes à décharge utilisées comme lampes spéciales pour la reprographie par procédé diazoïque, la lithographie, les pièges à insectes, les procédés photochimiques et de durcissement, contenant des luminophores tels que (Sr,Ba) 2 MgSi 2 O 7 : Pb (SMS)",
-   "scope": "A expiré le 1 er janvier 2011",
+   "description": "Lead as activator in the fluorescent powder (1 % lead by weight or less) of discharge lamps when used as speciality lamps for diazoprinting reprography, lithography, insect traps, photochemical and curing processes containing phosphors such as SMS ((Sr,Ba) 2 MgSi 2 O 7 :Pb)",
+   "scope": "Expired on 1 January 2011",
    "dates": [
     "2011-01-01"
    ]
   },
   "18B": {
-   "code": "18 b)",
+   "code": "18(b)",
    "annex": "III",
-   "description": "Le plomb utilisé comme activateur dans la poudre fluorescente (maximum 1 % de plomb en poids) des lampes à décharge utilisées comme lampes de bronzage contenant des luminophores tels que BaSi2O5: Pb (BSP)",
-   "scope": "Expire: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9, ainsi que pour la catégorie 11.",
+   "description": "Lead as activator in the fluorescent powder (1 % lead by weight or less) of discharge lamps when used as sun tanning lamps containing phosphors such as BSP (BaSi2O5:Pb)",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10; — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -720,10 +720,10 @@
    ]
   },
   "18B-I": {
-   "code": "18 b)-I",
+   "code": "18(b)-I",
    "annex": "III",
-   "description": "Le plomb utilisé comme activateur dans la poudre fluorescente (maximum 1 % de plomb en poids) des lampes à décharge contenant des luminophores tels que BaSi2O5: Pb (BSP), lorsqu'elles sont utilisées dans des équipements médicaux de photothérapie",
-   "scope": "S'applique aux catégories 5 et 8, à l'exception des applications couvertes par l'entrée 34 de l'annexe IV, et expire le 21 juillet 2021.",
+   "description": "Lead as activator in the fluorescent powder (1 % lead by weight or less) of discharge lamps containing phosphors such as BSP (BaSi2O5:Pb) when used in medical phototherapy equipment",
+   "scope": "Applies to categories 5 and 8, excluding applications covered by entry 34 of Annex IV, and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -731,8 +731,8 @@
   "19": {
    "code": "19",
    "annex": "III",
-   "description": "Le plomb avec PbBiSn-Hg et PbInSn-Hg dans des compositions spécifiques comme amalgame principal et avec PbSn-Hg comme amalgame auxiliaire dans les lampes à économie d’énergie (ESL) très compactes",
-   "scope": "Expire le 1 er juin 2011",
+   "description": "Lead with PbBiSn-Hg and PbInSn-Hg in specific compositions as main amalgam and with PbSn-Hg as auxiliary amalgam in very compact energy saving lamps (ESL)",
+   "scope": "Expires on 1 June 2011",
    "dates": [
     "2011-06-01"
    ]
@@ -740,8 +740,8 @@
   "20": {
    "code": "20",
    "annex": "III",
-   "description": "L’oxyde de plomb dans le verre utilisé pour lier les substrats avant et arrière des lampes fluorescentes plates destinées aux écrans à cristaux liquides (LCD)",
-   "scope": "Expire le 1 er juin 2011",
+   "description": "Lead oxide in glass used for bonding front and rear substrates of flat fluorescent lamps used for Liquid Crystal Displays (LCDs)",
+   "scope": "Expires on 1 June 2011",
    "dates": [
     "2011-06-01"
    ]
@@ -749,8 +749,8 @@
   "21": {
    "code": "21",
    "annex": "III",
-   "description": "Le plomb et le cadmium dans les encres d'impression pour l'application d'émail sur le verre, tels que le verre borosilicaté et le verre sodocalcique",
-   "scope": "S'applique aux catégories 8, 9 et 11 et expire: — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead and cadmium in printing inks for the application of enamels on glasses, such as borosilicate and soda lime glasses",
+   "scope": "Applies to categories 8, 9 and 11 and expires on: — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -760,8 +760,8 @@
   "21A": {
    "code": "21(a)",
    "annex": "III",
-   "description": "Le cadmium utilisé dans le verre imprimé en couleur pour ses fonctions de filtration, et comme composant dans les applications d'éclairage installées dans les écrans et les panneaux de commande des équipements électriques et électroniques",
-   "scope": "S'applique aux catégories 1 à 7 et 10, à l'exception des applications couvertes par l'entrée 21(b) ou par l'entrée 39, et expire le 21 juillet 2021.",
+   "description": "Cadmium when used in colour printed glass to provide filtering functions, used as a component in lighting applications installed in displays and control panels of EEE",
+   "scope": "Applies to categories 1 to 7 and 10 except applications covered by entry 21(b) or entry 39 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -769,8 +769,8 @@
   "21B": {
    "code": "21(b)",
    "annex": "III",
-   "description": "Le cadmium dans les encres d'impression pour l'application d'émail sur le verre, tels que le verre borosilicaté et le verre sodocalcique",
-   "scope": "S'applique aux catégories 1 à 7 et 10, à l'exception des applications couvertes par l'entrée 21(a) ou par l'entrée 39, et expire le 21 juillet 2021.",
+   "description": "Cadmium in printing inks for the application of enamels on glasses, such as borosilicate and soda lime glasses",
+   "scope": "Applies to categories 1 to 7 and 10 except applications covered by entry 21(a) or 39 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -778,8 +778,8 @@
   "21C": {
    "code": "21(c)",
    "annex": "III",
-   "description": "Le plomb dans les encres d'impression pour l'application d'émail sur des verres autres que le verre borosilicaté",
-   "scope": "S'applique aux catégories 1, 7 et 10 et expire le 21 juillet 2021.",
+   "description": "Lead in printing inks for the application of enamels on other than borosilicate glasses",
+   "scope": "Applies to categories 1 to 7 and 10 and expires on 21 July 2021.",
    "dates": [
     "2021-07-21"
    ]
@@ -787,8 +787,8 @@
   "23": {
    "code": "23",
    "annex": "III",
-   "description": "Le plomb dans les finitions des composants à pas fin de 0,65 mm au maximum, autres que des connecteurs",
-   "scope": "Peut être utilisé dans les pièces détachées des EEE mis sur le marché avant le 24 septembre 2010",
+   "description": "Lead in finishes of fine pitch components other than connectors with a pitch of 0,65 mm and less",
+   "scope": "May be used in spare parts for EEE placed on the market before 24 September 2010",
    "dates": [
     "2010-09-24"
    ]
@@ -796,8 +796,8 @@
   "24": {
    "code": "24",
    "annex": "III",
-   "description": "Le plomb dans la pâte à braser pour condensateurs céramiques multicouche à trous métallisés, de forme discoïdale ou plane",
-   "scope": "Expire: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead in solders for the soldering to machined through hole discoidal and planar array ceramic multilayer capacitors",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10, — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments, — 21 July 2023 for category 8 in vitro diagnostic medical devices, — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -807,15 +807,15 @@
   "25": {
    "code": "25",
    "annex": "III",
-   "description": "L’oxyde de plomb utilisé dans les écrans à émission d’électrons par conduction de surface (SED) pour les éléments structuraux tels que la fritte de verre de scellement et de queusot",
+   "description": "Lead oxide in surface conduction electron emitter displays (SED) used in structural elements, notably in the seal frit and frit ring",
    "scope": "",
    "dates": []
   },
   "26": {
    "code": "26",
    "annex": "III",
-   "description": "L’oxyde de plomb dans le verre des ampoules pour lampes à lumière noire",
-   "scope": "Expire le 1 er juin 2011",
+   "description": "Lead oxide in the glass envelope of black light blue lamps",
+   "scope": "Expires on 1 June 2011",
    "dates": [
     "2011-06-01"
    ]
@@ -823,8 +823,8 @@
   "27": {
    "code": "27",
    "annex": "III",
-   "description": "Les alliages de plomb en tant que matériau de brasage pour les transducteurs utilisés dans les haut-parleurs de grande puissance (destinés à fonctionner pendant plusieurs heures à des niveaux de pression acoustique de 125 dB et plus)",
-   "scope": "A expiré le 24 septembre 2010",
+   "description": "Lead alloys as solder for transducers used in high-powered (designated to operate for several hours at acoustic power levels of 125 dB SPL and above) loudspeakers",
+   "scope": "Expired on 24 September 2010",
    "dates": [
     "2010-09-24"
    ]
@@ -832,8 +832,8 @@
   "29": {
    "code": "29",
    "annex": "III",
-   "description": "Le plomb contenu dans le verre cristal tel que défini à l'annexe I (catégories 1, 2, 3 et 4) de la directive 69/493/CEE du Conseil ( )",
-   "scope": "Expire: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les EEE des catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead bound in crystal glass as defined in Annex I (Categories 1, 2, 3 and 4) of Council Directive 69/493/EEC ( )",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10; — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and ontrol instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -843,22 +843,22 @@
   "30": {
    "code": "30",
    "annex": "III",
-   "description": "Les alliages de cadmium comme joints de soudure électrique/mécanique des conducteurs électriques situés directement sur la bobine acoustique des transducteurs utilisés dans les haut-parleurs dont le niveau de pression acoustique est égal ou supérieur à 100 dB (A)",
+   "description": "Cadmium alloys as electrical/mechanical solder joints to electrical conductors located directly on the voice coil in transducers used in high-powered loudspeakers with sound pressure levels of 100 dB (A) and more",
    "scope": "",
    "dates": []
   },
   "31": {
    "code": "31",
    "annex": "III",
-   "description": "Le plomb dans les matériaux de soudure des lampes fluorescentes plates sans mercure (destinées, par exemple, aux afficheurs à cristaux liquides et à l’éclairage décoratif ou industriel)",
+   "description": "Lead in soldering materials in mercury free flat fluorescent lamps (which, e.g. are used for liquid crystal displays, design or industrial lighting)",
    "scope": "",
    "dates": []
   },
   "32": {
    "code": "32",
    "annex": "III",
-   "description": "L'oxyde de plomb dans le joint de scellement des fenêtres entrant dans la fabrication des tubes laser à l'argon et au krypton",
-   "scope": "Expire: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les EEE des catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead oxide in seal frit used for making window assemblies for Argon and Krypton laser tubes",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10, — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments, — 21 July 2023 for category 8 in vitro diagnostic medical devices, — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -868,15 +868,15 @@
   "33": {
    "code": "33",
    "annex": "III",
-   "description": "Le plomb dans les soudures de fins fils en cuivre d’un diamètre égal ou inférieur à 100 μm dans les transformateurs électriques",
+   "description": "Lead in solders for the soldering of thin copper wires of 100 μm diameter and less in power transformers",
    "scope": "",
    "dates": []
   },
   "34": {
    "code": "34",
    "annex": "III",
-   "description": "Le plomb dans les éléments en cermets des potentiomètres ajustables",
-   "scope": "S'applique à toutes les catégories et expire aux dates suivantes: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead in cermet-based trimmer potentiometer elements",
+   "scope": "Applies to all categories; expires on: — 21 July 2021 for categories 1-7 and 10, — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments, — 21 July 2023 for category 8 in vitro diagnostic medical devices, — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -886,8 +886,8 @@
   "36": {
    "code": "36",
    "annex": "III",
-   "description": "Le mercure utilisé comme inhibiteur à pulvérisation cathodique dans les écrans plasma DC contenant un maximum de 30 mg par écran",
-   "scope": "A expiré le 1 er juillet 2010",
+   "description": "Mercury used as a cathode sputtering inhibitor in DC plasma displays with a content up to 30 mg per display",
+   "scope": "Expired on 1 July 2010",
    "dates": [
     "2010-07-01"
    ]
@@ -895,8 +895,8 @@
   "37": {
    "code": "37",
    "annex": "III",
-   "description": "Le plomb dans le revêtement de diodes à haute tension sur la base d'un corps en verre au borate de zinc",
-   "scope": "Expire aux dates suivantes: — le 21 juillet 2021 pour les catégories 1 à 7 et 10, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9 et pour la catégorie 11.",
+   "description": "Lead in the plating layer of high voltage diodes on the basis of a zinc borate glass body",
+   "scope": "Expires on: — 21 July 2021 for categories 1-7 and 10; — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments, and for category 11.",
    "dates": [
     "2021-07-21",
     "2023-07-21",
@@ -906,15 +906,15 @@
   "38": {
    "code": "38",
    "annex": "III",
-   "description": "Le cadmium et l’oxyde de cadmium dans les pâtes pour couches épaisses utilisées sur l’oxyde de béryllium allié à l’aluminium",
+   "description": "Cadmium and cadmium oxide in thick film pastes used on aluminium bonded beryllium oxide",
    "scope": "",
    "dates": []
   },
   "39A": {
    "code": "39(a)",
    "annex": "III",
-   "description": "Séléniure de cadmium dans les boîtes quantiques de nanocristaux semi-conducteurs à base de cadmium pour conversion de longueur d’onde ( downshifting ), destinées à être utilisées dans les applications d’éclairage d’écrans (< 0,2 μg Cd par mm 2 de superficie d’écran)",
-   "scope": "Expire le pour toutes les catégories 21 novembre 2025",
+   "description": "Cadmium selenide in downshifting cadmium-based semiconductor nanocrystal quantum dots for use in display lighting applications (< 0,2 μg Cd per mm 2 of display screen area)",
+   "scope": "Expires for all categories on 21 November 2025",
    "dates": [
     "2025-11-21"
    ]
@@ -922,8 +922,8 @@
   "39B": {
    "code": "39(b)",
    "annex": "III",
-   "description": "Cadmium dans les boîtes quantiques de nanocristaux semi-conducteurs pour conversion de longueur d’onde ( downshifting ) déposées directement sur des puces semi-conductrices de DEL, destinées à être utilisées dans des applications d’affichage et de projection (< 5 μg Cd par mm 2 de surface de puce de DEL), moyennant un poids maximal de 1 mg par dispositif",
-   "scope": "Expire le 31 décembre 2027 pour toutes les catégories",
+   "description": "Cadmium in downshifting semiconductor nanocrystal quantum dots directly deposited on LED semiconductor chips for use in display and projection applications (< 5 μg Cd per mm 2 of LED chip surface) with a maximum amount per device of 1 mg",
+   "scope": "Expires for all categories on 31 December 2027",
    "dates": [
     "2027-12-31"
    ]
@@ -931,8 +931,8 @@
   "40": {
    "code": "40",
    "annex": "III",
-   "description": "Cadmium dans les photorésistances pour optocoupleurs analogiques utilisés dans le matériel audio professionnel",
-   "scope": "Expire le 31 décembre 2013",
+   "description": "Cadmium in photoresistors for analogue optocouplers applied in professional audio equipment",
+   "scope": "Expires on 31 December 2013",
    "dates": [
     "2013-12-31"
    ]
@@ -940,8 +940,8 @@
   "41": {
    "code": "41",
    "annex": "III",
-   "description": "Le plomb dans les soudures et finitions des raccordements des composants électriques ou électroniques et les finitions des cartes de circuit imprimé utilisés dans les modules d’allumage et autres systèmes de commande électrique ou électronique des moteurs, qui, pour des raisons techniques, doivent être montés directement sur ou dans le carter ou le cylindre des moteurs à combustion portatifs [classes SH:1, SH:2, SH:3 de la directive 97/68/CE du Parlement européen et du Conseil ]",
-   "scope": "S’applique à toutes les catégories et expire aux dates suivantes: — le 31 mars 2022 pour les catégories 1 à 7, 10 et 11, — le 21 juillet 2021 pour les catégories 8 et 9 autres que les dispositifs médicaux de diagnostic in vitro et les instruments de surveillance et de contrôle industriels, — le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro de la catégorie 8, — le 21 juillet 2024 pour les instruments de surveillance et de contrôle industriels de la catégorie 9.",
+   "description": "Lead in solders and termination finishes of electrical and electronic components and finishes of printed circuit boards used in ignition modules and other electrical and electronic engine control systems, which for technical reasons must be mounted directly on or in the crankcase or cylinder of hand-held combustion engines (classes SH:1, SH:2, SH:3 of Directive 97/68/EC of the European Parliament and of the Council )",
+   "scope": "Applies to all categories and expires on: — 31 March 2022 for categories 1 to 7, 10 and 11; — 21 July 2021 for categories 8 and 9 other than in vitro diagnostic medical devices and industrial monitoring and control instruments; — 21 July 2023 for category 8 in vitro diagnostic medical devices; — 21 July 2024 for category 9 industrial monitoring and control instruments.",
    "dates": [
     "2021-07-21",
     "2022-03-31",
@@ -952,8 +952,8 @@
   "42": {
    "code": "42",
    "annex": "III",
-   "description": "Le plomb dans les coussinets et les bagues des moteurs à combustion interne à carburants gazeux ou diesel destinés à des équipements non routiers à usage professionnel: — dont le moteur présente une cylindrée totale ≥ 15 litres, — ou — dont le moteur présente une cylindrée totale < 15 litres et est conçu pour fonctionner dans des applications où le temps écoulé entre le début du signal et la pleine charge doit être inférieur à 10 secondes; ou un entretien régulier est généralement effectué dans un environnement extérieur difficile et sale, tel que les applications destinées à l'exploitation minière, à la construction et à l'agriculture.",
-   "scope": "S'applique à la catégorie 11, à l'exclusion des applications relevant du point 6 c) de la présente annexe. Expire le 21 juillet 2024.",
+   "description": "Lead in bearings and bushes of diesel or gaseous fuel powered internal combustion engines applied in non-road professional use equipment: — with engine total displacement ≥ 15 litres; — or — with engine total displacement < 15 litres and the engine is designed to operate in applications where the time between signal to start and full load is required to be less than 10 seconds; or regular maintenance is typically performed in a harsh and dirty outdoor environment, such as mining, construction, and agriculture applications.",
+   "scope": "Applies to category 11, excluding applications covered by entry 6(c) of this Annex. Expires on 21 July 2024.",
    "dates": [
     "2024-07-21"
    ]
@@ -961,8 +961,8 @@
   "43": {
    "code": "43",
    "annex": "III",
-   "description": "Le phtalate de bis(2-éthylhexyle) dans les composants en caoutchouc des systèmes moteurs, conçus pour être utilisés dans des équipements non destinés uniquement au grand public et à condition qu’aucune matière plastifiée n’entre en contact avec les muqueuses humaines ou en contact prolongé avec la peau humaine et que la concentration en phtalate de bis(2-éthylhexyle) n’excède pas: a) 30 % en poids du caoutchouc pour i) les revêtements des joints d’étanchéité; ii) les joints d’étanchéité en caoutchouc solide; ou iii) les composants en caoutchouc inclus dans des assemblages d’au moins trois éléments fonctionnant à l’énergie électrique, mécanique ou hydraulique pour produire un travail et fixés au moteur. b) 10 % en poids du caoutchouc pour les composants contenant du caoutchouc non visés au point a). Aux fins du présent point, on entend par «contact prolongé avec la peau humaine», un contact continu d’une durée supérieure à 10 minutes ou un contact intermittent pendant une durée de 30 minutes, par jour.",
-   "scope": "S’applique à la catégorie 11 et expire le 21 juillet 2024.",
+   "description": "Bis(2-ethylhexyl) phthalate in rubber components in engine systems, designed for use in equipment that is not intended solely for consumer use and provided that no plasticised material comes into contact with human mucous membranes or into prolonged contact with human skin and the concentration value of bis(2-ethylhexyl) phthalate does not exceed: (a) 30 % by weight of the rubber for (i) gasket coatings; (ii) solid-rubber gaskets; or (iii) rubber components included in assemblies of at least three components using electrical, mechanical or hydraulic energy to do work, and attached to the engine. (b) 10 % by weight of the rubber for rubber-containing components not referred to in point (a). For the purposes of this entry, ‘prolonged contact with human skin’ means continuous contact of more than 10 minutes duration or intermittent contact over a period of 30 minutes, per day.",
+   "scope": "Applies to category 11 and expires on 21 July 2024.",
    "dates": [
     "2024-07-21"
    ]
@@ -970,8 +970,8 @@
   "44": {
    "code": "44",
    "annex": "III",
-   "description": "Le plomb dans des soudures de capteurs, d’actionneurs et d’unités de commande du moteur des moteurs à combustion relevant du champ d’application du règlement (UE) 2016/1628 du Parlement européen et du Conseil , installés dans des équipements fonctionnant dans des positions fixes conçus pour être utilisés tant par des professionnels que par des non-professionnels.",
-   "scope": "S’applique à la catégorie 11 et expire le 21 juillet 2024.",
+   "description": "Lead in solder of sensors, actuators, and engine control units of combustion engines within the scope of Regulation (EU) 2016/1628 of the European Parliament and of the Council , installed in equipment used at fixed positions while in operation which is designed for professionals, but also used by non-professional users",
+   "scope": "Applies to category 11 and expires on 21 July 2024.",
    "dates": [
     "2024-07-21"
    ]
@@ -979,8 +979,8 @@
   "45": {
    "code": "45",
    "annex": "III",
-   "description": "Le diazoture de plomb, le styphnate de plomb, le dipicramate de plomb, le plomb orange (tétraoxyde de plomb), le dioxyde de plomb dans les initiateurs pyrotechniques électriques et électroniques à usage civil (professionnel), et le chromate de baryum dans les charges de retard pyrotechnique long des initiateurs pyrotechniques électriques à usage civil (professionnel).",
-   "scope": "S’applique à la catégorie 11 et expire le 20 avril 2026.",
+   "description": "Lead diazide, lead styphnate, lead dipicramate, orange lead (lead tetroxide), lead dioxide in electric and electronic initiators of explosives for civil (professional) use and barium chromate in long time pyrotechnic delay charges of electric initiators of explosives for civil (professional) use",
+   "scope": "Applies to category 11 and expires on 20 April 2026",
    "dates": [
     "2026-04-20"
    ]
@@ -988,8 +988,8 @@
   "46": {
    "code": "46",
    "annex": "III",
-   "description": "Le cadmium et le plomb dans les profilés en matière plastique contenant des mélanges produits à partir de déchets de polychlorure de vinyle (ci-après dénommé «PVC rigide valorisé»), utilisés dans la fabrication de portes et fenêtres électriques et électroniques, lorsque leur concentration dans le PVC rigide valorisé n’excède pas 0,1 % de cadmium en poids et 1,5 % de plomb en poids. À partir du 28 mai 2026, le PVC rigide valorisé à partir de fenêtres et portes électriques et électroniques n’est utilisé que pour la production d’articles neufs des catégories définies à l’annexe XVII, entrée 63, points 18, a) à d), du règlement (CE) n o 1907/2006. Les fournisseurs d’articles en PVC contenant du PVC rigide valorisé dont la concentration en plomb est égale ou supérieure à 0,1 %, en poids, du PVC veillent, avant de mettre ces articles sur le marché, à ce qu’ils portent de manière visible, lisible et indélébile la mention suivante: «Contient ≥ 0,1 % de plomb». Lorsque le marquage ne peut être apposé sur l’article en raison de sa nature, il est apposé sur l’emballage de l’article. Sur demande, les fournisseurs d’articles en PVC contenant du PVC rigide valorisé soumettent aux autorités nationales chargées de la mise en œuvre de la législation une preuve écrite destinée à étayer leurs affirmations concernant l’origine valorisée du PVC de ces articles. Les certificats délivrés par les systèmes destinés à prouver la traçabilité et l’origine recyclée du contenu, tels que ceux mis en place conformément à la norme EN 15343:2007 ou à des normes reconnues équivalentes, peuvent être utilisés afin d’attester ces affirmations pour les articles en PVC produits au sein de l’Union. Les affirmations concernant l’origine valorisée du PVC des articles importés sont accompagnées d’un certificat, délivré par une tierce partie indépendante, qui constitue une preuve équivalente de la traçabilité et du contenu recyclé.",
-   "scope": "S’applique à la catégorie 11 et expire le 28 mai 2028.",
+   "description": "Cadmium and lead in plastic profiles containing mixtures produced from polyvinyl chloride waste (hereinafter referred to as ‘recovered rigid PVC’), used for electrical and electronic windows and doors, where the concentration in the recovered rigid PVC material does not exceed 0,1 % cadmium by weight and 1,5 % lead by weight. From 28 May 2026, rigid PVC recovered from electrical and electronic windows and doors shall only be used for the production of new articles under the categories specified in entry 63, points 18(a) to (d) of Annex XVII to Regulation (EC) No 1907/2006. Suppliers of PVC articles containing recovered rigid PVC with a concentration of lead equal to or greater than 0,1 % by weight of the PVC material shall ensure, before placing those articles on the market, that they are visibly, legibly and indelibly marked with the statement: ‘Contains ≥ 0,1 % lead’. Where the marking cannot be provided on the article due to the nature of the article, it shall be on the packaging of the article. Suppliers of PVC articles containing recovered rigid PVC shall submit to national enforcement authorities upon request documentary evidence to substantiate the claims on the recovered origin of the PVC in those articles. Certificates issued by schemes to provide proof of traceability and recycled content, such as those developed according to EN 15343:2007 or equivalent recognised standards, may be used to substantiate such claims for PVC articles produced in the Union. Claims made on the recovered origin of the PVC in imported articles shall be accompanied by a certificate that provides equivalent proof of traceability and recycled content, issued by an independent third party.",
+   "scope": "Applies to category 11 and expires on 28 May 2028.",
    "dates": [
     "2028-05-28"
    ]
@@ -997,128 +997,128 @@
   "IV-1": {
    "code": "1",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb, le cadmium et le mercure dans des détecteurs de rayonnements ionisants.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead, cadmium and mercury in detectors for ionising radiation.",
    "scope": "",
    "dates": []
   },
   "IV-2": {
    "code": "2",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Les paliers en plomb dans les tubes à rayons X.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead bearings in X-ray tubes.",
    "scope": "",
    "dates": []
   },
   "IV-3": {
    "code": "3",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb dans les dispositifs d’amplification des rayonnements électromagnétiques: galette de microcanaux et plaque capillaire.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead in electromagnetic radiation amplification devices: micro-channel plate and capillary plate.",
    "scope": "",
    "dates": []
   },
   "IV-4": {
    "code": "4",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb dans la fritte de verre des tubes à rayons X et des intensificateurs d’images et le plomb dans un liant de fritte de verre pour l’assemblage de lasers à gaz et pour les tubes à vide qui convertissent les rayonnements électromagnétiques en électrons.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead in glass frit of X-ray tubes and image intensifiers and lead in glass frit binder for assembly of gas lasers and for vacuum tubes that convert electromagnetic radiation into electrons.",
    "scope": "",
    "dates": []
   },
   "IV-5": {
    "code": "5",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb dans les protections contre les rayonnements ionisants.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead in shielding for ionising radiation.",
    "scope": "",
    "dates": []
   },
   "IV-6": {
    "code": "6",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb dans les objets de test pour rayons X.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead in X-ray test objects.",
    "scope": "",
    "dates": []
   },
   "IV-7": {
    "code": "7",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Les cristaux de stéarate de plomb pour la diffraction des rayons X.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead stearate X-ray diffraction crystals.",
    "scope": "",
    "dates": []
   },
   "IV-8": {
    "code": "8",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "La source d’isotopes radioactifs du cadmium pour les spectromètres à fluorescence de rayons X portables.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Radioactive cadmium isotope source for portable X-ray fluorescence spectrometers.",
    "scope": "",
    "dates": []
   },
   "IV-1A": {
    "code": "1a",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb et le cadmium dans les électrodes sélectives d’ions, y compris le verre des électrodes de mesure du pH.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead and cadmium in ion selective electrodes including glass of pH electrodes.",
    "scope": "",
    "dates": []
   },
   "IV-1B": {
    "code": "1b",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Les anodes en plomb dans les capteurs électrochimiques d’oxygène.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead anodes in electrochemical oxygen sensors.",
    "scope": "",
    "dates": []
   },
   "IV-1C": {
    "code": "1c",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le plomb, le cadmium et le mercure dans les détecteurs à infrarouges.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Lead, cadmium and mercury in infra-red light detectors.",
    "scope": "",
    "dates": []
   },
   "IV-1D": {
    "code": "1d",
    "annex": "IV",
-   "group": "Équipement utilisant ou détectant des rayonnements ionisants",
-   "description": "Le mercure dans les électrodes de référence: électrode au chlorure de mercure à faible concentration de chlorure, électrode au sulfate de mercure et électrode à l’oxyde de mercure.",
+   "group": "Equipment utilising or detecting ionising radiation",
+   "description": "Mercury in reference electrodes: low chloride mercury chloride, mercury sulphate and mercury oxide.",
    "scope": "",
    "dates": []
   },
   "IV-9": {
    "code": "9",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le cadmium dans les lasers hélium-cadmium.",
+   "group": "Others",
+   "description": "Cadmium in helium-cadmium lasers.",
    "scope": "",
    "dates": []
   },
   "IV-10": {
    "code": "10",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb et le cadmium dans les lampes utilisées pour la spectroscopie d’absorption atomique.",
+   "group": "Others",
+   "description": "Lead and cadmium in atomic absorption spectroscopy lamps.",
    "scope": "",
    "dates": []
   },
   "IV-11": {
    "code": "11",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les alliages en tant que supraconducteur et conducteur de chaleur pour l’IRM.",
+   "group": "Others",
+   "description": "Lead in alloys as a superconductor and thermal conductor in MRI.",
    "scope": "",
    "dates": []
   },
   "IV-12": {
    "code": "12",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb et le cadmium dans les liaisons métalliques permettant de créer des circuits magnétiques supraconducteurs dans les détecteurs IRM, SQUID, RMN (résonance magnétique nucléaire) ou FTMS (spectromètre de masse à transformée de Fourier). Expire le 30 juin 2021.",
+   "group": "Others",
+   "description": "Lead and cadmium in metallic bonds creating superconducting magnetic circuits in MRI, SQUID, NMR (Nuclear Magnetic Resonance) or FTMS (Fourier Transform Mass Spectrometer) detectors. Expires on 30 June 2021.",
    "scope": "",
    "dates": [
     "2021-06-30"
@@ -1127,72 +1127,72 @@
   "IV-13": {
    "code": "13",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les contrepoids.",
+   "group": "Others",
+   "description": "Lead in counterweights.",
    "scope": "",
    "dates": []
   },
   "IV-14": {
    "code": "14",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les monocristaux piézo-électriques pour les transducteurs ultrasoniques.",
+   "group": "Others",
+   "description": "Lead in single crystal piezoelectric materials for ultrasonic transducers.",
    "scope": "",
    "dates": []
   },
   "IV-15": {
    "code": "15",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures des transducteurs ultrasoniques.",
+   "group": "Others",
+   "description": "Lead in solders for bonding to ultrasonic transducers.",
    "scope": "",
    "dates": []
   },
   "IV-16": {
    "code": "16",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le mercure dans les ponts de mesure de capacité et de facteur de perte de très haute précision et dans les commutateurs et relais RF haute fréquence des instruments de contrôle et de surveillance, sans excéder 20 mg de mercure par commutateur ou relais.",
+   "group": "Others",
+   "description": "Mercury in very high accuracy capacitance and loss measurement bridges and in high frequency RF switches and relays in monitoring and control instruments not exceeding 20 mg of mercury per switch or relay.",
    "scope": "",
    "dates": []
   },
   "IV-17": {
    "code": "17",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures pour les défibrillateurs portables d’urgence.",
+   "group": "Others",
+   "description": "Lead in solders in portable emergency defibrillators.",
    "scope": "",
    "dates": []
   },
   "IV-18": {
    "code": "18",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures des modules d’imagerie infrarouge à haute performance pour une détection de 8-14 μm.",
+   "group": "Others",
+   "description": "Lead in solders of high performance infrared imaging modules to detect in the range 8-14 μm.",
    "scope": "",
    "dates": []
   },
   "IV-19": {
    "code": "19",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les écrans à cristaux liquides sur silicium.",
+   "group": "Others",
+   "description": "Lead in Liquid crystal on silicon (LCoS) displays.",
    "scope": "",
    "dates": []
   },
   "IV-20": {
    "code": "20",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le cadmium dans les filtres de mesure des rayons X.",
+   "group": "Others",
+   "description": "Cadmium in X-ray measurement filters.",
    "scope": "",
    "dates": []
   },
   "IV-21": {
    "code": "21",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le cadmium dans les revêtements fluorescents des amplificateurs de luminance d’images radiologiques jusqu’au 31 décembre 2019 et dans les pièces détachées pour systèmes de radiologie mis sur le marché avant le 1 er janvier 2020.",
+   "group": "Others",
+   "description": "Cadmium in phosphor coatings in image intensifiers for X-ray images until 31 December 2019 and in spare parts for X-ray systems placed on the EU market before 1 January 2020.",
    "scope": "",
    "dates": [
     "2019-12-31",
@@ -1202,8 +1202,8 @@
   "IV-22": {
    "code": "22",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Marqueurs à l’acétate de plomb dans les cadres stéréotaxiques utilisés en tomodensitométrie et en imagerie par résonance magnétique ainsi que dans les systèmes de positionnement des équipements de gammathérapie et d’hadronthérapie. Expire le 30 juin 2021.",
+   "group": "Others",
+   "description": "Lead acetate marker for use in stereotactic head frames for use with CT and MRI and in positioning systems for gamma beam and particle therapy equipment. Expires on 30 June 2021.",
    "scope": "",
    "dates": [
     "2021-06-30"
@@ -1212,8 +1212,8 @@
   "IV-23": {
    "code": "23",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb en tant qu’élément d’alliage dans les paliers et surfaces d’usure des équipements médicaux exposés aux rayonnements ionisants. Expire le 30 juin 2021.",
+   "group": "Others",
+   "description": "Lead as an alloying element for bearings and wear surfaces in medical equipment exposed to ionising radiation. Expires on 30 June 2021.",
    "scope": "",
    "dates": [
     "2021-06-30"
@@ -1222,8 +1222,8 @@
   "IV-24": {
    "code": "24",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb permettant des raccords étanches entre l’aluminium et l’acier dans les amplificateurs de luminance des images radiologiques. Expire le 31 décembre 2019.",
+   "group": "Others",
+   "description": "Lead enabling vacuum tight connections between aluminium and steel in X-ray image intensifiers. Expires on 31 December 2019.",
    "scope": "",
    "dates": [
     "2019-12-31"
@@ -1232,8 +1232,8 @@
   "IV-25": {
    "code": "25",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les revêtements de surface des systèmes de connecteurs à broches nécessitant des connecteurs amagnétiques qui sont utilisés durablement à des températures inférieures à – 20 °C dans des conditions normales de fonctionnement et de stockage. Expire le 30 juin 2021.",
+   "group": "Others",
+   "description": "Lead in the surface coatings of pin connector systems requiring nonmagnetic connectors which are used durably at a temperature below – 20 °C under normal operating and storage conditions. Expires on 30 June 2021.",
    "scope": "",
    "dates": [
     "2021-06-30"
@@ -1242,16 +1242,16 @@
   "IV-26": {
    "code": "26",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les applications suivantes, utilisées durablement à une température inférieure à – 20 °C dans des conditions normales de fonctionnement et de stockage: les soudures sur les cartes de circuits imprimés; les revêtements des extrémités des composants électriques et électroniques et les revêtements des cartes de circuits imprimés; les soudures de raccordement des fils et des câbles; les soudures de raccordement des transducteurs et des capteurs.",
+   "group": "Others",
+   "description": "Lead in the following applications that are used durably at a temperature below – 20 °C under normal operating and storage conditions: solders on printed circuit boards; termination coatings of electrical and electronic components and coatings of printed circuit boards; solders for connecting wires and cables; solders connecting transducers and sensors.",
    "scope": "",
    "dates": []
   },
   "IV-27": {
    "code": "27",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans: les champs magnétiques situés dans un rayon de 1 mètre autour de l’isocentre de l’aimant des équipements médicaux d’imagerie par résonance magnétique, y compris les moniteurs individuels conçus pour être utilisés dans cette zone; ou les champs magnétiques situés à 1 mètre de distance au maximum des surfaces externes des aimants de cyclotron ou des aimants servant au transport et au réglage de l’orientation des faisceaux de particules utilisés en hadronthérapie; les bobines non intégrées pour IRM, pour lesquelles la déclaration de conformité de ce modèle est délivrée pour la première fois avant le 23 septembre 2022; ou les dispositifs d’IRM incluant des bobines intégrées, qui sont utilisés dans les champs magnétiques situés dans un rayon de 1 mètre autour de l’isocentre de l’aimant des équipements médicaux d’imagerie par résonance magnétique, pour lesquels la déclaration de conformité est délivrée pour la première fois avant le 30 juin 2024.",
+   "group": "Others",
+   "description": "Lead in magnetic fields within the sphere of 1 m radius around the isocentre of the magnet in medical magnetic resonance imaging equipment, including patient monitors designed to be used within this sphere, or magnetic fields within 1 m distance from the external surfaces of cyclotron magnets, magnets for beam transport and beam direction control applied for particle therapy, MRI non-integrated coils, for which the Declaration of Conformity of this model is issued for the first time before 23 September 2022, or MRI devices including integrated coils, which are used in magnetic fields within the sphere of 1 m radius around the isocentre of the magnet in medical magnetic resonance imaging equipment, for which the Declaration of Conformity is issued for the first time before 30 June 2024.",
    "scope": "",
    "dates": [
     "2022-09-23",
@@ -1261,8 +1261,8 @@
   "IV-28": {
    "code": "28",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures servant au montage des détecteurs numériques au tellurure de cadmium ou au tellurure de cadmium et de zinc sur les cartes de circuits imprimés. Expire le 31 décembre 2017.",
+   "group": "Others",
+   "description": "Lead in solders for mounting cadmium telluride and cadmium zinc telluride digital array detectors to printed circuit boards. Expires on 31 December 2017.",
    "scope": "",
    "dates": [
     "2017-12-31"
@@ -1271,8 +1271,8 @@
   "IV-29": {
    "code": "29",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb en tant que supraconducteur ou thermoconducteur dans les alliages utilisés dans les têtes froides des cryoréfrigérateurs et/ou dans les sondes froides cryoréfrigérées et/ou dans les systèmes de liaison équipotentielle cryoréfrigérés, dans les dispositifs médicaux (catégorie 8) et/ou dans les instruments de surveillance et de contrôle industriels. Expire le 30 juin 2021.",
+   "group": "Others",
+   "description": "Lead in alloys, as a superconductor or thermal conductor, used in cryo-cooler cold heads and/or in cryo-cooled cold probes and/or in cryo-cooled equipotential bonding systems, in medical devices (category 8) and/or in industrial monitoring and control instruments. Expires on 30 June 2021.",
    "scope": "",
    "dates": [
     "2021-06-30"
@@ -1281,12 +1281,21 @@
   "IV-30": {
    "code": "30",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le chrome hexavalent dans les générateurs alcalins utilisés pour fabriquer les photocathodes des amplificateurs de luminance d’images radiologiques jusqu’au 31 décembre 2019 et dans les pièces détachées pour systèmes de radiologie mis sur le marché de l’Union européenne avant le 1 er janvier 2020. 31 bis . Le plomb, le cadmium, le chrome hexavalent et les polybromodiphényléthers (PBDE) dans les pièces détachées récupérées sur des dispositifs médicaux, y compris les dispositifs médicaux de diagnostic in vitro, ou sur des microscopes électroniques et leurs accessoires et utilisées pour la réparation ou la remise à neuf de ces dispositifs médicaux ou appareils, à condition que ce réemploi s'effectue dans le cadre de systèmes de récupération interentreprises en circuit fermé et contrôlables et que chaque réemploi de pièces soit notifié aux consommateurs. 21 juillet 2021 pour l'utilisation dans les dispositifs médicaux autres que les dispositifs médicaux de diagnostic in vitro; 21 juillet 2023 pour l'utilisation dans les dispositifs médicaux de diagnostic in vitro; 21 juillet 2024 pour l'utilisation dans les microscopes électroniques et leurs accessoires.",
+   "group": "Others",
+   "description": "Hexavalent chromium in alkali dispensers used to create photocathodes in X-ray image intensifiers until 31 December 2019 and in spare parts for X-ray systems placed on the EU market before 1 January 2020.",
    "scope": "",
    "dates": [
     "2019-12-31",
-    "2020-01-01",
+    "2020-01-01"
+   ]
+  },
+  "IV-31A": {
+   "code": "31a",
+   "annex": "IV",
+   "group": "Others",
+   "description": "Lead, cadmium, hexavalent chromium, and polybrominated diphenyl ethers (PBDE) in spare parts recovered from and used for the repair or refurbishment of medical devices, including in vitro diagnostic medical devices, or electron microscopes and their accessories, provided that the reuse takes place in auditable closed-loop business-to-business return systems and that each reuse of parts is notified to the customer. 21 July 2021 for the use in medical devices other than in vitro diagnostic medical devices; 21 July 2023 for the use in in vitro diagnostic medical devices; 21 July 2024 for the use in electron microscopes and their accessories.",
+   "scope": "",
+   "dates": [
     "2021-07-21",
     "2023-07-21",
     "2024-07-21"
@@ -1295,8 +1304,8 @@
   "IV-32": {
    "code": "32",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures sur les cartes de circuits imprimés des détecteurs et des unités d’acquisition de données des caméras à positrons qui sont intégrées dans les équipements d’imagerie par résonance magnétique. Expire le 31 décembre 2019.",
+   "group": "Others",
+   "description": "Lead in solders on printed circuit boards of detectors and data acquisition units for Positron Emission Tomographs which are integrated into Magnetic Resonance Imaging equipment. Expires on 31 December 2019.",
    "scope": "",
    "dates": [
     "2019-12-31"
@@ -1305,8 +1314,8 @@
   "IV-33": {
    "code": "33",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les soudures sur les cartes de circuits imprimés garnies utilisées dans les dispositifs médicaux mobiles des classes IIa et IIb de la directive 93/42/CEE autres que les défibrillateurs portables d’urgence. Expire le 30 juin 2016 pour les dispositifs de la classe IIa et le 31 décembre 2020 pour les dispositifs de la classe IIb.",
+   "group": "Others",
+   "description": "Lead in solders on populated printed circuit boards used in Directive 93/42/EEC class IIa and IIb mobile medical devices other than portable emergency defibrillators. Expires on 30 June 2016 for class IIa and on 31 December 2020 for class IIb.",
    "scope": "",
    "dates": [
     "2016-06-30",
@@ -1316,8 +1325,8 @@
   "IV-34": {
    "code": "34",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb en tant qu’activateur dans la poudre fluorescente des lampes à décharge contenant des luminophores BSP (BaSi 2 O 5 :Pb) qui sont utilisées pour la photophérèse extracorporelle. Expire le 22 juillet 2021.",
+   "group": "Others",
+   "description": "Lead as an activator in the fluorescent powder of discharge lamps when used for extracorporeal photopheresis lamps containing BSP (BaSi 2 O 5 :Pb) phosphors. Expires on 22 July 2021.",
    "scope": "",
    "dates": [
     "2021-07-22"
@@ -1326,8 +1335,8 @@
   "IV-35": {
    "code": "35",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le mercure dans les lampes fluorescentes à cathode froide, à raison de 5 milligrammes par lampe au maximum, servant au rétroéclairage des écrans à cristaux liquides utilisés dans les instruments de contrôle et de surveillance industriels mis sur le marché avant le 22 juillet 2017",
+   "group": "Others",
+   "description": "Mercury in cold cathode fluorescent lamps for back-lighting liquid crystal displays, not exceeding 5 mg per lamp, used in industrial monitoring and control instruments placed on the market before 22 July 2017",
    "scope": "",
    "dates": [
     "2017-07-22"
@@ -1336,32 +1345,32 @@
   "IV-36": {
    "code": "36",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les systèmes de connecteurs à broches souples autres que du type C-press destinés à être utilisés dans les instruments de contrôle et de surveillance industriels.",
+   "group": "Others",
+   "description": "Lead used in other than C-press compliant pin connector systems for industrial monitoring and control instruments.",
    "scope": "",
    "dates": []
   },
   "IV-37": {
    "code": "37",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les électrodes en platine platiné utilisées pour les mesures de conductivité, lorsqu’au moins une des conditions suivantes est remplie: mesures de conductivité sur une plage étendue, couvrant plus d’un ordre de grandeur (par exemple, entre 0,1 mS/m et 5 mS/m), dans des applications de laboratoire pour des concentrations inconnues; mesures de solutions nécessitant une précision de ± 1 % de la plage des échantillons et une résistance élevée de l’électrode à la corrosion, dans les cas suivants: solutions acides de pH < 1; solutions basiques de pH > 13; solutions corrosives contenant un halogène; mesures de la conductivité au-delà de 100 mS/m devant être effectuées au moyen d’instruments portables.",
+   "group": "Others",
+   "description": "Lead in platinized platinum electrodes used for conductivity measurements where at least one of the following conditions applies: wide-range measurements with a conductivity range covering more than 1 order of magnitude (e.g. range between 0,1 mS/m and 5 mS/m) in laboratory applications for unknown concentrations; measurements of solutions where an accuracy of +/– 1 % of the sample range and where high corrosion resistance of the electrode are required for any of the following: solutions with an acidity < pH 1; solutions with an alkalinity > pH 13; corrosive solutions containing halogen gas; measurements of conductivities above 100 mS/m that must be performed with portable instruments.",
    "scope": "",
    "dates": []
   },
   "IV-38": {
    "code": "38",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans la soudure d'une interface d'éléments empilés de grande surface comportant plus de 500 interconnexions par interface qui sont utilisés dans les détecteurs à rayons X des tomodensitomètres et dans les systèmes à rayons X",
+   "group": "Others",
+   "description": "Lead in solder in one interface of large area stacked die elements with more than 500 interconnects per interface which are used in X-ray detectors of computed tomography and X-ray systems.",
    "scope": "",
    "dates": []
   },
   "IV-39": {
    "code": "39",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les galettes de microcanaux (GMC) utilisées dans des équipements présentant au moins une des propriétés suivantes: un détecteur d'électrons ou d'ions de taille compacte, lorsque l'espace pour le détecteur est limité à un maximum de 3 mm/GMC (épaisseur du détecteur + espace pour l'installation de la GMC) et à un maximum de 6 mm au total, et qu'il est scientifiquement et techniquement impossible de prévoir une autre disposition offrant plus de place pour le détecteur; une résolution spatiale bidimensionnelle pour la détection des électrons ou des ions, avec au moins une des caractéristiques suivantes: un temps de réponse inférieur à 25 ns; une surface de détection de l'échantillon supérieure à 149 mm 2 ; un facteur de multiplication supérieur à 1,3 × 10 3 ; un temps de réponse inférieur à 5 ns pour la détection des électrons ou des ions; une surface de détection de l'échantillon supérieure à 314 mm 2 pour la détection des électrons ou des ions; un facteur de multiplication supérieur à 4,0 × 10 7 . le 21 juillet 2021 pour les dispositifs médicaux et les instruments de contrôle et de surveillance; le 21 juillet 2023 pour les dispositifs médicaux de diagnostic in vitro; le 21 juillet 2024 pour les instruments de contrôle et de surveillance industriels.",
+   "group": "Others",
+   "description": "Lead in micro-channel plates (MCPs) used in equipment where at least one of the following properties is present: a compact size of the detector for electrons or ions, where the space for the detector is limited to a maximum of 3 mm/MCP (detector thickness + space for installation of the MCP), a maximum of 6 mm in total, and an alternative design yielding more space for the detector is scientifically and technically impracticable; a two-dimensional spatial resolution for detecting electrons or ions, where at least one of the following applies: a response time shorter than 25 ns; a sample detection area larger than 149 mm 2 ; a multiplication factor larger than 1,3 × 10 3 . a response time shorter than 5 ns for detecting electrons or ions; a sample detection area larger than 314 mm 2 for detecting electrons or ions; a multiplication factor larger than 4,0 × 10 7 . 21 July 2021 for medical devices and monitoring and control instruments; 21 July 2023 for in-vitro diagnostic medical devices; 21 July 2024 for industrial monitoring and control instruments.",
    "scope": "",
    "dates": [
     "2021-07-21",
@@ -1372,87 +1381,95 @@
   "IV-40": {
    "code": "40",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans la céramique diélectrique des condensateurs pour tension nominale inférieure à 125 V CA ou 250 V CC destinés à être utilisés dans les instruments de contrôle et de surveillance industriels.",
+   "group": "Others",
+   "description": "Lead in dielectric ceramic in capacitors for a rated voltage of less than 125 V AC or 250 V DC for industrial monitoring and control instruments.",
    "scope": "",
    "dates": []
   },
   "IV-41": {
    "code": "41",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb en tant que stabilisateur thermique dans le polychlorure de vinyle (PVC) employé comme matériau de base dans les capteurs électrochimiques ampérométriques, potentiométriques et conductométriques qui sont utilisés dans les dispositifs médicaux de diagnostic in vitro pour les analyses de sang et autres liquides et gaz organiques. 41 bis . Le plomb en tant que stabilisateur thermique dans le polychlorure de vinyle (PVC) employé comme matériau de base dans les capteurs électrochimiques ampérométriques, potentiométriques et conductométriques qui sont utilisés dans les dispositifs médicaux de diagnostic in vitro pour l’analyse de la créatinine et de l’azote uréique sanguin dans le sang total.",
+   "group": "Others",
+   "description": "Lead as a thermal stabiliser in polyvinyl chloride (PVC) used as base material in amperometric, potentiometric and conductometric electrochemical sensors which are used in in-vitro diagnostic medical devices for the analysis of blood and other body fluids and body gases.",
+   "scope": "",
+   "dates": []
+  },
+  "IV-41A": {
+   "code": "41a",
+   "annex": "IV",
+   "group": "Others",
+   "description": "Lead as a thermal stabilizer in polyvinyl chloride (PVC) used as base material in amperometric, potentiometric and conductometric electrochemical sensors which are used in in vitro diagnostic medical devices for the analysis of creatinine and blood urea nitrogen in whole blood.",
    "scope": "",
    "dates": []
   },
   "IV-42": {
    "code": "42",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le mercure dans les collecteurs électriques rotatifs utilisés dans les systèmes d'imagerie intravasculaire ultrasonore supportant une fréquence de fonctionnement élevée (> 50 MHz).",
+   "group": "Others",
+   "description": "Mercury in electric rotating connectors used in intravascular ultrasound imaging systems capable of high operating frequency (> 50 MHz) modes of operation.",
    "scope": "",
    "dates": []
   },
   "IV-43": {
    "code": "43",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Les anodes en cadmium des piles de Hersch présentes dans les capteurs d'oxygène utilisés dans les instruments de contrôle et de surveillance industriels, lorsqu'une sensibilité de moins de 10 ppm est requise.",
+   "group": "Others",
+   "description": "Cadmium anodes in Hersch cells for oxygen sensors used in industrial monitoring and control instruments, where sensitivity below 10 ppm is required.",
    "scope": "",
    "dates": []
   },
   "IV-44": {
    "code": "44",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le cadmium dans les tubes analyseurs de caméras vidéo résistants aux rayonnements, conçus pour les caméras offrant une résolution d’image supérieure à 450 lignes TV qui sont utilisées dans des environnements où l’exposition aux rayonnements ionisants dépasse 100 Gy/heure et où la dose totale est supérieure à 100 kGy.",
+   "group": "Others",
+   "description": "Cadmium in radiation tolerant video camera tubes designed for cameras with a centre resolution greater than 450 TV lines which are used in environments with ionising radiation exposure exceeding 100 Gy/hour and a total dose in excess of 100kGy.",
    "scope": "",
    "dates": []
   },
   "IV-45": {
    "code": "45",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le phtalate de bis(2-éthylhexyle) (DEHP) dans les électrodes sélectives d’ions mises en œuvre dans les analyses sur le lieu de soin des substances ioniques présentes dans les fluides corporels humains et/ou dans les liquides de dialyse.",
+   "group": "Others",
+   "description": "Bis(2-ethylhexyl) phthalate (DEHP) in ion-selective electrodes applied in point of care analysis of ionic substances present in human body fluids and/or in dialysate fluids",
    "scope": "",
    "dates": []
   },
   "IV-46": {
    "code": "46",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le phtalate de bis(2-éthylhexyle) (DEHP) dans les composants en matière plastique des bobines de détection pour IRM.",
+   "group": "Others",
+   "description": "Bis(2-ethylhexyl) phthalate (DEHP) in plastic components in MRI detector coils.",
    "scope": "",
    "dates": []
   },
   "IV-47": {
    "code": "47",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le phtalate de bis(2-éthylhexyle) (DEHP), le phtalate de benzylbutyle (BBP), le phtalate de dibutyle (DBP) et le phtalate de diisobutyle (DIBP) dans les pièces détachées récupérées sur des dispositifs médicaux, y compris les dispositifs médicaux de diagnostic in vitro, et leurs accessoires, et utilisées pour la réparation ou la remise à neuf de ces dispositifs médicaux ou appareils, à condition que ce réemploi s'effectue dans le cadre de systèmes de récupération interentreprises en circuit fermé et contrôlables et que chaque réemploi de pièces soit notifié aux consommateurs.",
+   "group": "Others",
+   "description": "Bis(2-ethylhexyl) phthalate (DEHP), butyl benzyl phthalate (BBP), dibutyl phthalate (DBP) and diisobutyl phthalate (DIBP) in spare parts recovered from and used for the repair or refurbishment of medical devices, including in vitro diagnostic medical devices, and their accessories, provided that the reuse takes place in auditable closed-loop business-to-business return systems and that each reuse of parts is notified to the customer.",
    "scope": "",
    "dates": []
   },
   "IV-48": {
    "code": "48",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le plomb dans les câbles et fils supraconducteurs en oxyde de bismuth-strontium-calcium-cuivre (BSCCO) et le plomb dans les connexions électriques à ces câbles et fils.",
+   "group": "Others",
+   "description": "Lead in bismuth strontium calcium copper oxide (BSCCO) superconductor cables and wires and lead in electrical connections to these wires",
    "scope": "",
    "dates": []
   },
   "IV-49": {
    "code": "49",
    "annex": "IV",
-   "group": "Autres",
-   "description": "Le mercure dans les transducteurs de pression de fusion pour rhéomètres capillaires à des températures supérieures à 300 °C et à des pressions supérieures à 1 000 bars.",
+   "group": "Others",
+   "description": "Mercury in melt pressure transducers for capillary rheometers at temperatures over 300 °C and pressures over 1 000 bar",
    "scope": "",
    "dates": []
   }
  },
  "upcoming": {
   "version": "2027-08-13",
-  "url": "https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=CELEX:02011L0065-20270813",
+  "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02011L0065-20270813",
   "changes": {}
  }
 }

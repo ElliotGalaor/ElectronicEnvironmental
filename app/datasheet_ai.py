@@ -1,9 +1,9 @@
-"""Extraction des informations d'une datasheet PDF par Claude (optionnelle).
+"""Extracting a PDF datasheet's information with Claude (optional).
 
-Activée lorsque des identifiants Anthropic sont disponibles (variable ANTHROPIC_API_KEY,
-ou ANTHROPIC_AUTH_TOKEN). Désactivable avec RRC_AI=off.
-Le PDF est envoyé tel quel au modèle (texte + images des pages), ce qui permet aussi de lire
-les datasheets scannées et les tableaux de commande.
+Enabled when Anthropic credentials are available (ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN
+environment variable). Can be disabled with RRC_AI=off.
+The PDF is sent as is to the model (text + page images), so scanned datasheets and ordering
+tables can be read too.
 """
 
 from __future__ import annotations
@@ -17,51 +17,52 @@ from pydantic import BaseModel, Field
 from .db import ValidationError, normalize_country, normalize_eccn
 
 MODEL = os.environ.get("RRC_AI_MODEL", "claude-opus-5-5")
-MAX_PDF_BYTES = 30 * 1024 * 1024  # limite de requête de l'API : 32 Mo
+MAX_PDF_BYTES = 30 * 1024 * 1024  # API request limit: 32 MB
 
 
 class Evidence(BaseModel):
     field: Literal["mpn", "manufacturer", "description", "rohs2", "rohs3", "reach", "rohs_exemptions", "svhc_list", "eccn", "country_of_origin"]
-    page: int = Field(description="Numéro de page (1 = première page)")
-    quote: str = Field(description="Citation exacte, courte, tirée du document")
+    page: int = Field(description="Page number (1 = first page)")
+    quote: str = Field(description="Short, exact quote taken from the document")
 
 
 class DatasheetInfo(BaseModel):
-    mpn: str = Field(description="Référence fabricant principale (la plus spécifique couverte par la datasheet)")
-    other_part_numbers: list[str] = Field(description="Autres références commandables couvertes par la datasheet")
+    mpn: str = Field(description="Main manufacturer part number (the most specific one covered by the datasheet)")
+    other_part_numbers: list[str] = Field(description="Other orderable part numbers covered by the datasheet")
     manufacturer: str
-    description: str = Field(description="Description courte en français, ex. « Double ampli-op, SOIC-8 »")
-    rohs2: Literal["conforme", "exemption", "non_conforme", "inconnu"]
-    rohs3: Literal["conforme", "exemption", "non_conforme", "inconnu"]
-    reach: Literal["conforme", "svhc", "non_conforme", "inconnu"]
-    rohs_exemptions: str = Field(description="Codes d'exemption RoHS cités, ex. « 7(c)-I », sinon chaîne vide")
-    svhc_list: str = Field(description="SVHC présentes > 0,1 % citées, sinon chaîne vide")
-    eccn: str = Field(description="ECCN cité dans le document (ex. EAR99, 5A992.c), sinon chaîne vide")
-    country_of_origin: str = Field(description="Pays d'origine cité, code ISO 3166-1 alpha-2 (ex. CN, MY), sinon chaîne vide")
+    description: str = Field(description="Short description in English, e.g. “Dual op-amp, SOIC-8”")
+    rohs2: Literal["compliant", "exemption", "non_compliant", "unknown"]
+    rohs3: Literal["compliant", "exemption", "non_compliant", "unknown"]
+    reach: Literal["compliant", "svhc", "non_compliant", "unknown"]
+    rohs_exemptions: str = Field(description="RoHS exemption codes cited, e.g. “7(c)-I”, otherwise an empty string")
+    svhc_list: str = Field(description="SVHCs present above 0.1 % cited, otherwise an empty string")
+    eccn: str = Field(description="ECCN cited in the document (e.g. EAR99, 5A992.c), otherwise an empty string")
+    country_of_origin: str = Field(description="Country of origin cited, ISO 3166-1 alpha-2 code (e.g. CN, MY), otherwise an empty string")
     evidence: list[Evidence]
-    notes: list[str] = Field(description="Remarques en français utiles au vérificateur (ambiguïtés, limites)")
+    notes: list[str] = Field(description="Remarks in English useful to the reviewer (ambiguities, limits)")
 
 
-SYSTEM = """Tu extrais les informations d'identification et de conformité environnementale d'un composant \
-électronique à partir de sa datasheet, pour alimenter une base de conformité RoHS / REACH.
+SYSTEM = """You extract the identification and environmental compliance information of an electronic \
+component from its datasheet, to feed a RoHS / REACH compliance database.
 
-Règles de conformité (ne rien supposer qui ne soit pas écrit dans le document) :
-- rohs2 (directive 2011/65/UE) : "conforme" si le document affirme la conformité RoHS (mention RoHS sans \
-précision = RoHS 2) ; "exemption" s'il cite une exemption de l'annexe III ; "non_conforme" s'il dit le \
-contraire ; sinon "inconnu". « Pb-free » ou « green » seuls ne suffisent pas.
-- rohs3 (directive (UE) 2015/863, 10 substances dont 4 phtalates) : "conforme" uniquement si le document \
-mentionne explicitement 2015/863, RoHS 3 ou les 10 substances / phtalates ; sinon "inconnu".
-- reach (règlement 1907/2006) : "conforme" si le document indique l'absence de SVHC > 0,1 % ou la \
-conformité REACH ; "svhc" s'il déclare une SVHC > 0,1 % ; "non_conforme" s'il l'indique ; sinon "inconnu".
-- eccn et country_of_origin : uniquement s'ils sont écrits dans le document (ECCN, Export Control Classification Number, Country of Origin, Made in…) ; sinon chaîne vide. Ne déduis jamais un ECCN.
-- Pour chaque statut autre que "inconnu", et pour la référence et le fabricant, donne une citation \
-exacte et la page dans evidence.
-- Si la datasheet couvre une famille de références, mets la référence la plus pertinente dans mpn \
-(celle du nom de fichier si elle y figure) et les autres variantes commandables dans other_part_numbers."""
+Compliance rules (do not assume anything that is not written in the document):
+- rohs2 (Directive 2011/65/EU): "compliant" if the document states RoHS compliance (RoHS mentioned \
+without further detail = RoHS 2); "exemption" if it cites an Annex III exemption; "non_compliant" if it \
+says otherwise; otherwise "unknown". "Pb-free" or "green" alone are not enough.
+- rohs3 (Directive (EU) 2015/863, 10 substances including 4 phthalates): "compliant" only if the document \
+explicitly mentions 2015/863, RoHS 3 or the 10 substances / phthalates; otherwise "unknown".
+- reach (Regulation 1907/2006): "compliant" if the document states there is no SVHC above 0.1 % or states \
+REACH compliance; "svhc" if it declares an SVHC above 0.1 %; "non_compliant" if it says so; otherwise "unknown".
+- eccn and country_of_origin: only if they are written in the document (ECCN, Export Control Classification \
+Number, Country of Origin, Made in...); otherwise an empty string. Never infer an ECCN.
+- For every status other than "unknown", and for the part number and the manufacturer, give an exact \
+quote and the page in evidence.
+- If the datasheet covers a family of part numbers, put the most relevant one in mpn (the one in the file \
+name if it appears there) and the other orderable variants in other_part_numbers."""
 
 
 def available() -> bool:
-    if os.environ.get("RRC_AI", "").lower() in ("off", "0", "false", "non"):
+    if os.environ.get("RRC_AI", "").lower() in ("off", "0", "false", "no"):
         return False
     return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
 
@@ -71,7 +72,7 @@ class AIExtractionError(RuntimeError):
 
 
 def _safe(normalize, value: str) -> str:
-    """Normalise une valeur renvoyée par l'IA ; une valeur non reconnue est ignorée."""
+    """Normalise a value returned by the AI; an unrecognised value is ignored."""
     try:
         return normalize(value)
     except ValidationError:
@@ -82,7 +83,7 @@ def extract(data: bytes, filename: str = "") -> dict:
     import anthropic
 
     if len(data) > MAX_PDF_BYTES:
-        raise AIExtractionError("PDF trop volumineux pour l'analyse par IA (max 30 Mo)")
+        raise AIExtractionError("PDF too large for AI analysis (max 30 MB)")
 
     client = anthropic.Anthropic()
     try:
@@ -91,7 +92,7 @@ def extract(data: bytes, filename: str = "") -> dict:
             max_tokens=16000,
             system=SYSTEM,
             output_config={"effort": "medium"},
-            # Repli automatique côté serveur si le modèle décline la requête
+            # Automatic server-side fallback if the model declines the request
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
             messages=[{
@@ -106,34 +107,34 @@ def extract(data: bytes, filename: str = "") -> dict:
                         },
                         "title": filename or "datasheet.pdf",
                     },
-                    {"type": "text", "text": f"Nom du fichier : {filename or 'inconnu'}. Extrais les informations du composant."},
+                    {"type": "text", "text": f"File name: {filename or 'unknown'}. Extract the component information."},
                 ],
             }],
             output_format=DatasheetInfo,
         )
     except anthropic.AuthenticationError as exc:
-        raise AIExtractionError("Clé API Anthropic invalide") from exc
+        raise AIExtractionError("Invalid Anthropic API key") from exc
     except anthropic.RateLimitError as exc:
-        raise AIExtractionError("Limite de requêtes de l'API atteinte, réessayez plus tard") from exc
+        raise AIExtractionError("API rate limit reached, try again later") from exc
     except anthropic.BadRequestError as exc:
-        raise AIExtractionError(f"Requête refusée par l'API : {exc.message}") from exc
+        raise AIExtractionError(f"Request rejected by the API: {exc.message}") from exc
     except anthropic.APIStatusError as exc:
-        raise AIExtractionError(f"Erreur de l'API ({exc.status_code})") from exc
+        raise AIExtractionError(f"API error ({exc.status_code})") from exc
     except anthropic.APIConnectionError as exc:
-        raise AIExtractionError("Impossible de joindre l'API Anthropic") from exc
+        raise AIExtractionError("Could not reach the Anthropic API") from exc
 
     if response.stop_reason == "refusal":
-        raise AIExtractionError("Le modèle a refusé d'analyser ce document")
+        raise AIExtractionError("The model declined to analyse this document")
     info: DatasheetInfo | None = response.parsed_output
     if info is None:
-        raise AIExtractionError("Réponse de l'IA inexploitable")
+        raise AIExtractionError("Unusable AI response")
 
     evidence: dict[str, list[dict]] = {}
     for e in info.evidence:
         evidence.setdefault(e.field, []).append({"page": e.page, "text": e.quote[:240]})
 
     return {
-        "method": "ia",
+        "method": "ai",
         "model": response.model,
         "fields": {
             "mpn": info.mpn.strip(),
@@ -146,7 +147,7 @@ def extract(data: bytes, filename: str = "") -> dict:
             "svhc_list": info.svhc_list.strip(),
             "eccn": _safe(normalize_eccn, info.eccn),
             "country_of_origin": _safe(normalize_country, info.country_of_origin),
-            "source": f"Datasheet {filename} (extraction IA)".strip(),
+            "source": f"Datasheet {filename} (AI extraction)".strip(),
         },
         "candidates": {
             "mpn": [{"value": info.mpn}] + [{"value": p} for p in info.other_part_numbers if p and p != info.mpn],

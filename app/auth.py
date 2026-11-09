@@ -1,8 +1,8 @@
-"""Comptes utilisateurs et sessions de connexion.
+"""User accounts and login sessions.
 
-- Mots de passe hachés avec scrypt (bibliothèque standard), sel aléatoire par compte.
-- Session : jeton aléatoire envoyé dans un cookie HttpOnly ; seule son empreinte SHA-256 est
-  stockée en base, si bien qu'une fuite de la base ne permet pas d'usurper une session.
+- Passwords hashed with scrypt (standard library), with a random salt per account.
+- Session: random token sent in an HttpOnly cookie; only its SHA-256 hash is stored in the
+  database, so a database leak does not allow anyone to hijack a session.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class AuthError(Exception):
-    """Erreur d'authentification (message destiné à l'utilisateur)."""
+    """Authentication error (message meant for the user)."""
 
 
 def _now() -> datetime:
@@ -50,8 +50,8 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-# Empreinte factice : on vérifie quand même un mot de passe si l'e-mail est inconnu,
-# pour que le temps de réponse ne révèle pas quels comptes existent.
+# Dummy hash: a password is still checked when the e-mail is unknown,
+# so that the response time does not reveal which accounts exist.
 _DUMMY_HASH = hash_password(secrets.token_hex(16))
 
 
@@ -66,11 +66,11 @@ def _public(row: sqlite3.Row) -> dict:
 def create_user(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> dict:
     email = normalize_email(email)
     if not _EMAIL_RE.match(email):
-        raise db.ValidationError("Adresse e-mail invalide")
+        raise db.ValidationError("Invalid e-mail address")
     if len(password or "") < MIN_PASSWORD:
-        raise db.ValidationError(f"Le mot de passe doit contenir au moins {MIN_PASSWORD} caractères")
+        raise db.ValidationError(f"The password must be at least {MIN_PASSWORD} characters long")
     if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
-        raise AuthError("Un compte existe déjà avec cette adresse e-mail")
+        raise AuthError("An account already exists with this e-mail address")
     cur = conn.execute(
         "INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)",
         (email, (name or "").strip()[:80], hash_password(password), _now().isoformat()),
@@ -82,7 +82,7 @@ def authenticate(conn: sqlite3.Connection, email: str, password: str) -> dict:
     row = conn.execute("SELECT * FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
     ok = verify_password(password or "", row["password_hash"] if row else _DUMMY_HASH)
     if not row or not ok:
-        raise AuthError("E-mail ou mot de passe incorrect")
+        raise AuthError("Incorrect e-mail or password")
     return _public(row)
 
 
@@ -93,7 +93,7 @@ def _token_hash(token: str) -> str:
 def create_session(conn: sqlite3.Connection, user_id: int) -> str:
     token = secrets.token_urlsafe(32)
     now = _now()
-    conn.execute("DELETE FROM sessions WHERE expires_at < ?", (now.isoformat(),))  # ménage
+    conn.execute("DELETE FROM sessions WHERE expires_at < ?", (now.isoformat(),))  # clean-up
     conn.execute(
         "INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
         (_token_hash(token), user_id, now.isoformat(), (now + timedelta(days=SESSION_DAYS)).isoformat()),
