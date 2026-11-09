@@ -36,6 +36,7 @@ from .tables import (
 )
 
 STATIC = Path(__file__).resolve().parent / "static"
+EXAMPLES = Path(__file__).resolve().parent.parent / "examples"   # example BOMs, offered on the home page
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 MB
 MAX_DATASHEET = 30 * 1024 * 1024  # 30 MB
 ADMIN_TOKEN = os.environ.get("RRC_ADMIN_TOKEN", "")
@@ -694,3 +695,4 @@ def index():
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.mount("/examples", StaticFiles(directory=EXAMPLES, check_dir=False), name="examples")

@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-81%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-82%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -59,10 +59,17 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 <img src="docs/images/eccn.png" alt="Page of ECCN code 3A991.a.2 broken down with official heading and eCFR link" width="100%">
 
 ### And also
+- **Home page**: what the tool is for, the regulations checked, how it works and who it is for, with a one-click **example BOM** to try it without a file of your own.
 - **Manufacturer pages**: website, headquarters, compliance statistics and list of components in the database.
 - **PDF datasheet import**: extraction of the part number, manufacturer, RoHS/REACH statuses, ECCN and country of origin (rule-based, or with the **Claude API** if a key is configured), with the supporting excerpts.
 - **User accounts**: history of the latest analysed BOMs, reopened against the up-to-date database; sign-ups can be confirmed by e-mail and protected by a captcha.
 - **Country of origin**, editable **component database**, CSV and Excel import/export (an update only changes the columns provided), documented REST API (`/docs`).
+
+<details>
+<summary>See the home page</summary>
+
+<img src="docs/images/home.png" alt="Home page: presentation of the tool, example result and buttons to analyse a BOM or try the example" width="100%">
+</details>
 
 <details>
 <summary>See the manufacturer page</summary>
@@ -78,7 +85,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional) |
-| Quality | **pytest** (81 tests), **ruff** (lint), automated screenshots (Playwright) |
+| Quality | **pytest** (82 tests), **ruff** (lint), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release, deployment to **Render**) |
 
 ## Architecture
@@ -120,6 +127,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | *next* (v2.0.0) | [#19](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/19) | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
 | | [#21](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/21) | **Online deployment on Render** (free plan, HTTPS): `render.yaml` Blueprint and *Deploy to Render* button, admin token generated at creation, redeployment by the CD workflow after every merge to `main` |
 | | [#22](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/22) | **Sign-up protection** (optional): account created only once confirmed through a link sent by e-mail (Brevo API, works on Render's free plan), Cloudflare Turnstile captcha, limits per address and per connection |
+| | [#23](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/23) | **Home page** presenting the tool (regulations checked, steps, intended users) with a sample result, and a one-click example BOM |
 
 ## Quick start
 

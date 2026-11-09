@@ -48,7 +48,8 @@ async function api(url, opts = {}) {
 }
 
 /* ------------------------------------------------------------------ tabs and navigation
-   Addresses: #analysis, #database, #manufacturers, #manufacturer/<key> (shareable links, Back button) */
+   Addresses: #home (default), #analysis, #database, #manufacturers, #manufacturer/<key>…
+   (shareable links, Back button) */
 $$(".tab").forEach((t) => t.addEventListener("click", () => {
   const target = "#" + t.dataset.tab;
   if (location.hash === target) route(); else location.hash = target;
@@ -94,8 +95,10 @@ function route() {
   } else if (h === "database") {
     showTab("database");
     loadComponents();
-  } else {
+  } else if (h === "analysis") {
     showTab("analysis");
+  } else {
+    showTab("home");
   }
 }
 window.addEventListener("hashchange", route);
@@ -139,6 +142,23 @@ function startAnalysis(file) {
   resetLineFilters();
   runAnalysis();
 }
+
+// Home page: analyse the example BOM of the repository (examples/bom_example.csv) in one click
+$("#btnExample").addEventListener("click", async () => {
+  const btn = $("#btnExample");
+  btn.disabled = true;
+  $("#exampleError").hidden = true;
+  try {
+    const blob = await (await api("/examples/bom_example.csv")).blob();
+    location.hash = "#analysis";
+    startAnalysis(new File([blob], "bom_example.csv", { type: "text/csv" }));
+  } catch (e) {
+    $("#exampleError").textContent = "The example could not be loaded: " + e.message;
+    $("#exampleError").hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
