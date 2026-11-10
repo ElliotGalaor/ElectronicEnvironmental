@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(ROOT))
 os.environ["RRC_DB_PATH"] = str(Path(tempfile.mkdtemp()) / "test.db")
+# Most tests change the database without an account; the edit access tests turn this off.
+os.environ["RRC_OPEN_EDITING"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -561,7 +563,7 @@ from app import mailer as mailer_mod  # noqa: E402
 from app import main as main_mod  # noqa: E402
 
 SIGNUP_ENV = ("RRC_MAIL_LOG", "RRC_BREVO_API_KEY", "RRC_MAIL_FROM", "RRC_PUBLIC_URL", "RENDER_EXTERNAL_URL",
-              "RRC_TURNSTILE_SITE_KEY", "RRC_TURNSTILE_SECRET_KEY")
+              "RRC_TURNSTILE_SITE_KEY", "RRC_TURNSTILE_SECRET_KEY", "RRC_ADMIN_EMAIL", "RRC_DAILY_ADDITIONS")
 # Cloudflare's documented test keys and the token their widget produces
 TS_SITE, TS_SECRET, TS_TOKEN = "1x00000000000000000000AA", "1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX"
 
@@ -591,7 +593,8 @@ def new_email() -> str:
 
 
 def test_signup_settings_default(clean_signup_env):
-    assert client.get("/api/auth/config").json() == {"email_confirmation": False, "captcha_site_key": None}
+    cfg = client.get("/api/auth/config").json()
+    assert cfg["email_confirmation"] is False and cfg["captcha_site_key"] is None and cfg["edit_requests"] is False
 
 
 def test_signup_confirmed_by_email(mailbox):
@@ -721,6 +724,147 @@ def test_brevo_request(clean_signup_env, monkeypatch):
     monkeypatch.setattr(mailer_mod.urllib.request, "urlopen", refused)
     with pytest.raises(mailer_mod.MailError):
         mailer_mod.send("to@example.com", "Subject", "<p>Hello</p>")
+
+
+# ---------------------------------------------------------------- edit access, approved by the administrator
+
+from app import editors as editors_mod  # noqa: E402
+
+ADMIN = "admin@example.org"
+
+
+@pytest.fixture
+def protected(mailbox, monkeypatch):
+    """Database changes reserved for approved accounts; e-mails captured in the mailbox."""
+    monkeypatch.delenv("RRC_OPEN_EDITING", raising=False)
+    monkeypatch.setenv("RRC_ADMIN_EMAIL", ADMIN)
+    return mailbox
+
+
+def signed_in(email=None, password="password123"):
+    email = email or new_email()
+    with db.session() as conn:
+        if not conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+            auth_mod.create_user(conn, email, password)
+    c = TestClient(app)
+    assert c.post("/api/auth/login", json={"email": email, "password": password}).status_code == 200
+    return c, email
+
+
+def review_token(mail) -> str:
+    return re.search(r"#review/([\w-]+)", mail["html"]).group(1)
+
+
+def test_database_changes_need_an_approved_account(protected):
+    anonymous = TestClient(app)
+    assert anonymous.post("/api/components", json={"mpn": "EDIT-ANON"}).status_code == 401
+    assert anonymous.put("/api/exemptions/7(c)-I", json={"notes": "x"}).status_code == 401
+    assert anonymous.get("/api/components?q=NE555P").status_code == 200       # browsing stays open
+    assert analyze_text("MPN,Manufacturer\nNE555P,TI\n")["summary"]["found"] == 1
+
+    c, _ = signed_in()
+    r = c.post("/api/components", json={"mpn": "EDIT-USER"})
+    assert r.status_code == 403 and "request edit access" in r.json()["detail"]
+    me = c.get("/api/auth/me").json()
+    assert me["can_edit"] is False and me["edit_access"] == "" and me["is_admin"] is False
+    assert c.get("/api/auth/config").json()["edit_requests"] is True
+
+
+def test_edit_access_request_and_approval(protected):
+    c, email = signed_in()
+    r = c.post("/api/edit-access/request")
+    assert r.status_code == 200 and r.json()["edit_access"] == "pending"
+    [mail] = protected
+    token = review_token(mail)
+    assert mail["to"] == ADMIN and email in mail["html"] and f"http://testserver/#review/{token}" in mail["html"]
+    assert c.post("/api/edit-access/request").status_code == 409                # one pending request at a time
+
+    reviewer = TestClient(app)  # the link is enough: the administrator does not need to be signed in
+    assert reviewer.post("/api/edit-access/lookup", json={"token": "forged"}).status_code == 404
+    assert reviewer.post("/api/edit-access/lookup", json={"token": token}).json()["email"] == email
+    r = reviewer.post("/api/edit-access/review", json={"token": token, "approve": True})
+    assert r.json() == {"email": email, "edit_access": "approved"}
+    assert protected[-1]["to"] == email and "approved" in protected[-1]["html"]  # the user is told
+    assert reviewer.post("/api/edit-access/review", json={"token": token, "approve": False}).status_code == 404
+
+    me = c.get("/api/auth/me").json()
+    assert me["can_edit"] is True and me["additions_left"] == 20
+    created = c.post("/api/components", json={"mpn": "EDIT-APPROVED-1", "manufacturer": "Acme"})
+    assert created.status_code == 201
+    assert c.put(f"/api/components/{created.json()['id']}", json={"mpn": "EDIT-APPROVED-1", "manufacturer": "Acme",
+                                                                   "description": "edited"}).status_code == 200
+    r = c.delete(f"/api/components/{created.json()['id']}")
+    assert r.status_code == 403 and "administrator" in r.json()["detail"]
+
+
+def test_edit_access_refused(protected):
+    c, email = signed_in()
+    c.post("/api/edit-access/request")
+    TestClient(app).post("/api/edit-access/review", json={"token": review_token(protected[0]), "approve": False})
+    assert "not approved" in protected[-1]["html"]
+    assert c.get("/api/auth/me").json()["edit_access"] == "refused"
+    assert c.post("/api/components", json={"mpn": "EDIT-REFUSED"}).status_code == 403
+    r = c.post("/api/edit-access/request")
+    assert r.status_code == 409 and "tomorrow" in r.json()["detail"]
+    with db.session() as conn:  # one request per day
+        conn.execute("UPDATE users SET edit_requested_at = '2000-01-01T00:00:00+00:00' WHERE email = ?", (email,))
+    assert c.post("/api/edit-access/request").status_code == 200
+
+
+def test_administrator(protected):
+    c, _ = signed_in(ADMIN.upper())
+    me = c.get("/api/auth/me").json()
+    assert me["is_admin"] is True and me["can_edit"] is True and me["additions_left"] is None
+    assert c.post("/api/edit-access/request").status_code == 409
+    comp = c.post("/api/components", json={"mpn": "EDIT-ADMIN-1", "manufacturer": "Acme"}).json()
+    assert c.delete(f"/api/components/{comp['id']}").status_code == 204
+
+
+def test_daily_limit_on_added_components(protected, monkeypatch):
+    monkeypatch.setenv("RRC_DAILY_ADDITIONS", "3")
+    c, email = signed_in()
+    with db.session() as conn:
+        assert editors_mod.set_access(conn, email, approved=True)        # as with "python cli.py approve"
+    for i in range(3):
+        assert c.post("/api/components", json={"mpn": f"LIMIT-{email}-{i}"}).status_code == 201
+    r = c.post("/api/components", json={"mpn": f"LIMIT-{email}-3"})
+    assert r.status_code == 429 and "Daily limit" in r.json()["detail"]
+    assert c.get(f"/api/components?q=LIMIT-{email}-3").json()["total"] == 0  # nothing kept
+
+    existing = c.get(f"/api/components?q=LIMIT-{email}-0").json()["items"][0]
+    assert c.put(f"/api/components/{existing['id']}", json={"mpn": existing["mpn"], "description": "edit"}).status_code == 200
+
+    csv = f"mpn,manufacturer\nLIMIT-{email}-A,Acme\nLIMIT-{email}-B,Acme\n".encode()
+    r = c.post("/api/components/import", files={"file": ("new.csv", csv)})
+    assert r.status_code == 429 and "you can add 0 more" in r.json()["detail"]
+    assert c.get(f"/api/components?q=LIMIT-{email}-A").json()["total"] == 0  # the whole import is cancelled
+
+    with db.session() as conn:  # additions older than 24 hours no longer count
+        conn.execute("UPDATE additions SET created_at = '2000-01-01T00:00:00+00:00'")
+    r = c.post("/api/components/import", files={"file": ("new.csv", csv)})
+    assert r.status_code == 200 and r.json()["created"] == 2
+    assert c.get("/api/auth/me").json()["additions_left"] == 1
+
+
+def test_edit_access_requests_not_set_up(clean_signup_env, monkeypatch):
+    monkeypatch.delenv("RRC_OPEN_EDITING", raising=False)
+    c, _ = signed_in()
+    assert c.post("/api/edit-access/request").status_code == 503
+    assert c.post("/api/components", json={"mpn": "EDIT-NO-ADMIN"}).status_code == 403
+
+
+def test_users_of_older_databases_get_edit_columns(tmp_path):
+    path = tmp_path / "old.db"
+    import sqlite3
+    old = sqlite3.connect(path)
+    old.execute("CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, "
+                "name TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL, created_at TEXT NOT NULL)")
+    old.execute("INSERT INTO users (email, password_hash, created_at) VALUES ('old@example.com', 'x', '2026-01-01')")
+    old.commit()
+    old.close()
+    with db.session(path) as conn:
+        row = conn.execute("SELECT * FROM users").fetchone()
+        assert row["edit_access"] == "" and row["edit_token_hash"] is None
 
 
 def test_history_saved_and_isolated():

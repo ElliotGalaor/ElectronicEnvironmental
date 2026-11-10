@@ -90,8 +90,21 @@ CREATE TABLE IF NOT EXISTS users (
     email         TEXT NOT NULL UNIQUE,
     name          TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
-    created_at    TEXT NOT NULL
+    created_at    TEXT NOT NULL,
+    -- Right to change the component database, granted by the administrator: '', pending, approved, refused
+    edit_access       TEXT NOT NULL DEFAULT '',
+    edit_token_hash   TEXT,   -- SHA-256 of the token in the administrator's review link
+    edit_requested_at TEXT,
+    edit_reviewed_at  TEXT
 );
+
+-- Components added by each user, for the daily limit
+CREATE TABLE IF NOT EXISTS additions (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    count      INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_additions_user ON additions (user_id, created_at);
 
 -- Login sessions: only the SHA-256 hash of the token is kept
 CREATE TABLE IF NOT EXISTS sessions (
@@ -240,6 +253,12 @@ _ADDED_COLUMNS = {
     "eccn": "TEXT NOT NULL DEFAULT ''",
     "country_of_origin": "TEXT NOT NULL DEFAULT ''",
 }
+_ADDED_USER_COLUMNS = {
+    "edit_access": "TEXT NOT NULL DEFAULT ''",
+    "edit_token_hash": "TEXT",
+    "edit_requested_at": "TEXT",
+    "edit_reviewed_at": "TEXT",
+}
 
 # Status values used up to v1.1.0 (French) -> current values.
 LEGACY_STATUSES = {
@@ -256,6 +275,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for col, decl in _ADDED_COLUMNS.items():
         if col not in existing:
             conn.execute(f"ALTER TABLE components ADD COLUMN {col} {decl}")
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
+    for col, decl in _ADDED_USER_COLUMNS.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE users ADD COLUMN {col} {decl}")
     # Databases created before v2.0.0 store French status values.
     legacy = ", ".join(f"'{s}'" for s in LEGACY_STATUSES)
     if conn.execute(f"SELECT 1 FROM components WHERE rohs2 IN ({legacy}) OR rohs3 IN ({legacy}) "

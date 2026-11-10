@@ -32,12 +32,9 @@ const eccnCell = (e) => !e ? "" : e === "EAR99"
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 const plural = (n, word, many = word + "s") => `${n} ${n > 1 ? many : word}`;
 
-const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50, adminRequired: false };
-
-function token() { try { return localStorage.getItem("rrc_token") || ""; } catch { return ""; } }
+const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50 };
 
 async function api(url, opts = {}) {
-  opts.headers = { ...(opts.headers || {}), "X-Admin-Token": token() };
   const r = await fetch(url, opts);
   if (!r.ok) {
     let msg = r.statusText;
@@ -68,6 +65,13 @@ function route() {
     history.replaceState(null, "", location.pathname + location.search + "#analysis");
     showTab("analysis");
     openAuth("confirm");
+  } else if (h.startsWith("review/")) {
+    // Link from the administrator's e-mail: the token is removed from the address bar at once
+    const reviewLink = h.slice("review/".length);
+    history.replaceState(null, "", location.pathname + location.search + "#database");
+    showTab("database");
+    loadComponents();
+    openReview(reviewLink);
   } else if (h.startsWith("manufacturer/")) {
     showTab("manufacturers");
     openManufacturer(h.slice("manufacturer/".length));
@@ -112,13 +116,11 @@ const mfrLink = (name, key) => (key === undefined || key === null)
 async function loadStats() {
   try {
     const s = await (await api("/api/stats")).json();
-    state.adminRequired = s.admin_required;
     state.aiAvailable = s.ai_available;
     $("#pdfMethodHint").textContent = s.ai_available
       ? "AI analysis (Claude) enabled on the server."
       : "Rule-based analysis (no Claude API key configured on the server).";
     $("#dbinfo").textContent = `Database: ${plural(s.total, "component")}`;
-    $("#adminBox").hidden = !s.admin_required;
   } catch { $("#dbinfo").textContent = "Database: server unreachable"; }
 }
 
@@ -401,8 +403,6 @@ $("#q").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer
 $("#onlyIssues").addEventListener("change", () => { state.page = 0; loadComponents(); });
 $("#prev").addEventListener("click", () => { if (state.page > 0) { state.page--; loadComponents(); } });
 $("#next").addEventListener("click", () => { state.page++; loadComponents(); });
-$("#adminToken").value = token();
-$("#adminToken").addEventListener("change", (e) => { try { localStorage.setItem("rrc_token", e.target.value); } catch {} });
 
 async function loadComponents() {
   const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "issues" : "" });
@@ -641,6 +641,7 @@ $("#btnDelete").addEventListener("click", async () => {
 
 function afterDbChange() {
   loadStats();
+  if (state.user) refreshUser(); // components left for the day
   if ($("#tab-database").classList.contains("active")) loadComponents();
   if ($("#tab-manufacturers").classList.contains("active")) route();
   if (state.report) runAnalysis(); // rerun the analysis with the updated database
@@ -1270,7 +1271,111 @@ function renderAccount() {
     : `<button class="btn small primary" id="btnLogin">Sign in</button>`;
   $("#historyHint").hidden = !!u;
   $("#historyBox").hidden = !u;
+  renderEditBox();
 }
+
+async function refreshUser() {
+  try { state.user = await (await api("/api/auth/me")).json(); } catch { /* keep the current state */ }
+  renderEditBox();
+}
+
+function loadAuthConfig() {
+  authConfigLoading ||= api("/api/auth/config").then((r) => r.json())
+    .then((c) => { authConfig = c; showCaptcha(); renderEditBox(); }).catch(() => { authConfigLoading = null; });
+  return authConfigLoading;
+}
+
+// Database tab: what the visitor may change, and the request for edit access sent to the administrator
+function renderEditBox() {
+  const box = $("#editBox"), u = state.user, c = authConfig;
+  if (!c || c.open_editing) { box.hidden = true; return; }
+  let html;
+  if (!u) {
+    html = `To add or edit components, <button class="linkbtn" data-auth="login">sign in</button>
+      with an account approved by the administrator.`;
+  } else if (u.is_admin) {
+    html = "Administrator: you can add, edit and delete components, with no daily limit.";
+  } else if (u.can_edit) {
+    html = `You can add and edit components: <strong>${u.additions_left}</strong> of ${u.daily_additions}
+      new components left today (over the last 24 hours). Only the administrator can delete components.`;
+  } else if (u.edit_access === "pending") {
+    html = "Edit access requested: waiting for the administrator's answer. You will be told by e-mail.";
+  } else {
+    const intro = u.edit_access === "refused"
+      ? "Your last request for edit access was refused."
+      : "Your account can browse the database and analyse BOMs.";
+    html = c.edit_requests
+      ? `${intro} To add or edit components, <button class="btn small" id="btnRequestEdit">Request edit access</button>`
+      : `${intro} Changing the database is reserved for accounts approved by the administrator.`;
+  }
+  box.innerHTML = html;
+  box.hidden = false;
+}
+
+$("#editBox").addEventListener("click", async (ev) => {
+  const login = ev.target.closest("[data-auth]");
+  if (login) { openAuth(login.dataset.auth); return; }
+  const btn = ev.target.closest("#btnRequestEdit");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    state.user = await (await api("/api/edit-access/request", { method: "POST" })).json();
+    renderEditBox();
+  } catch (e) {
+    $("#editBox").insertAdjacentHTML("beforeend", `<div class="alert error">${esc(e.message)}</div>`);
+    btn.disabled = false;
+  }
+});
+
+// Administrator: approve or refuse a request, from the link received by e-mail
+const dlgReview = $("#dlgReview");
+let reviewToken = "";
+
+function showReviewError(msg) {
+  $("#reviewError").textContent = msg;
+  $("#reviewError").hidden = !msg;
+}
+
+async function openReview(link) {
+  reviewToken = link;
+  $("#reviewInfo").textContent = "Loading the request…";
+  showReviewError("");
+  $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+  if (!dlgReview.open) dlgReview.showModal();
+  try {
+    const r = await (await api("/api/edit-access/lookup", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: link }),
+    })).json();
+    $("#reviewInfo").innerHTML = `<strong>${esc(r.email)}</strong>${r.name ? ` (${esc(r.name)})` : ""} asks for
+      permission to add and edit components. Account created on ${esc(fmtDate(r.created_at))}, request sent on
+      ${esc(fmtDate(r.requested_at))}.`;
+    $("#btnApprove").hidden = $("#btnRefuse").hidden = false;
+  } catch (e) {
+    $("#reviewInfo").textContent = "";
+    showReviewError(e.message);
+  }
+}
+
+async function decide(approve) {
+  $("#btnApprove").disabled = $("#btnRefuse").disabled = true;
+  try {
+    const r = await (await api("/api/edit-access/review", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: reviewToken, approve }),
+    })).json();
+    $("#reviewInfo").innerHTML = approve
+      ? `Approved: <strong>${esc(r.email)}</strong> can now add and edit components. They are told by e-mail.`
+      : `Refused: <strong>${esc(r.email)}</strong> is told by e-mail.`;
+    $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+    if (state.user) refreshUser();
+  } catch (e) {
+    showReviewError(e.message);
+  } finally {
+    $("#btnApprove").disabled = $("#btnRefuse").disabled = false;
+  }
+}
+$("#btnApprove").addEventListener("click", () => decide(true));
+$("#btnRefuse").addEventListener("click", () => decide(false));
+$("#btnReviewClose").addEventListener("click", () => dlgReview.close());
 
 $("#account").addEventListener("click", async (ev) => {
   if (ev.target.closest("#btnLogin")) openAuth("login");
@@ -1295,8 +1400,7 @@ function openAuth(mode) {
   setAuthMode(mode);
   if (!dlgAuth.open) dlgAuth.showModal();
   (mode === "confirm" ? authForm.elements.password : authForm.elements.email).focus();
-  authConfigLoading ||= api("/api/auth/config").then((r) => r.json())
-    .then((c) => { authConfig = c; showCaptcha(); }).catch(() => { authConfigLoading = null; });
+  loadAuthConfig();
 }
 
 function showAuthError(msg) {
@@ -1455,6 +1559,7 @@ $("#historyList").addEventListener("click", async (ev) => {
 /* ------------------------------------------------------------------ start-up */
 loadStats();
 loadUser();
+loadAuthConfig();
 api("/api/countries").then((r) => r.json()).then((c) => {
   COUNTRIES = c;
   $("#countryList").innerHTML = Object.entries(c).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join("");

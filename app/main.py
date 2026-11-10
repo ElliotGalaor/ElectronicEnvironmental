@@ -13,12 +13,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
-from fastapi import Cookie, Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, auth, captcha, datasheet, datasheet_ai, db, eccn, exemptions, history, mailer, manufacturers
+from . import alternates, auth, captcha, datasheet, datasheet_ai, db, eccn, editors, exemptions, history, mailer, manufacturers
 from .analyzer import analyze
 from .importer import IMPORT_FIELDS, detect_import_columns, import_table, plan_table
 from .reports import database_csv, report_csv, report_xlsx
@@ -39,7 +39,6 @@ STATIC = Path(__file__).resolve().parent / "static"
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"   # example BOMs, offered on the home page
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 MB
 MAX_DATASHEET = 30 * 1024 * 1024  # 30 MB
-ADMIN_TOKEN = os.environ.get("RRC_ADMIN_TOKEN", "")
 
 app = FastAPI(
     title="RoHS / REACH Checker",
@@ -70,12 +69,6 @@ def get_conn():
         conn.close()
 
 
-def require_admin(x_admin_token: str = Header(default="")):
-    """If RRC_ADMIN_TOKEN is set, database changes require the X-Admin-Token header."""
-    if ADMIN_TOKEN and x_admin_token != ADMIN_TOKEN:
-        raise HTTPException(401, "Admin token required (X-Admin-Token header)")
-
-
 def current_user(rrc_session: str | None = Cookie(default=None), conn=Depends(get_conn)) -> dict | None:
     """Signed-in user (session cookie), or None."""
     return auth.user_from_token(conn, rrc_session)
@@ -85,6 +78,37 @@ def require_user(user=Depends(current_user)) -> dict:
     if not user:
         raise HTTPException(401, "Sign-in required")
     return user
+
+
+def require_editor(user=Depends(current_user)) -> dict | None:
+    """Database changes: the administrator or an account it approved (anyone with RRC_OPEN_EDITING)."""
+    if editors.open_editing():
+        return user
+    if not user:
+        raise HTTPException(401, "Sign in to change the database")
+    if not editors.can_edit(user):
+        raise HTTPException(403, "Your account cannot change the database yet: request edit access in the Database tab")
+    return user
+
+
+def require_admin(user=Depends(current_user)) -> dict | None:
+    """Deleting components: the administrator only (anyone with RRC_OPEN_EDITING)."""
+    if editors.open_editing():
+        return user
+    if not user:
+        raise HTTPException(401, "Sign in to change the database")
+    if not editors.is_admin(user):
+        raise HTTPException(403, "Only the administrator can delete components")
+    return user
+
+
+def check_additions(conn, user: dict | None, count: int) -> None:
+    try:
+        editors.check_additions(conn, user, count)
+    except editors.LimitReached as exc:
+        # The error cancels the transaction: nothing added by this request is kept
+        raise HTTPException(429, str(exc)) from exc
+    editors.record_additions(conn, user, count)
 
 
 class ComponentIn(BaseModel):
@@ -287,13 +311,21 @@ def _check_throttle(email: str) -> None:
         raise HTTPException(429, "Too many attempts: try again in a few minutes")
 
 
+def _account(conn, user: dict | None) -> dict | None:
+    """Signed-in user with their rights on the database."""
+    if not user:
+        return None
+    return user | {"is_admin": editors.is_admin(user), "can_edit": editors.can_edit(user),
+                   "additions_left": editors.additions_left(conn, user), "daily_additions": editors.daily_limit()}
+
+
 def _open_session(conn, user: dict, request: Request, response: Response) -> dict:
     token = auth.create_session(conn, user["id"])
     response.set_cookie(
         auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="lax",
         secure=request.url.scheme == "https", path="/",
     )
-    return user
+    return _account(conn, user)
 
 
 # Sign-ups per client address while confirmation e-mails are sent: 10 per hour
@@ -333,7 +365,9 @@ def _confirmation_email(link: str) -> str:
 
 @app.get("/api/auth/config", summary="Sign-up settings: e-mail confirmation, captcha key")
 def auth_config():
-    return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key()}
+    return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key(),
+            "open_editing": editors.open_editing(), "edit_requests": bool(editors.admin_email() and mailer.available()),
+            "daily_additions": editors.daily_limit()}
 
 
 @app.post("/api/auth/register", status_code=201,
@@ -399,9 +433,84 @@ def logout(response: Response, rrc_session: str | None = Cookie(default=None), c
     return response
 
 
-@app.get("/api/auth/me", summary="Signed-in user (null if nobody)")
-def me(user=Depends(current_user)):
-    return user
+@app.get("/api/auth/me", summary="Signed-in user and their rights on the database (null if nobody)")
+def me(user=Depends(current_user), conn=Depends(get_conn)):
+    return _account(conn, user)
+
+
+# ---------------------------------------------------------------- edit access, approved by the administrator
+
+class TokenIn(BaseModel):
+    token: str
+
+
+class ReviewIn(BaseModel):
+    token: str
+    approve: bool
+
+
+def _request_email(email: str, created_at: str, link: str) -> str:
+    url = html.escape(link, quote=True)
+    return (
+        "<p>Hello,</p>"
+        f"<p><strong>{html.escape(email)}</strong> (account created on {html.escape(created_at[:10])}) asks for "
+        "permission to add and edit components in the database of the RoHS / REACH Checker.</p>"
+        f'<p><a href="{url}">Review the request</a> (approve or refuse)</p>'
+        f"<p>Or copy this address into your browser:<br>{url}</p>"
+        f"<p>The link is valid for {editors.REVIEW_DAYS} days. An approved account can add up to "
+        f"{editors.daily_limit()} new components per day; only you can delete components.</p>"
+    )
+
+
+def _decision_email(approved: bool, site: str) -> str:
+    url = html.escape(site, quote=True)
+    if approved:
+        text = ("Your request to edit the database of the RoHS / REACH Checker was approved: you can now add "
+                f"and edit components (up to {editors.daily_limit()} new components per day).")
+    else:
+        text = "Your request to edit the database of the RoHS / REACH Checker was not approved."
+    return f'<p>Hello,</p><p>{text}</p><p><a href="{url}">{url}</a></p>'
+
+
+@app.post("/api/edit-access/request", summary="Ask the administrator for the right to change the database")
+def request_edit_access(request: Request, user=Depends(require_user), conn=Depends(get_conn)):
+    admin = editors.admin_email()
+    if not (admin and mailer.available()):
+        raise HTTPException(503, "Edit access requests are not set up on this server")
+    try:
+        token = editors.request_access(conn, user)
+    except editors.EditAccessError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    try:
+        mailer.send(admin, "Edit access request - RoHS / REACH Checker",
+                    _request_email(user["email"], user["created_at"], f"{_public_url(request)}/#review/{token}"))
+    except mailer.MailError as exc:
+        # The error cancels the transaction: the request is not kept
+        raise HTTPException(502, "The request could not be sent to the administrator: try again later") from exc
+    return _account(conn, user | {"edit_access": "pending"})
+
+
+@app.post("/api/edit-access/lookup", summary="Request matching an administrator's review link")
+def lookup_edit_access(body: TokenIn, conn=Depends(get_conn)):
+    row = editors.find_request(conn, body.token)
+    if not row:
+        raise HTTPException(404, "This link is invalid, has expired or was already used")
+    return {"email": row["email"], "name": row["name"], "created_at": row["created_at"],
+            "requested_at": row["edit_requested_at"]}
+
+
+@app.post("/api/edit-access/review", summary="Approve or refuse a request (token of the administrator's link)")
+def review_edit_access(body: ReviewIn, request: Request, conn=Depends(get_conn)):
+    try:
+        row = editors.review(conn, body.token, body.approve)
+    except editors.EditAccessError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    try:  # the user is told; a failure here does not cancel the decision
+        mailer.send(row["email"], "Your edit access request - RoHS / REACH Checker",
+                    _decision_email(body.approve, _public_url(request) + "/#database"))
+    except mailer.MailError:
+        pass
+    return {"email": row["email"], "edit_access": row["edit_access"]}
 
 
 # ---------------------------------------------------------------- BOM history
@@ -468,7 +577,7 @@ class EquivalentIn(BaseModel):
     other_id: int
 
 
-@app.post("/api/components/{comp_id}/equivalents", status_code=204, dependencies=[Depends(require_admin)],
+@app.post("/api/components/{comp_id}/equivalents", status_code=204, dependencies=[Depends(require_editor)],
           summary="Confirm that another component is equivalent")
 def add_equivalent(comp_id: int, body: EquivalentIn, conn=Depends(get_conn)):
     try:
@@ -478,7 +587,7 @@ def add_equivalent(comp_id: int, body: EquivalentIn, conn=Depends(get_conn)):
     return Response(status_code=204)
 
 
-@app.delete("/api/components/{comp_id}/equivalents/{other_id}", status_code=204, dependencies=[Depends(require_admin)],
+@app.delete("/api/components/{comp_id}/equivalents/{other_id}", status_code=204, dependencies=[Depends(require_editor)],
             summary="Remove a confirmed equivalence")
 def remove_equivalent(comp_id: int, other_id: int, conn=Depends(get_conn)):
     alternates.unconfirm(conn, comp_id, other_id)
@@ -493,16 +602,17 @@ def get_component(comp_id: int, conn=Depends(get_conn)):
     return comp
 
 
-@app.post("/api/components", status_code=201, dependencies=[Depends(require_admin)])
-def create_component(body: ComponentIn, conn=Depends(get_conn)):
+@app.post("/api/components", status_code=201)
+def create_component(body: ComponentIn, user=Depends(require_editor), conn=Depends(get_conn)):
     try:
         cid = db.create(conn, body.model_dump())
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    check_additions(conn, user, 1)
     return db.get(conn, cid)
 
 
-@app.put("/api/components/{comp_id}", dependencies=[Depends(require_admin)])
+@app.put("/api/components/{comp_id}", dependencies=[Depends(require_editor)])
 def update_component(comp_id: int, body: ComponentIn, conn=Depends(get_conn)):
     try:
         ok = db.update(conn, comp_id, body.model_dump())
@@ -520,18 +630,21 @@ def delete_component(comp_id: int, conn=Depends(get_conn)):
     return Response(status_code=204)
 
 
-@app.post("/api/components/import", summary="Import / update the database from a CSV or XLSX file", dependencies=[Depends(require_admin)])
+@app.post("/api/components/import", summary="Import / update the database from a CSV or XLSX file")
 async def import_components(
     file: UploadFile = File(...),
     mapping: str = Form(default="", description=MAPPING_DOC),
+    user=Depends(require_editor),
     conn=Depends(get_conn),
 ):
     data = await _read_upload(file)
     overrides = _parse_mapping(mapping)
     try:
-        return import_table(conn, data, file.filename or "", overrides)
+        result = import_table(conn, data, file.filename or "", overrides)
     except TableError as exc:
         raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
+    check_additions(conn, user, result["created"])
+    return result
 
 
 # ---------------------------------------------------------------- PDF datasheet
@@ -539,7 +652,7 @@ async def import_components(
 @app.post(
     "/api/datasheet/extract",
     summary="Extract a component's information from its PDF datasheet (proposal to review)",
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_editor)],
 )
 def extract_datasheet(
     file: UploadFile = File(...),
@@ -617,7 +730,7 @@ def get_manufacturer(key: str, conn=Depends(get_conn)):
     return info
 
 
-@app.put("/api/manufacturers/{key}", dependencies=[Depends(require_admin)], summary="Edit a manufacturer's information")
+@app.put("/api/manufacturers/{key}", dependencies=[Depends(require_editor)], summary="Edit a manufacturer's information")
 def update_manufacturer(key: str, body: ManufacturerIn, conn=Depends(get_conn)):
     try:
         return manufacturers.update(conn, _mfr_key(key), body.model_dump())
@@ -641,7 +754,7 @@ def get_exemption(code: str, conn=Depends(get_conn)):
     return exemptions.get(conn, code)
 
 
-@app.put("/api/exemptions/{code}", dependencies=[Depends(require_admin)], summary="Edit an exemption's notes")
+@app.put("/api/exemptions/{code}", dependencies=[Depends(require_editor)], summary="Edit an exemption's notes")
 def update_exemption(code: str, body: ExemptionNotesIn, conn=Depends(get_conn)):
     try:
         return exemptions.update(conn, code, body.notes)
@@ -669,7 +782,7 @@ def get_eccn(code: str, conn=Depends(get_conn)):
         raise HTTPException(422, str(exc)) from exc
 
 
-@app.put("/api/eccn/{code}", dependencies=[Depends(require_admin)], summary="Edit an ECCN code's title and notes")
+@app.put("/api/eccn/{code}", dependencies=[Depends(require_editor)], summary="Edit an ECCN code's title and notes")
 def update_eccn(code: str, body: EccnIn, conn=Depends(get_conn)):
     try:
         return eccn.update(conn, code, body.model_dump())
@@ -684,7 +797,7 @@ def get_countries():
 
 @app.get("/api/stats")
 def get_stats(conn=Depends(get_conn)):
-    return db.stats(conn) | {"admin_required": bool(ADMIN_TOKEN), "ai_available": datasheet_ai.available()}
+    return db.stats(conn) | {"ai_available": datasheet_ai.available()}
 
 
 # ---------------------------------------------------------------- Web interface

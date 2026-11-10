@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=24">
+<link rel="stylesheet" href="/static/style.css?v=26">
 </head>
 <body>
 <header class="top">
@@ -212,11 +212,7 @@
         <button class="btn primary" id="btnAdd">+ Add</button>
       </div>
     </div>
-    <div id="adminBox" class="card admin" hidden>
-      <label>Admin token (required to edit the database)
-        <input type="password" id="adminToken" autocomplete="off">
-      </label>
-    </div>
+    <div id="editBox" class="card editbox" hidden></div>
     <div id="importMsg" class="alert" hidden></div>
     <div class="tablewrap">
       <table class="grid" id="comps">
@@ -372,6 +368,18 @@
   </form>
 </dialog>
 
+<!-- ============================== EDIT ACCESS REVIEW (administrator) ============================== -->
+<dialog id="dlgReview" class="narrow">
+  <h2>Edit access request</h2>
+  <p id="reviewInfo"></p>
+  <div id="reviewError" class="alert error" hidden></div>
+  <div class="dlgactions"><span class="spacer"></span>
+    <button type="button" class="btn" id="btnReviewClose">Close</button>
+    <button type="button" class="btn danger" id="btnRefuse" hidden>Refuse</button>
+    <button type="button" class="btn primary" id="btnApprove" hidden>Approve</button>
+  </div>
+</dialog>
+
 <!-- ============================== EXEMPTION DIALOG ============================== -->
 <dialog id="dlgExempt">
   <form id="exemptForm" method="dialog">
@@ -515,6 +523,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=24"></script>
+<script src="/static/app.js?v=26"></script>
 </body>
 </html>
