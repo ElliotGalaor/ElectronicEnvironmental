@@ -13,7 +13,8 @@ python -m venv .venv
 .venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Then open http://localhost:8000 (API documentation: http://localhost:8000/docs). The home page presents the
+Then open http://localhost:8000 (API documentation: http://localhost:8000/docs). To change the database
+locally, start the server with `RRC_OPEN_EDITING=1`, or set `RRC_ADMIN_EMAIL` to your address and sign up with it. The home page presents the
 tool; its "Try with an example BOM" button analyses [`examples/bom_example.csv`](../examples/bom_example.csv),
 served at `/examples/bom_example.csv`.
 
@@ -141,7 +142,24 @@ Security:
 - 30-day session in an `HttpOnly`, `SameSite=Lax` cookie (and `Secure` over HTTPS); only the SHA-256 hash of
   the token is stored in the database;
 - 5 failed sign-ins for the same address block attempts for 15 minutes;
-- accounts are used for the history: changes to the database remain protected by `RRC_ADMIN_TOKEN` if set.
+- changing the database needs an account approved by the administrator (see below).
+
+### Changing the database
+
+Browsing and BOM analysis are open to everyone. Adding, editing or importing components, editing manufacturer
+pages, exemption and ECCN notes, confirming equivalences and extracting datasheets are reserved for:
+- the **administrator**: the account whose address is `RRC_ADMIN_EMAIL`, with no daily limit; it is also the
+  only one that can delete components;
+- the accounts the administrator **approved**. A signed-in user clicks "Request edit access" in the Database
+  tab; the administrator receives an e-mail with a link (valid 7 days) to approve or refuse, and the user is
+  told the answer by e-mail. One request per day at most.
+
+An approved account can add `RRC_DAILY_ADDITIONS` new components per 24 hours (default 20), through the form,
+a PDF datasheet or an import. An import that would go over the limit is refused as a whole. Edits of existing
+components are not limited.
+
+Without `RRC_ADMIN_EMAIL`, accounts can be approved from the command line (`python cli.py approve <e-mail>`).
+`RRC_OPEN_EDITING=1` lets anyone change the database without an account, for development or a private server.
 
 For a server that other people can reach, serve the application over **HTTPS** (for example behind a reverse
 proxy) so that passwords and cookies are not sent in clear text. Saved BOMs are stored in the SQLite database
@@ -248,6 +266,9 @@ Variables: `ANTHROPIC_API_KEY` (enables the AI), `RRC_AI=off` (disables the AI),
 .venv\Scripts\python cli.py analyze examples\bom_example.csv -o report.xlsx
 .venv\Scripts\python cli.py analyze bom.csv --server http://server:8000      # through the remote server
 .venv\Scripts\python cli.py analyze bom.csv --mapping "{\"mpn\": \"Part Number\"}"
+.venv\Scripts\python cli.py approve someone@example.com      # let an account change the local database
+.venv\Scripts\python cli.py revoke someone@example.com       # remove this right
+.venv\Scripts\python cli.py import components.csv --server http://server:8000 --email me@example.com
 ```
 Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continuous integration).
 
@@ -271,7 +292,9 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when a confirmation e-mail is sent), sign in, sign out |
 | POST | `/api/auth/confirm` | confirm a sign-up (token of the e-mailed link + password) and sign in |
 | GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
-| GET | `/api/auth/me` | signed-in user (`null` otherwise) |
+| GET | `/api/auth/me` | signed-in user and their rights: `can_edit`, `is_admin`, `additions_left` (`null` otherwise) |
+| POST | `/api/edit-access/request` | ask the administrator for the right to change the database (e-mail sent) |
+| POST | `/api/edit-access/lookup`, `/api/edit-access/review` | administrator: request of a review link / approve or refuse it |
 | GET | `/api/history` | latest BOMs analysed by the signed-in user |
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
 | GET | `/api/exemptions` | RoHS exemptions used by the database components |
@@ -288,8 +311,10 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 Step-by-step guide for a free Render web service over HTTPS: [DEPLOY.md](DEPLOY.md) (configuration in [`render.yaml`](../render.yaml)).
 
 - `RRC_DB_PATH`: path of the SQLite database (default `data/components.db`).
-- `RRC_ADMIN_TOKEN`: if set, every change to the database requires the `X-Admin-Token` header
-  (entered in the interface, Database tab). Browsing and analysis stay open.
+- `RRC_ADMIN_EMAIL`: administrator's address. This account can change the database and approves the edit
+  access requests of the other accounts, received by e-mail (see "Changing the database").
+- `RRC_DAILY_ADDITIONS`: new components an approved account can add per 24 hours (default 20).
+- `RRC_OPEN_EDITING=1`: anyone can change the database, without an account (development, private server).
 - `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the addresses whose `X-Forwarded-*` headers are trusted
   (uvicorn setting). Needed for the session cookie to be marked `Secure` over HTTPS; `render.yaml` sets it
   to `*` because only Render's proxy can reach the application.

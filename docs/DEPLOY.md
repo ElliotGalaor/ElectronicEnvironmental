@@ -38,13 +38,24 @@ Sign in to Render (a GitHub account works). Render reads `render.yaml` and shows
 The first deploy takes a few minutes. The address is shown at the top of the service page; if the name is
 already taken, Render adds a suffix to it.
 
-## 2. Get the admin token
+## 2. Choose the administrator
 
-Render generated a random **admin token** at creation. To read it: service page → **Environment** →
-`RRC_ADMIN_TOKEN` → show / copy.
+Changes to the component database are reserved for the administrator and for the accounts it approves.
+Browsing and BOM analysis stay open to everyone.
 
-It is required to edit the component database (Database tab, field "Admin token"). Browsing and BOM
-analysis stay open to everyone.
+1. Service page → **Environment**: add `RRC_ADMIN_EMAIL` with your e-mail address, then save.
+2. On the site, create an account with this address: it is the **administrator** account. It can change the
+   database at once, with no daily limit, and is the only one that can delete components.
+
+Until `RRC_ADMIN_EMAIL` is set, nobody can change the database.
+
+Other users ask for edit access from the **Database** tab. You receive an e-mail with a link to approve or
+refuse the request, and they are told the answer by e-mail. This needs the e-mail service (Brevo, see
+[Optional: protect sign-ups](#optional-protect-sign-ups)). An approved account can add 20 new components per
+24 hours (`RRC_DAILY_ADDITIONS` to change it); edits of existing components are not limited.
+
+On the free plan, accounts are lost at every restart (see the table above): create the administrator account
+again after a restart, and approved users have to ask again.
 
 ## 3. Automatic updates
 
@@ -71,7 +82,8 @@ redeploys). The variables added in the dashboard are kept when the Blueprint is 
 ## Optional: protect sign-ups
 
 Anyone can create an account on a public site. Two protections limit this, and each one can be used without
-the other (behaviour in the [technical guide](GUIDE.md#limiting-sign-ups)).
+the other (behaviour in the [technical guide](GUIDE.md#limiting-sign-ups)). The e-mail service also sends the
+edit access requests to the administrator.
 
 **E-mail confirmation with Brevo** (free plan: 300 e-mails per day). Render's free plan blocks outgoing SMTP,
 so the application sends through Brevo's HTTPS API.
@@ -131,8 +143,9 @@ A free service cannot keep files. To keep accounts, history and database edits:
 - **The first page takes about a minute**: the service was asleep. Normal on the free plan.
 - **Edits or accounts disappeared**: the service was restarted or woke up (see the table above).
 - **Deploy fails with "No open ports detected"**: the `PORT` variable must be `8000` (set by `render.yaml`).
-- **"Admin token required (X-Admin-Token header)"** when editing: enter the token from the Environment page
-  in the Database tab.
+- **"Your account cannot change the database yet"**: request edit access in the Database tab, or sign in with
+  the address set in `RRC_ADMIN_EMAIL`.
+- **"Edit access requests are not set up on this server"**: set `RRC_ADMIN_EMAIL` and the Brevo variables.
 - **Sign-in does not persist**: `FORWARDED_ALLOW_IPS` must be `*` (set by `render.yaml`); without it, the
   application does not see that the visit is over HTTPS.
 - **"The confirmation e-mail could not be sent"**: check `RRC_BREVO_API_KEY`, and that `RRC_MAIL_FROM` is

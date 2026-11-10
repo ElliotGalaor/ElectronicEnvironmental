@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-82%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-89%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -84,8 +84,8 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Back end | **Python 3.12+**, **FastAPI**, Pydantic, SQLite (migrations at start-up) |
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
-| Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional) |
-| Quality | **pytest** (82 tests), **ruff** (lint), automated screenshots (Playwright) |
+| Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
+| Quality | **pytest** (89 tests), **ruff** (lint), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release, deployment to **Render**) |
 
 ## Architecture
@@ -128,6 +128,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#21](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/21) | **Online deployment on Render** (free plan, HTTPS): `render.yaml` Blueprint and *Deploy to Render* button, admin token generated at creation, redeployment by the CD workflow after every merge to `main` |
 | | [#22](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/22) | **Sign-up protection** (optional): account created only once confirmed through a link sent by e-mail (Brevo API, works on Render's free plan), Cloudflare Turnstile captcha, limits per address and per connection |
 | | [#23](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/23) | **Home page** presenting the tool (regulations checked, steps, intended users) with a sample result, and a one-click example BOM |
+| | [#24](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/24) | **Edit access approved by the administrator** instead of the admin token: request from the Database tab, approve or refuse link sent by e-mail, 20 new components per day for approved accounts, deletion reserved for the administrator |
 
 ## Quick start
 
@@ -167,7 +168,7 @@ Next changes, tracked as issues:
 
 ## Documentation
 
-- **[Deployment guide](docs/DEPLOY.md)**: free Render web service over HTTPS, admin token, automatic updates, limits of the free plan.
+- **[Deployment guide](docs/DEPLOY.md)**: free Render web service over HTTPS, administrator and edit access, automatic updates, limits of the free plan.
 - **[Technical guide](docs/GUIDE.md)**: detailed behaviour, matching and compliance rules, REST API, environment variables, updating the official texts.
 - Interactive API documentation: `http://localhost:8000/docs` once the application is running.
 
