@@ -55,7 +55,48 @@ $$(".tab").forEach((t) => t.addEventListener("click", () => {
 function showTab(name) {
   $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === name));
   $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + name));
+  const tab = $(`.tab[data-tab="${name}"]`);
+  if (tab) revealTab(tab);
 }
+
+/* Tab bar on narrow screens. On touch screens the native scrollbar is hidden (style.css): a slim bar on the
+   bottom line shows the visible part, and fades mark the sides with hidden tabs. */
+const tabBar = $(".tabbar"), tabList = $(".tabs"), tabThumb = $(".tabscroll span");
+let tabScrollTimer;
+
+function revealTab(tab) {
+  // Scrolls the bar so that the selected tab is not cut off by an edge or under a fade
+  const bar = tabList.getBoundingClientRect(), r = tab.getBoundingClientRect(), margin = 32;
+  if (r.left < bar.left + margin) tabList.scrollBy({ left: r.left - bar.left - margin, behavior: "smooth" });
+  else if (r.right > bar.right - margin) tabList.scrollBy({ left: r.right - bar.right + margin, behavior: "smooth" });
+}
+
+function updateTabScroll() {
+  const hidden = tabList.scrollWidth - tabList.clientWidth;
+  const left = Math.min(Math.max(tabList.scrollLeft, 0), Math.max(hidden, 0)); // iOS bounce goes past the ends
+  tabBar.classList.toggle("scrollable", hidden > 1);
+  tabBar.classList.toggle("more-left", hidden > 1 && left > 1);
+  tabBar.classList.toggle("more-right", hidden > 1 && left < hidden - 1);
+  if (hidden <= 1) return;
+  const track = tabBar.clientWidth, thumb = track * tabList.clientWidth / tabList.scrollWidth;
+  tabThumb.style.width = `${thumb}px`;
+  tabThumb.style.transform = `translateX(${(track - thumb) * left / hidden}px)`;
+}
+
+tabList.addEventListener("scroll", () => {
+  updateTabScroll();
+  tabBar.classList.add("scrolling");
+  clearTimeout(tabScrollTimer);
+  tabScrollTimer = setTimeout(() => tabBar.classList.remove("scrolling"), 800);
+}, { passive: true });
+if (window.ResizeObserver) {
+  // The bar's width changes with the window, the tabs' width with the font and the bold active tab
+  const watch = new ResizeObserver(updateTabScroll);
+  [tabList, ...$$(".tab")].forEach((el) => watch.observe(el));
+} else {
+  addEventListener("resize", updateTabScroll);
+}
+updateTabScroll();
 
 function route() {
   const h = decodeURIComponent(location.hash.slice(1));
