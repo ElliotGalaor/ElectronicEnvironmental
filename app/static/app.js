@@ -442,8 +442,15 @@ $("#lines").addEventListener("click", (ev) => {
 let searchTimer;
 $("#q").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.page = 0; loadComponents(); }, 250); });
 $("#onlyIssues").addEventListener("change", () => { state.page = 0; loadComponents(); });
-$("#prev").addEventListener("click", () => { if (state.page > 0) { state.page--; loadComponents(); } });
-$("#next").addEventListener("click", () => { state.page++; loadComponents(); });
+$("#prev").addEventListener("click", () => { if (state.page > 0) goToPage(state.page - 1); });
+$("#next").addEventListener("click", () => goToPage(state.page + 1));
+
+async function goToPage(page) {
+  // The buttons are below the table: once the new page is shown, go back to the top to read it from its first row
+  state.page = page;
+  await loadComponents();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 async function loadComponents() {
   const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "issues" : "" });
