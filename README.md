@@ -130,6 +130,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#23](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/23) | **Home page** presenting the tool (regulations checked, steps, intended users) with a sample result, and a one-click example BOM |
 | | [#24](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/24) | **Edit access approved by the administrator** instead of the admin token: request from the Database tab, approve or refuse link sent by e-mail, 20 new components per day for approved accounts, deletion reserved for the administrator |
 | | [#25](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/25) | **Tab bar on touch screens**: slim scroll indicator on the bottom line in place of the native scrollbar, fades on the sides with hidden tabs, selected tab scrolled into view |
+| | [#26](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/26) | **Component database**: changing page goes back to the top, to read the new page from its first row |
 
 ## Quick start
 
