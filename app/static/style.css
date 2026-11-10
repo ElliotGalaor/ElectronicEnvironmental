@@ -37,9 +37,26 @@ h2 { font-size: 17px; margin: 0 0 14px; }
 .sub { margin: 0; color: var(--muted); font-size: 13px; }
 .dbinfo { color: var(--muted); font-size: 13px; }
 
-.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.tabbar { position: relative; background: var(--surface); border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 0 24px; }
 .tab { white-space: nowrap; background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 14px; font: inherit; color: var(--muted); cursor: pointer; }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tabscroll { display: none; }
+/* Touch screens (phones, tablets): no native scrollbar under the tabs. When they do not all fit, a slim bar on
+   the bottom line shows the visible part, and the side with hidden tabs fades out. */
+@media (hover: none) {
+  .tabbar { overflow: hidden; border-bottom: 0; box-shadow: inset 0 -1px var(--border); }
+  /* Safari draws its scroll indicator at the bottom of the scroll area: the extra padding moves it into the
+     part clipped by .tabbar, for the versions that ignore scrollbar-width */
+  .tabs { position: relative; z-index: 1; scrollbar-width: none; padding-bottom: 20px; margin-bottom: -20px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabbar.scrollable .tabscroll { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none; }
+  .tabscroll span { display: block; width: 0; height: 100%; border-radius: 1px; background: var(--muted); opacity: .4; transition: opacity .4s; }
+  .tabbar.scrolling .tabscroll span { opacity: .8; transition-duration: .1s; }
+  .tabbar.more-right .tabs { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+  .tabbar.more-left .tabs { -webkit-mask-image: linear-gradient(to right, transparent, #000 32px); mask-image: linear-gradient(to right, transparent, #000 32px); }
+  .tabbar.more-left.more-right .tabs { -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+}
 
 main { padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
 .panel { display: none; }

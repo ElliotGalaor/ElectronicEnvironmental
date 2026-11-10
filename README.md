@@ -129,6 +129,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#22](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/22) | **Sign-up protection** (optional): account created only once confirmed through a link sent by e-mail (Brevo API, works on Render's free plan), Cloudflare Turnstile captcha, limits per address and per connection |
 | | [#23](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/23) | **Home page** presenting the tool (regulations checked, steps, intended users) with a sample result, and a one-click example BOM |
 | | [#24](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/24) | **Edit access approved by the administrator** instead of the admin token: request from the Database tab, approve or refuse link sent by e-mail, 20 new components per day for approved accounts, deletion reserved for the administrator |
+| | [#25](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/25) | **Tab bar on touch screens**: slim scroll indicator on the bottom line in place of the native scrollbar, fades on the sides with hidden tabs, selected tab scrolled into view |
 
 ## Quick start
 
