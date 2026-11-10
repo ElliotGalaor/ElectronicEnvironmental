@@ -60,7 +60,8 @@ def normalize_email(email: str) -> str:
 
 
 def _public(row: sqlite3.Row) -> dict:
-    return {"id": row["id"], "email": row["email"], "name": row["name"] or row["email"].split("@")[0], "created_at": row["created_at"]}
+    return {"id": row["id"], "email": row["email"], "name": row["name"] or row["email"].split("@")[0],
+            "created_at": row["created_at"], "edit_access": row["edit_access"]}
 
 
 def _check_new_account(conn: sqlite3.Connection, email: str, password: str) -> str:

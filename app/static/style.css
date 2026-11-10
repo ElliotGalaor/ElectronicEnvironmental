@@ -128,8 +128,9 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .match.bad { color: var(--ko); font-weight: 600; }
 
 .pager { display: flex; gap: 12px; align-items: center; justify-content: flex-end; margin-top: 12px; }
-.admin { margin-bottom: 10px; max-width: 420px; }
-.admin label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12.5px; }
+.editbox { margin-bottom: 10px; line-height: 1.7; }
+.editbox .alert { margin: 8px 0 0; }
+#dlgReview .btn[hidden] { display: none; }
 .disclaimer { color: var(--muted); font-size: 12px; margin-top: 12px; }
 
 dialog { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); color: var(--text); width: min(720px, calc(100vw - 32px)); }

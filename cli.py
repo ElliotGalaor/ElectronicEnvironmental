@@ -6,6 +6,7 @@ Examples:
   python cli.py analyze bom.csv                    # analyse with the local database
   python cli.py analyze bom.xlsx -o report.xlsx    # + Excel report
   python cli.py analyze bom.csv --server http://srv:8000   # analyse through the remote server
+  python cli.py approve someone@example.com        # let an account change the local database
 """
 
 from __future__ import annotations
@@ -47,18 +48,35 @@ def cmd_import(args):
 
     path = Path(args.file)
     if args.server:
+        import getpass
+
         import httpx
 
-        headers = {"X-Admin-Token": args.token} if args.token else {}
-        r = httpx.post(f"{args.server.rstrip('/')}/api/components/import", files={"file": (path.name, path.read_bytes())}, headers=headers, timeout=120)
-        r.raise_for_status()
-        res = r.json()
+        base = args.server.rstrip("/")
+        with httpx.Client(base_url=base, timeout=120) as client:
+            if args.email:  # the server only accepts changes from an approved account
+                r = client.post("/api/auth/login", json={"email": args.email, "password": getpass.getpass("Password: ")})
+                r.raise_for_status()
+            r = client.post("/api/components/import", files={"file": (path.name, path.read_bytes())})
+            if r.is_error:
+                sys.exit(f"Import refused (HTTP {r.status_code}): {r.text}")
+            res = r.json()
     else:
         with db.session() as conn:
             res = import_table(conn, path.read_bytes(), path.name)
     print(f"{res['created']} created, {res['updated']} updated, {res['error_count']} errors")
     for e in res["errors"]:
         print("  -", e)
+
+
+def cmd_access(args):
+    from app import editors
+
+    with db.session() as conn:
+        found = editors.set_access(conn, args.email, approved=args.cmd == "approve")
+    if not found:
+        sys.exit(f"No account with the address {args.email}")
+    print(f"{args.email}: edit access {'granted' if args.cmd == 'approve' else 'removed'}")
 
 
 def cmd_analyze(args):
@@ -132,8 +150,14 @@ def main():
     pi = sub.add_parser("import", help="Import a CSV/XLSX file into the database")
     pi.add_argument("file")
     pi.add_argument("--server", help="Server URL (otherwise the local database)")
-    pi.add_argument("--token", help="Server admin token")
+    pi.add_argument("--email", help="Approved account on the server (the password is asked)")
     pi.set_defaults(func=cmd_import)
+
+    for name, text in (("approve", "Let an account change the local database"),
+                       ("revoke", "Remove an account's right to change the local database")):
+        pc = sub.add_parser(name, help=text)
+        pc.add_argument("email")
+        pc.set_defaults(func=cmd_access)
 
     pa = sub.add_parser("analyze", help="Analyse a BOM")
     pa.add_argument("file")
