@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=26">
+<link rel="stylesheet" href="/static/style.css?v=27">
 </head>
 <body>
 <header class="top">
@@ -21,14 +21,17 @@
   </div>
 </header>
 
-<nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="home" role="tab">Home</button>
-  <button class="tab" data-tab="analysis" role="tab">BOM analysis</button>
-  <button class="tab" data-tab="database" role="tab">Component database</button>
-  <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
-  <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
-  <button class="tab" data-tab="eccn" role="tab">ECCN codes</button>
-</nav>
+<div class="tabbar">
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="home" role="tab">Home</button>
+    <button class="tab" data-tab="analysis" role="tab">BOM analysis</button>
+    <button class="tab" data-tab="database" role="tab">Component database</button>
+    <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
+    <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
+    <button class="tab" data-tab="eccn" role="tab">ECCN codes</button>
+  </nav>
+  <div class="tabscroll" aria-hidden="true"><span></span></div>
+</div>
 
 <main>
   <!-- ============================== HOME ============================== -->
@@ -523,6 +526,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=26"></script>
+<script src="/static/app.js?v=27"></script>
 </body>
 </html>
