@@ -155,8 +155,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # The image the image job built and pushed for this tag
-          image="${IMAGE,,}:${GITHUB_REF_NAME#v}"
+          release_ref="${IMAGE,,}:${GITHUB_REF_NAME#v}"
           fence="\`\`\`"
-          printf '## Docker image\n\n%sbash\ndocker run -p 8000:8000 -v rohs-data:/data %s\n%s\n' "$fence" "$image" "$fence" > notes.md
+          printf '## Docker image\n\n%sbash\ndocker run -p 8000:8000 -v rohs-data:/data %s\n%s\n' "$fence" "$release_ref" "$fence" > notes.md
           # The generated notes (PRs merged since the previous version) are appended after this text
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --generate-notes
