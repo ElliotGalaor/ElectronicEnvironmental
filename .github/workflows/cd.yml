@@ -1,135 +1,128 @@
 name: CD
 
-# Builds the Docker image on every pull request (check) and publishes it to
-# GitHub Container Registry on every merge to main and every v* tag.
-# A merge to main then redeploys the Render service (docs/DEPLOY.md).
-# A v* tag also creates a GitHub release with the release notes.
+# Deploys an image the CI workflow already built, tested and pushed: no rebuild, no tests.
+# The same image (pinned by digest) goes to staging first, automatically, then to production
+# once the reviewer of the production environment approves. See docs/DEPLOY.md.
+# - Automatic: after every successful CI run on main, the image of that commit (sha-<commit>).
+# - By hand (Actions > CD > Run workflow): any image tag, to redeploy or roll back.
+run-name: Deploy ${{ inputs.tag || github.event.workflow_run.display_title }}
+
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    tags: ["v*"]
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy: sha-<commit> (e.g. sha-6ca3777) or a version (e.g. 2.0.0)"
+        required: true
+        type: string
 
-permissions:
-  contents: read
-
-concurrency:
-  group: cd-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions: {}
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
-  tests:
-    name: Tests before publishing
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-          cache: pip
-      - run: pip install -r requirements.txt pytest
-      - run: pytest -q
-
   image:
-    name: Docker image
-    needs: tests
+    name: Image to deploy
+    # Only successful CI runs of a push to main (a pull request from a branch named main
+    # also triggers workflow_run, and its image is never published)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      packages: read
+    outputs:
+      ref: ${{ steps.resolve.outputs.ref }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Image tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=short
-            type=ref,event=pr
-
-      - name: Build (loaded locally for the test)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          tags: electronic-environmental:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Container smoke test
-        run: |
-          docker run -d --name app -p 8000:8000 electronic-environmental:test
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8000/api/stats > stats.json; then break; fi
-            sleep 1
-          done
-          cat stats.json
-          python3 -c "import json; d = json.load(open('stats.json')); assert d['total'] > 100, d; print('components in database:', d['total'])"
-          curl -fsS http://127.0.0.1:8000/ | grep -q "RoHS / REACH Checker"
-          curl -fsS -o example.csv http://127.0.0.1:8000/examples/bom_example.csv && head -1 example.csv   # home page example
-          docker logs app
-
       - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish
-        if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+      - name: Resolve the tag to the image digest
+        id: resolve
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            tag="$INPUT_TAG"
+          else
+            tag="sha-${HEAD_SHA:0:7}"   # tag pushed by the CI run that triggered this one
+          fi
+          if ! [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::Invalid image tag: $tag"
+            exit 1
+          fi
+          repo="${IMAGE,,}"
+          # Staging and production both get exactly this digest
+          if ! digest=$(docker buildx imagetools inspect "$repo:$tag" --format '{{.Manifest.Digest}}'); then
+            echo "::error::Image $repo:$tag not found in GitHub Container Registry"
+            exit 1
+          fi
+          echo "ref=$repo@$digest" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Image to deploy"
+            echo "- tag: \`$tag\`"
+            echo "- digest: \`$digest\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  deploy:
-    name: Deploy to Render
-    if: github.ref == 'refs/heads/main'
+  staging:
+    name: Deploy to staging
     needs: image
     runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
     steps:
-      # Render does not watch the registry: its deploy hook makes it pull the new :latest image.
-      # Skipped until the RENDER_DEPLOY_HOOK_URL secret is set (forks, before the Render setup).
+      # Each environment has its own RENDER_DEPLOY_HOOK_URL secret (one Render service each).
+      # Skipped until the secret is set (forks, before the Render setup).
       - name: Trigger the Render deploy hook
         env:
           DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_REF: ${{ needs.image.outputs.ref }}
+          TARGET: staging
         run: |
           if [ -z "$DEPLOY_HOOK" ]; then
-            echo "::notice::RENDER_DEPLOY_HOOK_URL secret not set: Render was not redeployed"
+            echo "::notice::RENDER_DEPLOY_HOOK_URL secret not set in the $TARGET environment: Render was not redeployed"
             exit 0
           fi
-          curl -fsS -X POST -d '' "$DEPLOY_HOOK" -w '\nHTTP %{http_code}\n'
+          # imgURL (URL-encoded): Render deploys this image instead of the tag in the service settings
+          img=$(jq -rR @uri <<< "$IMAGE_REF")
+          case "$DEPLOY_HOOK" in *\?*) sep='&' ;; *) sep='?' ;; esac
+          curl -fsS -X POST -d '' "${DEPLOY_HOOK}${sep}imgURL=${img}" -w '\nHTTP %{http_code}\n'
+          echo "### Deploy to $TARGET started: \`$IMAGE_REF\`" >> "$GITHUB_STEP_SUMMARY"
 
-  release:
-    name: GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: image
+  production:
+    name: Deploy to production
+    needs: [image, staging]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    # Protected environment: the job waits for the approval of a required reviewer
+    environment: production
+    concurrency:
+      group: deploy-production
+      # A newer image replaces one still waiting for approval
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
-      - name: Create the release with generated notes
+      - name: Trigger the Render deploy hook
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGE_REF: ${{ needs.image.outputs.ref }}
+          TARGET: production
         run: |
-          image="${IMAGE,,}:${GITHUB_REF_NAME#v}"
-          fence='```'
-          printf '## Docker image\n\n%sbash\ndocker run -p 8000:8000 -v rohs-data:/data %s\n%s\n' "$fence" "$image" "$fence" > notes.md
-          # The generated notes (PRs merged since the previous version) are appended after this text
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --generate-notes
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL secret not set in the $TARGET environment: Render was not redeployed"
+            exit 0
+          fi
+          # imgURL (URL-encoded): Render deploys this image instead of the tag in the service settings
+          img=$(jq -rR @uri <<< "$IMAGE_REF")
+          case "$DEPLOY_HOOK" in *\?*) sep='&' ;; *) sep='?' ;; esac
+          curl -fsS -X POST -d '' "${DEPLOY_HOOK}${sep}imgURL=${img}" -w '\nHTTP %{http_code}\n'
+          echo "### Deploy to $TARGET started: \`$IMAGE_REF\`" >> "$GITHUB_STEP_SUMMARY"
