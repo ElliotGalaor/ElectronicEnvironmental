@@ -5,7 +5,8 @@ services:
     name: rohs-checker
     runtime: image
     image:
-      # Image published by the CD workflow on every merge to main, after the tests and the smoke test
+      # Image built, smoke-tested and pushed by the CI workflow. The CD workflow deploys a given build
+      # of it through the deploy hook (imgURL); this tag only serves Render's own deploys (docs/DEPLOY.md)
       url: ghcr.io/elliotgalaor/electronicenvironmental:latest
     plan: free
     region: frankfurt
