@@ -85,8 +85,8 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (89 tests), **ruff** (lint), automated screenshots (Playwright) |
-| DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions) and CD (**Docker** image published to GHCR, smoke test, automatic release, deployment to **Render**) |
+| Quality | **pytest** (89 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
 
@@ -110,8 +110,8 @@ flowchart LR
 The project follows a team workflow on GitHub:
 - **issues** for every change or bug, with acceptance criteria ([backlog](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues));
 - **one branch and one pull request per change**, linked to its issue and reviewed before merging;
-- mandatory **continuous integration** on every PR (lint + tests on Python 3.12, 3.13, 3.14);
-- **continuous delivery**: every merge to `main` publishes a tested Docker image and redeploys it on Render; every `v*` tag creates a release.
+- mandatory **continuous integration** on every PR (lint + tests on Python 3.12, 3.13, 3.14, Docker image built and smoke-tested);
+- **continuous delivery**: every merge to `main` publishes the Docker image CI built and tested, then deploys that same image, never rebuilt, to staging and, after approval, to production on Render; every `v*` tag creates a release.
 
 ## Release history
 
@@ -131,6 +131,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#24](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/24) | **Edit access approved by the administrator** instead of the admin token: request from the Database tab, approve or refuse link sent by e-mail, 20 new components per day for approved accounts, deletion reserved for the administrator |
 | | [#25](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/25) | **Tab bar on touch screens**: slim scroll indicator on the bottom line in place of the native scrollbar, fades on the sides with hidden tabs, selected tab scrolled into view |
 | | [#26](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/26) | **Component database**: changing page goes back to the top, to read the new page from its first row |
+| | [#27](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/27) | **Build once, promote**: CI builds and smoke-tests the Docker image once and publishes it; CD deploys that exact image (pinned by digest) to staging, then to production after approval, and can redeploy or roll back any published tag |
 
 ## Quick start
 
@@ -146,7 +147,7 @@ To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD form
 
 **Online, for free**: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ElliotGalaor/ElectronicEnvironmental)
 
-Creates a free [Render](https://render.com) web service over HTTPS from [`render.yaml`](render.yaml), updated on every merge to `main`. The free plan sleeps after 15 minutes without visits and does not keep the data between restarts: see the [deployment guide](docs/DEPLOY.md).
+Creates a free [Render](https://render.com) web service over HTTPS from [`render.yaml`](render.yaml), redeployed by the CD workflow after every merge to `main`. The free plan sleeps after 15 minutes without visits and does not keep the data between restarts: see the [deployment guide](docs/DEPLOY.md).
 
 **Locally**:
 

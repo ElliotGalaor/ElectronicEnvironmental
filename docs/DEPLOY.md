@@ -1,17 +1,20 @@
 # Deploying on Render (free)
 
 This guide puts the RoHS / REACH Checker online over **HTTPS**, as a free web service on
-[Render](https://render.com). Render runs the Docker image published by the CD workflow and provides the
+[Render](https://render.com). Render runs the Docker image built by the CI workflow and provides the
 `https://….onrender.com` address and its certificate. Everything is described in one file at the root of the
 repository, [`render.yaml`](../render.yaml) (a Render *Blueprint*).
 
 ```mermaid
 flowchart LR
-    M["Merge to main"] --> CD["GitHub Actions CD<br/>tests, image, smoke test"]
-    CD -->|"push :latest"| G[("GitHub Container<br/>Registry")]
-    CD -->|"deploy hook"| R["Render<br/>free web service"]
-    G -->|"pull"| R
-    V["Visitor"] -->|"HTTPS"| R
+    M["Merge to main"] --> CI["GitHub Actions CI<br/>lint, tests,<br/>image built once, smoke test"]
+    CI -->|"push sha-commit, latest"| G[("GitHub Container<br/>Registry")]
+    CI -->|"success"| CD["GitHub Actions CD<br/>no rebuild"]
+    CD -->|"1. deploy hook + imgURL"| S["Render staging"]
+    CD -->|"2. after approval"| P["Render production"]
+    G -->|"same image (digest)"| S
+    G -->|"same image (digest)"| P
+    V["Visitor"] -->|"HTTPS"| P
 ```
 
 ## What the free plan gives
@@ -59,20 +62,71 @@ again after a restart, and approved users have to ask again.
 
 ## 3. Automatic updates
 
-Render does not redeploy an image-based service by itself when a new image is published. The CD workflow
-does it, through the service's **deploy hook**:
+Render does not redeploy an image-based service by itself when a new image is published. Two GitHub Actions
+workflows do it, with one rule: **the image is built once, then promoted from one environment to the next**.
 
-1. In Render: service page → **Settings** → **Deploy Hook** → copy the URL. Keep it private: anyone who has
-   it can trigger a deploy.
-2. In GitHub: repository **Settings** → **Secrets and variables** → **Actions** → **New repository secret**,
-   name `RENDER_DEPLOY_HOOK_URL`, value the URL.
+- **CI** ([`ci.yml`](../.github/workflows/ci.yml)), on every pull request, merge to `main` and `v*` tag: lint,
+  tests on three Python versions, then the Docker image is built **once** and smoke-tested. On `main` and on
+  tags, that same image is pushed to GitHub Container Registry as `sha-<commit>` (the first 7 characters of the
+  commit), plus `latest` on `main` and the version number on tags, which also get a GitHub release. Pull
+  requests build and test the image without publishing it.
+- **CD** ([`cd.yml`](../.github/workflows/cd.yml)), after every successful CI run on `main`: no rebuild, no
+  tests. It looks up the digest of the `sha-<commit>` image of that run, deploys it to **staging**, then, once
+  a reviewer approves, deploys the same digest to **production**. Each environment is a Render service, called
+  through its **deploy hook** with an `imgURL` parameter: Render pulls exactly that image instead of the tag in
+  its settings.
 
-From then on, every merge to `main` runs the tests, publishes the image, then the **Deploy to Render** job
-calls the hook and Render pulls the new image. Without the secret, the job does nothing (its log says so);
-a deploy can still be started by hand: **Manual Deploy → Deploy latest reference**.
+| GitHub environment | Render service | Deployed |
+|---|---|---|
+| `staging` | `rohs-checker-staging` | automatically, after every CI run that passes on `main` |
+| `production` | `rohs-checker` | after approval, with the image staging received |
 
-To stay on a given version instead of following `main`, replace `:latest` with the version number
-(`:2.0.0`) in `image.url` of `render.yaml`. Render applies the Blueprint changes merged to `main`.
+### Set up the environments
+
+Once, preferably before the first merge that uses this pipeline:
+
+1. **Staging service on Render**: **New → Web Service → Existing Image**, image URL
+   `ghcr.io/elliotgalaor/electronicenvironmental:latest` (the same repository as production: Render only
+   deploys an `imgURL` from the service's own image repository). Name `rohs-checker-staging`, region
+   Frankfurt, instance type **Free**. Under **Environment Variables**, add `PORT` = `8000` and
+   `FORWARDED_ALLOW_IPS` = `*`; under **Advanced**, set the health check path to `/api/stats`. The two free
+   services share the workspace's 750 instance hours a month, but hours only count while a service is awake:
+   a staging service that sleeps between checks uses few of them.
+2. **Deploy hooks**: for each service, Render → service page → **Settings** → **Deploy Hook** → copy the URL.
+   Keep them private: anyone who has one can trigger a deploy.
+3. **`staging` environment**: GitHub repository → **Settings** → **Environments** → **New environment**, name
+   `staging`. Under **Environment secrets**, add `RENDER_DEPLOY_HOOK_URL` with the staging hook URL.
+4. **`production` environment**: the same, name `production`, secret `RENDER_DEPLOY_HOOK_URL` with the
+   production hook URL. Then protect it:
+   - **Required reviewers**: tick it and add yourself (and any other reviewer), then **Save protection
+     rules**. Leave **Prevent self-review** unticked if you are the only reviewer, otherwise nobody can approve
+     your own merges.
+   - **Deployment branches and tags**: choose **Selected branches and tags** and add the `main` branch, so a
+     workflow changed on another branch cannot use the production hook.
+5. **Remove the repository secret** `RENDER_DEPLOY_HOOK_URL` if it exists (**Settings** → **Secrets and
+   variables** → **Actions**). When an environment has no secret of that name, its jobs fall back to the
+   repository secret: staging would deploy the production service.
+
+Without its secret, an environment's deploy job does nothing, and its log says so. Required reviewers are
+available on every GitHub plan for public repositories.
+
+### Approve a production deploy
+
+After a merge, the CD run deploys staging, then waits: the run page (**Actions** → **CD**) shows **Review
+deployments**, and GitHub notifies the reviewers. Check the staging site, then tick `production` →
+**Approve and deploy**, or **Reject**. When a newer run reaches production while an older one is still
+waiting, the older one is cancelled: only the newest image waits for approval.
+
+### Redeploy or roll back
+
+**Actions** → **CD** → **Run workflow**, then enter an image tag: `sha-<commit>` for a commit of `main` (its
+first 7 characters, for example `sha-6ca3777`), or a version number (`2.0.0`). The image goes through the same
+steps: staging, then production after approval. The published tags are listed on the
+[package page](https://github.com/ElliotGalaor/ElectronicEnvironmental/pkgs/container/electronicenvironmental).
+
+The tag in `image.url` of `render.yaml` (`:latest`) is only used when Render deploys by itself: **Manual
+Deploy → Deploy latest reference**, or a change to `render.yaml`. `latest` is the newest image of `main`,
+which may not be approved yet: deploy production through the CD workflow instead.
 
 ## Optional: AI datasheet extraction
 
@@ -152,5 +206,11 @@ A free service cannot keep files. To keep accounts, history and database edits:
   a verified sender in Brevo. The service logs (**Logs**) show Brevo's answer.
 - **"Captcha check failed" for everyone**: the site's hostname must be listed in the Turnstile widget, and
   both keys must come from that widget.
-- **The "Deploy to Render" job fails with HTTP 404**: the hook URL was regenerated or mistyped; update the
-  `RENDER_DEPLOY_HOOK_URL` secret.
+- **"Deploy to production" stays "Waiting"**: it waits for a reviewer, see
+  [Approve a production deploy](#approve-a-production-deploy).
+- **"Image to deploy" fails**: the tag is not in the registry (a typo in a manual run, or a CI run that did
+  not push its image).
+- **A deploy job fails with HTTP 404**: the hook URL was regenerated or mistyped; update the
+  `RENDER_DEPLOY_HOOK_URL` secret of that environment.
+- **A deploy job fails with HTTP 400**: Render refused the `imgURL`. The service's image in Render must be
+  `ghcr.io/elliotgalaor/electronicenvironmental` (with any tag).
