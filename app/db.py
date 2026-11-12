@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS bom_history (
     file_data     BLOB NOT NULL,
     mapping       TEXT NOT NULL DEFAULT '',
     substitutions TEXT NOT NULL DEFAULT '',
+    classifications TEXT NOT NULL DEFAULT '',
     summary       TEXT NOT NULL DEFAULT '',
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
@@ -280,6 +281,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for col, decl in _ADDED_USER_COLUMNS.items():
         if col not in existing:
             conn.execute(f"ALTER TABLE users ADD COLUMN {col} {decl}")
+    if "classifications" not in {r[1] for r in conn.execute("PRAGMA table_info(bom_history)")}:
+        conn.execute("ALTER TABLE bom_history ADD COLUMN classifications TEXT NOT NULL DEFAULT ''")
     # Databases created before v2.0.0 store French status values.
     legacy = ", ".join(f"'{s}'" for s in LEGACY_STATUSES)
     if conn.execute(f"SELECT 1 FROM components WHERE rohs2 IN ({legacy}) OR rohs3 IN ({legacy}) "

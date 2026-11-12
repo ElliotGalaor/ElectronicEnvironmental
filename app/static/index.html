@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=29">
+<link rel="stylesheet" href="/static/style.css?v=30">
 </head>
 <body>
 <header class="top">
@@ -28,6 +28,7 @@
     <button class="tab" data-tab="database" role="tab">Component database</button>
     <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
     <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
+    <button class="tab" data-tab="svhc" role="tab">SVHC</button>
     <button class="tab" data-tab="eccn" role="tab">ECCN codes</button>
   </nav>
   <div class="tabscroll" aria-hidden="true"><span></span></div>
@@ -170,6 +171,12 @@
         <button class="btn primary" id="btnSwapExport">Download the modified BOM</button>
       </div>
 
+      <div id="classifyBar" class="swapbar" hidden>
+        <span id="classifyCount"></span>
+        <span class="spacer"></span>
+        <button class="btn" id="btnClassifyReset">Undo the statuses given by hand</button>
+      </div>
+
       <div class="cards" id="cards"></div>
       <div class="charts" id="charts" aria-label="Breakdown of statuses per regulation"></div>
 
@@ -190,7 +197,7 @@
       <div class="tablewrap">
         <table class="grid" id="lines">
           <thead><tr>
-            <th>Line</th><th>Designators</th><th>Qty</th><th>BOM part number</th><th>Manufacturer</th>
+            <th>Line</th><th>Designators</th><th>Qty</th><th>BOM part number</th><th class="col-ref">Internal ref</th><th>Manufacturer</th>
             <th>Match</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN / Origin</th><th>Notes</th>
           </tr></thead>
           <tbody></tbody>
@@ -267,6 +274,50 @@
       <p class="muted small">To prepare for an exemption's expiry, the “Equivalents” button offers components from other
         manufacturers with their RoHS status.</p>
     </div>
+  </section>
+
+  <!-- ============================== SVHC (REACH CANDIDATE LIST) ============================== -->
+  <section id="tab-svhc" class="panel">
+    <div id="svhcList">
+      <div class="toolbar" id="svhcTools">
+        <div class="left">
+          <input type="search" id="svhcSearch" name="filter-svhcSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a substance, an EC or CAS number…">
+          <label class="check"><input type="checkbox" id="svhcOnlyUsed"> In the database only</label>
+        </div>
+        <span class="muted small" id="svhcCount"></span>
+      </div>
+      <div class="alert" id="svhcEmpty" hidden>The REACH Candidate List is not loaded on this server yet
+        (<code>tools/extract_svhc_candidate_list.py</code>, see the technical guide).</div>
+      <div class="tablewrap" id="svhcTableWrap">
+        <table class="grid" id="svhcs">
+          <thead><tr><th>Substance</th><th>EC / CAS</th><th>In the list since</th><th>Reason for inclusion</th><th>Components</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small" id="svhcSource"></p>
+      <p class="muted small">Substances of very high concern (SVHC) are listed by ECHA in the REACH Candidate List.
+        Above 0.1 % by weight in an article, they bring an information duty (article 33) and a notification to the SCIP
+        database. Click a substance to see the database components that contain it.</p>
+    </div>
+
+    <div id="svhcDetail" hidden>
+      <a href="#svhc" class="back">‹ All SVHC</a>
+      <div class="mfrhead"><div><h2 id="svhcName"></h2><div class="muted">REACH Candidate List substance</div></div></div>
+      <dl class="card mfrinfo" id="svhcInfo"></dl>
+      <h3 class="section">Database components containing this substance</h3>
+      <div class="tablewrap">
+        <table class="grid" id="svhcComps">
+          <thead><tr><th>Part number</th><th>Manufacturer</th><th>Description</th><th>SVHC declared</th><th>REACH</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== COMPONENT PAGE ============================== -->
+  <section id="tab-component" class="panel">
+    <a href="#database" class="back">‹ Component database</a>
+    <div id="compSheet"></div>
   </section>
 
   <!-- ============================== ECCN CODES ============================== -->
@@ -381,6 +432,24 @@
     <button type="button" class="btn" id="btnReviewClose">Close</button>
     <button type="button" class="btn danger" id="btnRefuse" hidden>Refuse</button>
     <button type="button" class="btn primary" id="btnApprove" hidden>Approve</button>
+  </div>
+</dialog>
+
+<!-- ============================== STATUS GIVEN BY HAND ("Needs review") ============================== -->
+<dialog id="dlgClassify" class="narrow">
+  <h2 id="classifyTitle"></h2>
+  <p id="classifyLine"></p>
+  <p id="classifyReason" class="alert"></p>
+  <div id="classifyChoices" class="choices"></div>
+  <div id="classifySame" hidden>
+    <h4><label class="choice"><input type="checkbox" id="classifyAll" checked> <span id="classifySameTitle"></span></label></h4>
+    <div id="classifySameList" class="choices samelist"></div>
+  </div>
+  <p class="muted small">For this analysis only: the exports and the history keep it, the component database is not changed.</p>
+  <div id="classifyError" class="alert error" hidden></div>
+  <div class="dlgactions"><span class="spacer"></span>
+    <button type="button" class="btn" id="btnClassifyCancel">Cancel</button>
+    <button type="button" class="btn primary" id="btnClassifyApply">Apply</button>
   </div>
 </dialog>
 
@@ -536,6 +605,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=29"></script>
+<script src="/static/app.js?v=30"></script>
 </body>
 </html>

@@ -32,8 +32,12 @@ served at `/examples/bom_example.csv`.
 1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`, `.xlsm`, `.xlsb`.
    The header row and the columns are detected automatically (English and French names:
    *Manufacturer Part Number*, *MPN*, *Manufacturer*, *Designator*, *Qty*, *DNP*, *Référence fabricant*, *Repères*…).
+   An **internal reference** (company part number: *Internal ref*, *CPN*, *Code article*…) is shown in its own
+   column of the results and of the exports.
    KiCad's "Reference" column is recognised as a designator if it holds `R1, C2…`.
-   RoHS 2, RoHS 3 and REACH statuses declared in the BOM are also recognised ("RoHS" alone = RoHS 3).
+   RoHS 2, RoHS 3 and REACH statuses declared in the BOM are also recognised ("RoHS" alone = RoHS 3), including
+   the wording of distributors and PLM tools (`Compliant(YES)`, `ROHS3 Compliant`, `RoHS Compliant by Exemption`,
+   `Not RoHS Compliant`, `REACH Unaffected`, `Contains SVHC`…).
    **Column mapping**: if the manufacturer part number is not detected, a dialog opens to choose the column
    for each field and the header row (`0` = file without a header); the "Columns…" button opens it too.
    It shows the effect of each change on the first 3 lines and the result of the reading (part number found
@@ -53,6 +57,10 @@ served at `/examples/bom_example.csv`.
    in the exports.
 3. **Verdict** per regulation: *Non-compliant* if one line is, otherwise *Needs review* if information is
    missing, otherwise *Compliant* (flagging RoHS exemptions and REACH SVHCs above 0.1 %).
+   **Statuses given by hand**: clicking a *Needs review* status shows why the line needs review and lets you
+   give it a status. The other lines that need review for the same reason (for example the same unrecognised
+   value in the BOM) are offered in the same dialog. These statuses only apply to the analysis: they are marked
+   "by hand" on screen and in the exports and kept in the history, while the component database is unchanged.
    Components that are not populated (DNP) are excluded.
    Since RoHS 3 includes RoHS 2 (+ 4 phthalates), a RoHS 3 compliant component is inferred RoHS 2 compliant
    when that status is missing.
@@ -186,6 +194,29 @@ Updating the official text when a new consolidated version is published:
 ```
 (available versions: https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065)
 
+## SVHC (REACH Candidate List)
+
+"SVHC" tab: the substances of very high concern of the REACH Candidate List published by ECHA, with their EC
+and CAS numbers, their date of inclusion, the reason for inclusion and the number of database components that
+contain them. A substance's page lists those components. A component is linked to a substance when its SVHC
+list gives the substance's CAS number, its abbreviation (`DEHP`) or its English name.
+
+ECHA's site does not let scripts download the list (`data/svhc_candidate_list.json`). To update it, export the
+table of https://echa.europa.eu/candidate-list-table from a browser (Excel or CSV), then:
+
+```bash
+.venv\Scripts\python tools\extract_svhc_candidate_list.py candidate-list.xlsx
+```
+
+Without this file, the tab says the list is not loaded; the rest of the application works as before.
+
+## Component page
+
+Clicking a part number (Database tab, manufacturer, exemption and SVHC pages, BOM analysis, equivalents)
+opens the component's page (`#component/<id>`): identification, ECCN with its explanation, country of origin,
+source, and for RoHS 2, RoHS 3 and REACH the status with its meaning, a reminder of what the regulation
+requires, the exemptions used (official text and validity) and the SVHC declared, linked to the Candidate List.
+
 ## ECCN codes
 
 "ECCN codes" tab: list of the codes in the database (controlled ones first), with the field, the number of
@@ -205,9 +236,10 @@ To update the headings, rerun the extraction from the eCFR API
 
 ## Equivalents from other manufacturers
 
-Clicking a part number in the BOM analysis (or the "Equivalents" button of a component in the Database tab
-or on a manufacturer page) opens the list of similar components **from other manufacturers** in the database,
-with their RoHS 2 / RoHS 3 / REACH statuses and their ECCN.
+The "Equivalents" button of a BOM line or of a component (Database tab, manufacturer, exemption and SVHC
+pages, component page) opens the list of similar components **from other manufacturers** in the database,
+with their RoHS 2 / RoHS 3 / REACH statuses and their ECCN. The button shows how many were found, like a
+notification counter.
 
 - **Similarity** computed from the descriptions: component type, value (Ω, F, H, Hz, V), package, rated
   voltage and current, dielectric, tolerance, channel (MOSFET). The common points and the differences
@@ -279,7 +311,7 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 
 | Method | Route | Purpose |
 |---|---|---|
-| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse a BOM (`file`, optional `mapping` and `substitutions`; `save=1` or `history_id` for the history when signed in); `bom` returns the modified BOM |
+| POST | `/api/analyze?format=json\|xlsx\|csv\|bom` | analyse a BOM (`file`, optional `mapping`, `substitutions` and `classifications` = statuses given by hand; `save=1` or `history_id` for the history when signed in); `bom` returns the modified BOM |
 | GET | `/api/components?q=&status=issues&limit=&offset=` | search |
 | GET/POST/PUT/DELETE | `/api/components[/{id}]` | manage a component |
 | POST | `/api/components/import` | bulk import (`file`, optional `mapping`) |
@@ -287,6 +319,7 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | POST | `/api/datasheet/extract?method=auto\|heuristic\|ai` | proposes a component's fields from its PDF datasheet (saves nothing) |
 | GET | `/api/components/export` | CSV export of the database |
 | GET | `/api/components/{id}/alternatives` | equivalents from other manufacturers for a component |
+| GET | `/api/components/{id}/sheet` | component page: record, exemptions, ECCN, SVHC linked to the Candidate List |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | equivalents for a part number not in the database |
 | POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
 | POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when a confirmation e-mail is sent), sign in, sign out |
@@ -299,6 +332,8 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
 | GET | `/api/exemptions` | RoHS exemptions used by the database components |
 | GET/PUT | `/api/exemptions/{code}` | an exemption's page (official text, dates, components) / notes |
+| GET | `/api/svhc` | REACH Candidate List, with the number of database components per substance |
+| GET | `/api/svhc/{id}` | a substance of the Candidate List and the components that contain it |
 | GET | `/api/eccn` | ECCN codes in the database, with their explanation |
 | GET/PUT | `/api/eccn/{code}` | a code's page (breakdown, official heading, eCFR links, components) / title and notes |
 | GET | `/api/manufacturers` | list of manufacturers and their statistics |
@@ -352,7 +387,9 @@ app/mailer.py       sending e-mails (Brevo API, or the server log in development
 app/captcha.py      Cloudflare Turnstile check
 app/history.py      history of analysed BOMs
 app/exemptions.py   RoHS exemption pages (official EUR-Lex text)
+app/svhc.py         REACH Candidate List (SVHC) and its link with the components
 tools/extract_rohs_exemptions.py  update of the exemption text from EUR-Lex
+tools/extract_svhc_candidate_list.py  conversion of ECHA's Candidate List export
 tools/screenshots.py  README screenshots (Playwright)
 app/main.py       FastAPI API + web interface (app/static)
 cli.py            command line
