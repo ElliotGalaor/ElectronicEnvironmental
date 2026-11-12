@@ -156,11 +156,11 @@ def _stored(conn: sqlite3.Connection, code: str) -> sqlite3.Row | None:
 
 
 def list_all(conn: sqlite3.Connection) -> list[dict]:
-    rows = conn.execute("SELECT eccn, manufacturer FROM components WHERE eccn != ''").fetchall()
+    rows = conn.execute("SELECT eccn, manufacturer, manufacturer_norm FROM components WHERE eccn != ''").fetchall()
     counts = Counter(r["eccn"] for r in rows)
-    mfrs: dict[str, set] = {}
+    by_code: dict[str, list] = {}
     for r in rows:
-        mfrs.setdefault(r["eccn"], set()).add(r["manufacturer"])
+        by_code.setdefault(r["eccn"], []).append(r)
     stored = {r["code"]: r for r in conn.execute("SELECT * FROM eccn_codes")}
     unknown = conn.execute("SELECT COUNT(*) FROM components WHERE eccn = ''").fetchone()[0]
     out = []
@@ -173,7 +173,8 @@ def list_all(conn: sqlite3.Connection) -> list[dict]:
             "official_heading": d["official_heading"],
             "title": stored[code]["title"] if code in stored else "",
             "components": counts.get(code, 0),
-            "manufacturers": sorted(mfrs.get(code, set())),
+            "manufacturers": sorted({r["manufacturer"] for r in by_code.get(code, [])}),
+            "manufacturer_links": sorted(db.manufacturer_links(by_code.get(code, [])), key=lambda m: m["name"].lower()),
         })
     out.sort(key=lambda e: (not e["controlled"], e["code"]))
     return {"codes": out, "unknown_components": unknown}
@@ -195,6 +196,7 @@ def get(conn: sqlite3.Connection, code: str) -> dict:
         "notes": stored["notes"] if stored else "",
         "components": [db.row_to_dict(r) for r in rows],
         "manufacturers": dict(Counter(r["manufacturer"] for r in rows).most_common()),
+        "manufacturer_links": db.manufacturer_links(rows),
         "related_codes": related,
     }
 

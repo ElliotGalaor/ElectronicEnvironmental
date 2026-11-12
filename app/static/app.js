@@ -475,9 +475,13 @@ async function loadComponents() {
 
 $("#comps").addEventListener("click", async (ev) => {
   const b = ev.target.closest("[data-edit]");
-  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+  if (b) editComponent(b.dataset.edit);
 });
 $("#btnAdd").addEventListener("click", () => openDialog(null));
+
+async function editComponent(id) {
+  if (ensureEditor()) openDialog(await (await api("/api/components/" + id)).json());
+}
 
 /* ------------------------------------------------------------------ manufacturers */
 let MFRS = [];
@@ -560,11 +564,12 @@ function renderManufacturer() {
 
 $("#mfrComps").addEventListener("click", async (ev) => {
   const b = ev.target.closest("[data-edit]");
-  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+  if (b) editComponent(b.dataset.edit);
 });
 
 const dlgMfr = $("#dlgMfr"), mfrForm = $("#mfrForm");
 $("#btnEditMfr").addEventListener("click", () => {
+  if (!ensureEditor()) return;
   const m = currentMfr;
   for (const f of ["name", "website", "country", "notes"]) mfrForm.elements[f].value = m[f] || "";
   $("#mfrError").hidden = true;
@@ -588,6 +593,7 @@ const dlg = $("#dlg"), form = $("#compForm");
 let editingId = null;
 
 function openDialog(comp, preset = {}) {
+  if (!ensureEditor()) return false;
   editingId = comp ? comp.id : null;
   const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
@@ -598,6 +604,7 @@ function openDialog(comp, preset = {}) {
   $("#mpnList").innerHTML = $("#mfrList").innerHTML = "";
   $$(".formgrid .filled").forEach((l) => l.classList.remove("filled"));
   dlg.showModal();
+  return true;
 }
 
 /* ------------------------------------------------------------------ PDF datasheet */
@@ -610,7 +617,7 @@ const pdfDrop = $("#pdfDrop");
 ["dragleave", "drop"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.remove("over"); }));
 pdfDrop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) extractPdf(ev.dataTransfer.files[0]); });
 $("#pdfFile").addEventListener("change", (ev) => { if (ev.target.files[0]) extractPdf(ev.target.files[0]); ev.target.value = ""; });
-$("#btnFromPdf").addEventListener("click", () => { openDialog(null); $("#pdfFile").click(); });
+$("#btnFromPdf").addEventListener("click", () => { if (openDialog(null)) $("#pdfFile").click(); });
 
 async function extractPdf(file) {
   const box = $("#pdfStatus");
@@ -696,7 +703,7 @@ function afterDbChange() {
 }
 
 /* ------------------------------------------------------------------ import */
-$("#btnImport").addEventListener("click", () => $("#importFile").click());
+$("#btnImport").addEventListener("click", () => { if (ensureEditor()) $("#importFile").click(); });
 $("#importFile").addEventListener("change", (ev) => {
   const f = ev.target.files[0];
   ev.target.value = "";
@@ -915,7 +922,7 @@ function renderMapResult() {
   };
   $("#mapResult").innerHTML =
     `<thead><tr><th class="rownum">Line</th><th>${mapCtx.kind === "bom" ? "Database" : "Action"}</th>${roles.map((f) =>
-      `<th>${esc(f.label)}<div class="colname">${esc(P.columns[f.key])}</div></th>`).join("")}</tr></thead>` +
+      `<th>${esc(f.label)}<div class="colname" title="${esc(P.columns[f.key])}">${esc(P.columns[f.key])}</div></th>`).join("")}</tr></thead>` +
     `<tbody>${R.lines.map((l) => `<tr class="${l.action || ""}"><td class="rownum">${l.line}</td><td>${status(l)}</td>${roles.map((f) => cell(l, f)).join("")}</tr>`).join("") ||
       `<tr><td class="emptyrow" colspan="${roles.length + 2}">No component line below the header row.</td></tr>`}</tbody>`;
   const total = mapCtx.kind === "bom" ? C.lines : Object.values(C).reduce((a, b) => a + b, 0);
@@ -931,7 +938,7 @@ function renderMapRaw() {
   const fieldOf = {};
   Object.entries(P.columns).forEach(([k, h]) => { fieldOf[h] = labelOf[k]; });
   const head = `<thead><tr><th class="rownum">Line</th>${P.headers.map((h) =>
-    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-compliant">${esc(fieldOf[h])}</span>` : `<span class="muted">ignored</span>`}<div class="colname">${esc(h)}</div></th>`).join("")}</tr></thead>`;
+    `<th class="${fieldOf[h] ? "mapped" : ""}">${fieldOf[h] ? `<span class="badge b-compliant">${esc(fieldOf[h])}</span>` : `<span class="muted">ignored</span>`}<div class="colname" title="${esc(h)}">${esc(h)}</div></th>`).join("")}</tr></thead>`;
   const body = P.rows.map((r, i) => {
     const n = i + 1;
     const cls = n === P.header_row ? "hdr" : n < P.header_row ? "before" : "";
@@ -1054,6 +1061,7 @@ $("#altBody").addEventListener("click", async (ev) => {
     runAnalysis();
     return;
   }
+  if ((confirmBtn || unconfirm) && !ensureEditor()) return;
   const compId = altCtx.compId ?? altCtx.line?.component?.id;
   try {
     if (confirmBtn) {
@@ -1110,7 +1118,7 @@ function renderEccnList() {
       <td>${esc(e.title || e.summary)}${e.official_heading ? `<div class="muted small">${esc(e.official_heading)}</div>` : ""}</td>
       <td>${e.controlled ? `<span class="badge b-eccn">Controlled</span>` : `<span class="badge b-compliant">Not listed</span>`}</td>
       <td>${e.components}</td>
-      <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
+      <td class="small">${e.manufacturer_links.map((m) => mfrLink(m.name, m.key)).join(", ")}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">No ECCN code in the database.</td></tr>`;
   const u = ECCNS.unknown_components;
   $("#eccnUnknown").textContent = u ? `${plural(u, "component")} without an ECCN.` : "";
@@ -1142,7 +1150,7 @@ function renderEccn() {
       <div class="norm">${esc(p.label)}</div><div class="partcode mono">${esc(p.code)}</div>
       <div class="partname">${esc(p.name)}</div><div class="detail">${esc(p.description)}</div></div>`).join("") : "";
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
-  const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
+  const mfrs = e.manufacturer_links.map((m) => `${mfrLink(m.name, m.key)} (${m.count})`).join(", ");
   $("#eccnInfo").innerHTML = `
     ${e.official_heading ? `<dt>Official heading of entry ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Commerce Control List text (eCFR${e.as_of ? `, version of ${esc(e.as_of)}` : ""}).</div></dd>` : ""}
     <dt>Scope</dt><dd>${esc(e.explanation)}</dd>
@@ -1160,11 +1168,12 @@ function renderEccn() {
 
 $("#eccnComps").addEventListener("click", async (ev) => {
   const b = ev.target.closest("[data-edit]");
-  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+  if (b) editComponent(b.dataset.edit);
 });
 
 const dlgEccn = $("#dlgEccn"), eccnForm = $("#eccnForm");
 $("#btnEditEccn").addEventListener("click", () => {
+  if (!ensureEditor()) return;
   eccnForm.elements.title.value = currentEccn.title || "";
   eccnForm.elements.notes.value = currentEccn.notes || "";
   $("#eccnError").hidden = true;
@@ -1210,7 +1219,7 @@ function renderExemptionList() {
       <td class="small">${e.substances.map(esc).join(", ")}</td>
       <td>${statusBadge(e.status)}</td>
       <td>${e.components}</td>
-      <td class="small">${e.manufacturers.map(esc).join(", ")}</td></tr>`).join("")
+      <td class="small">${e.manufacturer_links.map((m) => mfrLink(m.name, m.key)).join(", ")}</td></tr>`).join("")
     || `<tr><td colspan="6" class="muted">No exemption used by the database components.</td></tr>`;
   const up = EXEMPTIONS.upcoming;
   $("#exemptSource").innerHTML = EXEMPTIONS.version
@@ -1245,7 +1254,7 @@ function renderExemption() {
   }).join(" ");
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
   const up = e.upcoming;
-  const mfrs = Object.entries(e.manufacturers).map(([m, n]) => `${esc(m)} (${n})`).join(", ");
+  const mfrs = e.manufacturer_links.map((m) => `${mfrLink(m.name, m.key)} (${m.count})`).join(", ");
   $("#exemptInfo").innerHTML = e.found ? `
     ${e.group ? `<dt>Section</dt><dd>${esc(e.group)}</dd>` : ""}
     <dt>Official text</dt><dd>${e.parent ? `<div class="muted">${esc(e.parent)}</div>` : ""}<q>${esc(e.description)}</q></dd>
@@ -1268,12 +1277,13 @@ function renderExemption() {
 $("#exemptComps").addEventListener("click", async (ev) => {
   const b = ev.target.closest("[data-edit]");
   const a = ev.target.closest("[data-alt]");
-  if (b) openDialog(await (await api("/api/components/" + b.dataset.edit)).json());
+  if (b) editComponent(b.dataset.edit);
   else if (a) openAlternatives({ compId: Number(a.dataset.alt) });
 });
 
 const dlgExempt = $("#dlgExempt"), exemptForm = $("#exemptForm");
 $("#btnEditExempt").addEventListener("click", () => {
+  if (!ensureEditor()) return;
   exemptForm.elements.notes.value = currentExemption.notes || "";
   $("#exemptError").hidden = true;
   dlgExempt.showModal();
@@ -1335,8 +1345,16 @@ function loadAuthConfig() {
 
 // Database tab: what the visitor may change, and the request for edit access sent to the administrator
 function renderEditBox() {
-  const box = $("#editBox"), u = state.user, c = authConfig;
-  if (!c || c.open_editing) { box.hidden = true; return; }
+  const box = $("#editBox"), html = editAccessHtml();
+  box.hidden = !html;
+  if (html) box.innerHTML = html;
+  if (dlgEditAccess.open) $("#editAccessBody").innerHTML = html;
+}
+
+// Who may change the database, and how to get the right ("" when editing is open to everyone)
+function editAccessHtml() {
+  const u = state.user, c = authConfig;
+  if (!c || c.open_editing) return "";
   let html;
   if (!u) {
     html = `To add or edit components, <button class="linkbtn" data-auth="login">sign in</button>
@@ -1356,11 +1374,31 @@ function renderEditBox() {
       ? `${intro} To add or edit components, <button class="btn small" id="btnRequestEdit">Request edit access</button>`
       : `${intro} Changing the database is reserved for accounts approved by the administrator.`;
   }
-  box.innerHTML = html;
-  box.hidden = false;
+  return html;
 }
 
-$("#editBox").addEventListener("click", async (ev) => {
+// Opening a form whose changes the server would refuse is pointless: without the right to change the
+// database, the sign-in form opens instead, or the explanation of how to get the right.
+const dlgEditAccess = $("#dlgEditAccess");
+const canEdit = () => !authConfig || authConfig.open_editing || !!state.user?.can_edit;
+
+function ensureEditor() {
+  if (canEdit()) return true;
+  if (!state.user) {
+    openAuth("login", "Sign in with an account approved by the administrator to add or edit components.");
+  } else {
+    $("#editAccessBody").innerHTML = editAccessHtml();
+    if (!dlgEditAccess.open) dlgEditAccess.showModal();
+  }
+  return false;
+}
+$("#btnEditAccessClose").addEventListener("click", () => dlgEditAccess.close());
+
+$("#editBox").addEventListener("click", onEditAccessClick);
+$("#editAccessBody").addEventListener("click", onEditAccessClick);
+
+async function onEditAccessClick(ev) {
+  const box = ev.currentTarget; // no longer set once the request below has been awaited
   const login = ev.target.closest("[data-auth]");
   if (login) { openAuth(login.dataset.auth); return; }
   const btn = ev.target.closest("#btnRequestEdit");
@@ -1370,10 +1408,10 @@ $("#editBox").addEventListener("click", async (ev) => {
     state.user = await (await api("/api/edit-access/request", { method: "POST" })).json();
     renderEditBox();
   } catch (e) {
-    $("#editBox").insertAdjacentHTML("beforeend", `<div class="alert error">${esc(e.message)}</div>`);
+    box.insertAdjacentHTML("beforeend", `<div class="alert error">${esc(e.message)}</div>`);
     btn.disabled = false;
   }
-});
+}
 
 // Administrator: approve or refuse a request, from the link received by e-mail
 const dlgReview = $("#dlgReview");
@@ -1443,9 +1481,11 @@ $("#historyHint").addEventListener("click", (ev) => {
 });
 
 // mode: "login", "register" or "confirm" (link from the confirmation e-mail)
-function openAuth(mode) {
+function openAuth(mode, hint = "") {
   authForm.reset();
   setAuthMode(mode);
+  $("#authHint").textContent = hint;
+  $("#authHint").hidden = !hint;
   if (!dlgAuth.open) dlgAuth.showModal();
   (mode === "confirm" ? authForm.elements.password : authForm.elements.email).focus();
   loadAuthConfig();

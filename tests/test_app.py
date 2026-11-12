@@ -495,8 +495,10 @@ def test_ear99():
 def test_eccn_api():
     codes = {e["code"]: e for e in client.get("/api/eccn").json()["codes"]}
     assert codes["5A992.c"]["controlled"] and codes["5A992.c"]["components"] >= 1
+    assert all(m["key"] and m["name"] for m in codes["5A992.c"]["manufacturer_links"])
     d = client.get("/api/eccn/5a992.C").json()       # normalised code
     assert d["code"] == "5A992.c" and "DEMO-LEADED-DIP8" in [c["mpn"] for c in d["components"]]
+    assert sum(m["count"] for m in d["manufacturer_links"]) == len(d["components"])
     assert client.get("/api/eccn/not-a-code").status_code == 422
     r = client.put("/api/eccn/5A992.c", json={"title": "Mass-market encryption", "notes": "ENC"})
     assert r.status_code == 200 and r.json()["title"] == "Mass-market encryption"
@@ -940,8 +942,12 @@ def test_expiry_status(monkeypatch):
 def test_exemptions_api():
     rows = {e["key"]: e for e in client.get("/api/exemptions").json()["exemptions"]}
     assert rows["7C-I"]["components"] >= 2 and "Yageo" in rows["7C-I"]["manufacturers"]
+    # Link to the manufacturer's page
+    assert any(m["key"] == "yageo" and m["name"] == "Yageo" for m in rows["7C-I"]["manufacturer_links"])
     d = client.get("/api/exemptions/7(c)-I").json()
     assert "RC0603FR-0710KL" in [c["mpn"] for c in d["components"]]
+    yageo = next(m for m in d["manufacturer_links"] if m["key"] == "yageo")
+    assert yageo["name"] == "Yageo" and yageo["count"] >= 1
     r = client.put("/api/exemptions/7(c)-I", json={"notes": "Renewal requested by the manufacturer"})
     assert r.status_code == 200 and r.json()["notes"].startswith("Renewal")
 
@@ -1171,3 +1177,36 @@ def test_bom_statuses_in_preview_and_report():
 def test_bom_without_status_columns_unchanged():
     lines = analyze_text("MPN;Manufacturer\nZZ-ABSENT-1;Acme\n")["lines"]
     assert (lines[0]["rohs3"], lines[0]["from_bom"]) == ("needs_review", [])
+
+
+def test_distributor_status_wording_is_understood():
+    # Longer values written by distributors and PLM tools
+    rohs, reach = db.ROHS_STATUSES, db.REACH_STATUSES
+    for raw, allowed, status in (
+        ("Compliant(YES)_", rohs, "compliant"), ("Compliant(YES)_", reach, "compliant"),
+        ("Non-Compliant(NO)_", rohs, "non_compliant"), ("ROHS3 Compliant", rohs, "compliant"),
+        ("RoHS Compliant By Exemption", rohs, "exemption"), ("Compliant, no exemption", rohs, "compliant"),
+        ("Not RoHS Compliant", rohs, "non_compliant"), ("REACH Unaffected", reach, "compliant"),
+        ("Contains SVHC > 0.1%", reach, "svhc"), ("SVHC free", reach, "compliant"),
+        ("Vendor undefined", rohs, "unknown"), ("Not applicable", reach, "unknown"),
+    ):
+        assert db.clean_status(raw, allowed, "status") == status, raw
+    with pytest.raises(db.ValidationError):
+        db.clean_status("Pb-free", rohs, "rohs3")
+
+
+def test_xlsb_bom_with_long_headers():
+    data = (ROOT / "tests" / "data" / "bom_long_headers.xlsb").read_bytes()
+    r = client.post("/api/analyze", files={"file": ("bom.xlsb", data)})
+    assert r.status_code == 200, r.text
+    xlsb_lines = r.json()["lines"]
+    lines = {line["bom_mpn"]: line for line in xlsb_lines}
+    assert lines["NE555P"]["match"] == "exact"
+    absent = lines["XYZ-UNKNOWN-42"]  # not in the database: statuses "Compliant(YES)_" taken from the BOM
+    assert (absent["rohs3"], absent["reach"], absent["from_bom"]) == ("compliant", "compliant", ["rohs3", "reach"])
+    old = lines["ABC-OLD-7"]
+    assert (old["rohs3"], old["reach"]) == ("non_compliant", "svhc")
+    # The same table saved as CSV gives the same result
+    csv_lines = analyze_text((ROOT / "tests" / "data" / "bom_long_headers.csv").read_text(encoding="utf-8"))["lines"]
+    assert [(x["bom_mpn"], x["rohs3"], x["reach"]) for x in csv_lines] == \
+        [(x["bom_mpn"], x["rohs3"], x["reach"]) for x in xlsb_lines]
