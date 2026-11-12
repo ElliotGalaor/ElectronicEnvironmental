@@ -1,4 +1,4 @@
-"""Reading tabular files (CSV, TSV, TXT, XLSX) and detecting the columns of a BOM."""
+"""Reading tabular files (CSV, TSV, TXT, XLSX, XLSM, XLSB) and detecting the columns of a BOM."""
 
 from __future__ import annotations
 
@@ -37,13 +37,12 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
             raise TableError(f"Unreadable Excel file: {exc}") from exc
         # Use the first non-empty sheet.
         for ws in wb.worksheets:
-            rows = [["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)]
-            # Empty rows are kept so that row numbers match the file.
-            while rows and not any(c.strip() for c in rows[-1]):
-                rows.pop()
+            rows = _trim([["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)])
             if rows:
                 return rows
         raise TableError("The Excel workbook is empty")
+    if name.endswith(".xlsb"):
+        return _read_xlsb(data)
     if name.endswith(".xls"):
         raise TableError("The .xls format is not supported: save the file as .xlsx or .csv")
 
@@ -62,6 +61,31 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
     if not rows:
         raise TableError("The file is empty")
     return rows
+
+
+def _trim(rows: list[list[str]]) -> list[list[str]]:
+    """Drop the empty rows at the end. Empty rows inside are kept, so that row numbers match the file."""
+    while rows and not any(c.strip() for c in rows[-1]):
+        rows.pop()
+    return rows
+
+
+def _read_xlsb(data: bytes) -> list[list[str]]:
+    """Excel binary workbook (.xlsb): first non-empty sheet."""
+    try:
+        from pyxlsb import open_workbook
+    except ImportError as exc:  # pragma: no cover
+        raise TableError("pyxlsb is required to read .xlsb files") from exc
+    try:
+        with open_workbook(io.BytesIO(data)) as wb:
+            for sheet in wb.sheets:
+                with wb.get_sheet(sheet) as ws:
+                    rows = _trim([["" if c.v is None else _cell_str(c.v) for c in row] for row in ws.rows()])
+                if rows:
+                    return rows
+    except Exception as exc:
+        raise TableError(f"Unreadable Excel file: {exc}") from exc
+    raise TableError("The Excel workbook is empty")
 
 
 def _cell_str(v) -> str:

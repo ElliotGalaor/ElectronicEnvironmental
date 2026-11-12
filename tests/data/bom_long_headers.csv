@@ -1,0 +1,5 @@
+Manufacturer Part Number (as listed by the original component manufacturer);Manufacturer Name (legal entity responsible for the part);Reference Designators on the printed circuit board;Quantity per assembled board;RoHS Compliance Status (Directive 2011/65/EU as amended by Directive (EU) 2015/863);REACH SVHC Compliance Status (Regulation (EC) No 1907/2006, Candidate List)
+NE555P;Texas Instruments;U1;1;Compliant(YES)_;Compliant(YES)_
+LM358DR;Texas Instruments;U2,U3;2;Compliant(YES)_;Compliant(YES)_
+XYZ-UNKNOWN-42;Acme Components;R1;1;Compliant(YES)_;Compliant(YES)_
+ABC-OLD-7;Acme Components;C1;1;Non-Compliant(NO)_;Contains SVHC

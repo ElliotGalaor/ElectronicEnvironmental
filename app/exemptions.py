@@ -150,6 +150,7 @@ def list_all(conn: sqlite3.Connection) -> dict:
             "substances": d["substances"],
             "components": len(comps),
             "manufacturers": sorted({c["manufacturer"] for c in comps}),
+            "manufacturer_links": sorted(db.manufacturer_links(comps), key=lambda m: m["name"].lower()),
         })
     rows.sort(key=lambda r: (not r["found"], r["annex"], [int(x) if x.isdigit() else x for x in re.findall(r"\d+|\D+", r["key"])]))
     data = _data()
@@ -166,6 +167,7 @@ def get(conn: sqlite3.Connection, code: str) -> dict:
         "notes": row["notes"] if row else "",
         "components": [db.row_to_dict(c) for c in comps],
         "manufacturers": dict(Counter(c["manufacturer"] for c in comps).most_common()),
+        "manufacturer_links": db.manufacturer_links(comps),
     }
 
 

@@ -152,6 +152,11 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 dialog { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--surface); color: var(--text); width: min(720px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
+/* While a dialog is open, the page behind it does not scroll (iOS included); the gutter avoids a jump when the
+   scrollbar disappears. Scrolling inside a dialog does not carry over to the page. */
+html { scrollbar-gutter: stable; }
+html:has(dialog[open]) { overflow: hidden; }
+dialog { overscroll-behavior: contain; }
 .formgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .formgrid .wide { grid-column: 1 / -1; }
 .dlgactions { display: flex; gap: 8px; margin-top: 18px; }
@@ -310,9 +315,14 @@ a.mpn-link:hover { color: var(--accent); }
 .mappreview { max-height: 340px; overflow: auto; }
 #mapPreview { font-size: 12.5px; }
 #mapPreview th { vertical-align: bottom; white-space: nowrap; }
+/* Some BOMs have whole sentences as column names: they wrap on 3 lines at most (full name on hover) instead of
+   making each column of the preview hundreds of pixels wide */
+#mapPreview th .colname, #mapResult th .colname { white-space: normal; min-width: 8em; max-width: 15em; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+#mapResult th { vertical-align: bottom; }
 #mapPreview th .colname { font-weight: 400; margin-top: 3px; color: var(--muted); }
 #mapPreview th.mapped .colname { color: var(--text); font-weight: 600; }
-#mapPreview td { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+#mapPreview td { white-space: nowrap; max-width: 15em; overflow: hidden; text-overflow: ellipsis; }
 #mapPreview td.mapped { background: color-mix(in srgb, var(--ok-bg) 45%, transparent); }
 #mapPreview .rownum { color: var(--muted); text-align: right; width: 1%; font-variant-numeric: tabular-nums; }
 #mapPreview tr.hdr td { font-weight: 600; background: color-mix(in srgb, var(--accent) 12%, transparent); }
