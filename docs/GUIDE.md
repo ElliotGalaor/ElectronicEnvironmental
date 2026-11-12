@@ -29,7 +29,7 @@ served at `/examples/bom_example.csv`.
 
 ## How it works
 
-1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`.
+1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`, `.xlsm`, `.xlsb`.
    The header row and the columns are detected automatically (English and French names:
    *Manufacturer Part Number*, *MPN*, *Manufacturer*, *Designator*, *Qty*, *DNP*, *Référence fabricant*, *Repères*…).
    KiCad's "Reference" column is recognised as a designator if it holds `R1, C2…`.
