@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-99%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-100%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -22,7 +22,7 @@
 |---|---|
 | **The problem** | Before an electronic board can be sold on the European market, every one of its components must be shown to comply with **RoHS** (hazardous substances: lead, mercury, cadmium, phthalates…) and **REACH** (substances of very high concern), and you need to know which ones are subject to **export control** (ECCN). Checking a bill of materials with dozens of part numbers by hand is slow and error-prone. |
 | **The solution** | A web application that reads the bill of materials exported from the CAD tool, finds each component in a reference database and returns a verdict per regulation within seconds, with the problem components, the exemptions about to expire and **compliant equivalents from other manufacturers**. |
-| **The sources** | Official texts: Directive 2011/65/EU on **EUR-Lex** (163 exemptions), the US Commerce Control List on the **eCFR** (622 ECCN entries). Component data collected from the distributor LCSC. |
+| **The sources** | Official texts: Directive 2011/65/EU on **EUR-Lex** (163 exemptions), the US Commerce Control List on the **eCFR** (622 ECCN entries), the REACH Candidate List published by **ECHA** (501 SVHC). Component data collected from the distributor LCSC. |
 
 ## Features
 
@@ -89,7 +89,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (99 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (100 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture

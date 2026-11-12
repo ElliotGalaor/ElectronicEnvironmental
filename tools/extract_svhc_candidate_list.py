@@ -35,6 +35,7 @@ COLUMNS = {
 CAS_RE = re.compile(r"\b\d{2,7}-\d{2}-\d\b")
 EC_RE = re.compile(r"\b\d{3}-\d{3}-\d\b")
 ALIAS_RE = re.compile(r"\(([A-Z][A-Z0-9-]{1,11})\)")  # "Bis(2-ethylhexyl) phthalate (DEHP)" -> DEHP
+CHAIN_RE = re.compile(r"C\d+(-C\d+)?")  # "(C10-C13)": carbon chain length, too generic to identify a substance
 DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y", "%d-%b-%Y", "%d %B %Y", "%d.%m.%Y", "%d-%m-%Y")
 
 
@@ -68,6 +69,17 @@ def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
 
 
+def merge(target: dict, other: dict) -> None:
+    """Add the numbers, description and reasons of another row of the same group entry."""
+    for key in ("ec", "cas"):
+        target[key] += [x for x in other[key] if x not in target[key]]
+    for key in ("description", "reason"):
+        if other[key] and other[key] not in target[key]:
+            target[key] = f"{target[key]}; {other[key]}" if target[key] else other[key]
+    if other["date"] and (not target["date"] or other["date"] < target["date"]):
+        target["date"] = other["date"]
+
+
 def convert(path: Path) -> dict:
     rows = read_rows(path.read_bytes(), path.name)
     header, cols = find_header(rows)
@@ -76,26 +88,33 @@ def convert(path: Path) -> dict:
         j = cols.get(field)
         return row[j].strip() if j is not None and j < len(row) else ""
 
-    substances, ids = [], set()
+    substances, ids, by_name = [], set(), {}
     for row in rows[header + 1:]:
         name = re.sub(r"\s+", " ", cell(row, "name"))
         if not name:
+            continue
+        entry = {
+            "name": name,
+            "description": cell(row, "description"),
+            "ec": EC_RE.findall(cell(row, "ec")),
+            "cas": CAS_RE.findall(cell(row, "cas")),
+            "aliases": sorted({a for a in ALIAS_RE.findall(name) if not CHAIN_RE.fullmatch(a)}),
+            "date": parse_date(cell(row, "date")),
+            "reason": re.sub(r"\s+", " ", cell(row, "reason")),
+        }
+        # ECHA splits group entries into several rows with the same name: one substance with all the numbers
+        same = by_name.get(name.lower())
+        if same:
+            merge(same, entry)
             continue
         sid = base = slug(name) or f"substance-{len(substances) + 1}"
         n = 2
         while sid in ids:
             sid, n = f"{base}-{n}", n + 1
         ids.add(sid)
-        substances.append({
-            "id": sid,
-            "name": name,
-            "description": cell(row, "description"),
-            "ec": EC_RE.findall(cell(row, "ec")),
-            "cas": CAS_RE.findall(cell(row, "cas")),
-            "aliases": sorted(set(ALIAS_RE.findall(name))),
-            "date": parse_date(cell(row, "date")),
-            "reason": re.sub(r"\s+", " ", cell(row, "reason")),
-        })
+        substance = {"id": sid, **entry}
+        by_name[name.lower()] = substance
+        substances.append(substance)
     if not substances:
         raise SystemExit("No substance found below the header row")
     substances.sort(key=lambda s: (s["date"], s["name"].lower()), reverse=True)

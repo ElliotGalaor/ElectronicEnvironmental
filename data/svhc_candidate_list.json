@@ -1,0 +1,6639 @@
+{
+ "source": "ECHA, Candidate List of substances of very high concern for Authorisation (REACH)",
+ "url": "https://echa.europa.eu/candidate-list-table",
+ "version": "2026-02-04",
+ "substances": [
+  {
+   "id": "reaction-products-of-benzene-chlorine-and-sulfur-chloride-s2",
+   "name": "Reaction products of benzene, chlorine and sulfur chloride (S2Cl2) with 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol",
+   "description": "",
+   "ec": [
+    "469-080-6"
+   ],
+   "cas": [
+    "921213-47-0"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "reaction-mass-of-4-4-2-2-2-trifluoro-1-trifluoromethyl-ethyl-2",
+   "name": "Reaction mass of 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol and benzyltriphenylphosphonium, salt with 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "reaction-mass-of-4-4-2-2-2-trifluoro-1-trifluoromethyl-ethyl",
+   "name": "Reaction mass of 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol and benzyl(diethylamino)diphenylphosphonium 4-[1,1,1,3,3,3-hexafluoro-2-(4-hydroxyphenyl)propan-2-yl]phenolate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "phosphonium-tributyl-2-methoxypropyl-salt-with-4-4-2-2-2-tri",
+   "name": "Phosphonium, tributyl(2-methoxypropyl)-, salt with 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]bis[phenol] (1:1)",
+   "description": "",
+   "ec": [
+    "468-740-0"
+   ],
+   "cas": [
+    "126049-00-1"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "n-hexane",
+   "name": "n-hexane",
+   "description": "",
+   "ec": [
+    "203-777-6"
+   ],
+   "cas": [
+    "110-54-3"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "n-n-dibutyl-n-methylbutan-1-aminium-4-1-1-1-3-3-3-hexafluoro",
+   "name": "N,N-dibutyl-N-methylbutan-1-aminium 4-[1,1,1,3,3,3-hexafluoro-2-(4-hydroxyphenyl)propan-2-yl]phenolate",
+   "description": "",
+   "ec": [
+    "443-330-4"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "disodium-4-4-2-2-2-trifluoro-1-trifluoromethyl-ethylidene-di",
+   "name": "disodium 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenolate",
+   "description": "",
+   "ec": [
+    "425-060-9"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "benzyltriphenylphosphonium-salt-with-4-4-2-2-2-trifluoro-1-t",
+   "name": "Benzyltriphenylphosphonium, salt with 4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]bis[phenol] (1:1)",
+   "description": "",
+   "ec": [
+    "278-305-5"
+   ],
+   "cas": [
+    "75768-65-9"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "benzyl-diethylamino-diphenylphosphonium-4-1-1-1-3-3-3-hexafl",
+   "name": "benzyl(diethylamino)diphenylphosphonium 4-[1,1,1,3,3,3-hexafluoro-2-(4-hydroxyphenyl)propan-2-yl]phenolate",
+   "description": "",
+   "ec": [
+    "479-100-5"
+   ],
+   "cas": [
+    "577705-90-9"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "4-4-2-2-2-trifluoro-1-trifluoromethyl-ethylidene-diphenol-an",
+   "name": "4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol and its salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "4-4-2-2-2-trifluoro-1-trifluoromethyl-ethylidene-diphenol-bi",
+   "name": "4,4'-[2,2,2-trifluoro-1-(trifluoromethyl)ethylidene]diphenol (Bisphenol AF)",
+   "description": "",
+   "ec": [
+    "216-036-7"
+   ],
+   "cas": [
+    "1478-61-1"
+   ],
+   "aliases": [],
+   "date": "2026-02-04",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-1-ethane-1-2-diyl-bis-pentabromobenzene-dbdpe",
+   "name": "1,1'-(ethane-1,2-diyl)bis[pentabromobenzene] (DBDPE)",
+   "description": "",
+   "ec": [
+    "284-366-9"
+   ],
+   "cas": [
+    "84852-53-9"
+   ],
+   "aliases": [
+    "DBDPE"
+   ],
+   "date": "2025-11-05",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "tetra-sodium-potassium-7-e-2-acetamido-4-e-4-4-chloro-6-2-4-",
+   "name": "tetra(sodium/potassium) 7-[(E)-{2-acetamido-4-[(E)-(4-{[4-chloro-6-({2-[(4-fluoro-6-{[4-(vinylsulfonyl)phenyl]amino}-1,3,5-triazine-2-yl)amino]propyl}amino)-1,3,5-triazine-2-yl]amino}-5-sulfonato-1-naphthyl)diazenyl]-5-methoxyphenyl}diazenyl]-1,3,6-naphthalenetrisulfonate (Reactive Brown 51)",
+   "description": "substance having a complex composition with <80% of the above constituents and other reaction side products",
+   "ec": [
+    "466-490-7"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2025-06-25",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "decamethyltetrasiloxane",
+   "name": "decamethyltetrasiloxane",
+   "description": "",
+   "ec": [
+    "205-491-7"
+   ],
+   "cas": [
+    "141-62-8"
+   ],
+   "aliases": [],
+   "date": "2025-06-25",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-1-1-3-5-5-5-heptamethyl-3-trimethylsilyl-oxy-trisiloxane",
+   "name": "1,1,1,3,5,5,5-heptamethyl-3-[(trimethylsilyl)oxy]trisiloxane",
+   "description": "",
+   "ec": [
+    "241-867-7"
+   ],
+   "cas": [
+    "17928-28-8"
+   ],
+   "aliases": [],
+   "date": "2025-06-25",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "reaction-mass-of-triphenylthiophosphate-and-tertiary-butylat",
+   "name": "reaction mass of: triphenylthiophosphate and tertiary butylated phenyl derivatives",
+   "description": "",
+   "ec": [
+    "421-820-9"
+   ],
+   "cas": [
+    "192268-65-8"
+   ],
+   "aliases": [],
+   "date": "2025-01-21",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "perfluamine",
+   "name": "Perfluamine",
+   "description": "",
+   "ec": [
+    "206-420-2"
+   ],
+   "cas": [
+    "338-83-0"
+   ],
+   "aliases": [],
+   "date": "2025-01-21",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "octamethyltrisiloxane",
+   "name": "Octamethyltrisiloxane",
+   "description": "",
+   "ec": [
+    "203-497-4"
+   ],
+   "cas": [
+    "107-51-7"
+   ],
+   "aliases": [],
+   "date": "2025-01-21",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "o-o-o-triphenyl-phosphorothioate",
+   "name": "O,O,O-triphenyl phosphorothioate",
+   "description": "",
+   "ec": [
+    "209-909-9"
+   ],
+   "cas": [
+    "597-82-0"
+   ],
+   "aliases": [],
+   "date": "2025-01-21",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "6-c10-c13-alkyl-branched-unsaturated-2-5-dioxopyrrolidin-1-y",
+   "name": "6-[(C10-C13)-alkyl-(branched, unsaturated)-2,5-dioxopyrrolidin-1-yl]hexanoic acid",
+   "description": "",
+   "ec": [
+    "701-118-1"
+   ],
+   "cas": [
+    "2156592-54-8"
+   ],
+   "aliases": [],
+   "date": "2025-01-21",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "triphenyl-phosphate",
+   "name": "Triphenyl phosphate",
+   "description": "",
+   "ec": [
+    "204-112-2"
+   ],
+   "cas": [
+    "115-86-6"
+   ],
+   "aliases": [],
+   "date": "2024-11-07",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "bis-dimethylbenzyl-peroxide",
+   "name": "Bis(α,α-dimethylbenzyl) peroxide",
+   "description": "",
+   "ec": [
+    "201-279-3"
+   ],
+   "cas": [
+    "80-43-3"
+   ],
+   "aliases": [],
+   "date": "2024-06-27",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "phenol-methylstyrenated",
+   "name": "Phenol, methylstyrenated",
+   "description": "",
+   "ec": [
+    "270-966-8"
+   ],
+   "cas": [
+    "68512-30-1"
+   ],
+   "aliases": [],
+   "date": "2024-01-23",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "oligomerisation-and-alkylation-reaction-products-of-2-phenyl",
+   "name": "Oligomerisation and alkylation reaction products of 2-phenylpropene and phenol",
+   "description": "",
+   "ec": [
+    "700-960-7"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2024-01-23",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "bumetrizole-uv-326",
+   "name": "Bumetrizole (UV-326)",
+   "description": "",
+   "ec": [
+    "223-445-4"
+   ],
+   "cas": [
+    "3896-11-5"
+   ],
+   "aliases": [
+    "UV-326"
+   ],
+   "date": "2024-01-23",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "2-dimethylamino-2-4-methylphenyl-methyl-1-4-morpholin-4-yl-p",
+   "name": "2-(dimethylamino)-2-[(4-methylphenyl)methyl]-1-[4-(morpholin-4-yl)phenyl]butan-1-one",
+   "description": "",
+   "ec": [
+    "438-340-0"
+   ],
+   "cas": [
+    "119344-86-4"
+   ],
+   "aliases": [],
+   "date": "2024-01-23",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-2h-benzotriazol-2-yl-4-1-1-3-3-tetramethylbutyl-phenol-uv-",
+   "name": "2-(2H-benzotriazol-2-yl)-4-(1,1,3,3-tetramethylbutyl)phenol (UV-329)",
+   "description": "",
+   "ec": [
+    "221-573-5"
+   ],
+   "cas": [
+    "3147-75-9"
+   ],
+   "aliases": [
+    "UV-329"
+   ],
+   "date": "2024-01-23",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "2-4-6-tri-tert-butylphenol",
+   "name": "2,4,6-tri-tert-butylphenol",
+   "description": "",
+   "ec": [
+    "211-989-5"
+   ],
+   "cas": [
+    "732-26-3"
+   ],
+   "aliases": [],
+   "date": "2024-01-23",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "diphenyl-2-4-6-trimethylbenzoyl-phosphine-oxide",
+   "name": "diphenyl(2,4,6-trimethylbenzoyl)phosphine oxide",
+   "description": "",
+   "ec": [
+    "278-355-8"
+   ],
+   "cas": [
+    "75980-60-8"
+   ],
+   "aliases": [],
+   "date": "2023-06-14",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-4-chlorophenyl-sulphone",
+   "name": "bis(4-chlorophenyl) sulphone",
+   "description": "",
+   "ec": [
+    "201-247-9"
+   ],
+   "cas": [
+    "80-07-9"
+   ],
+   "aliases": [],
+   "date": "2023-06-14",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sodium-perfluoroheptanoate",
+   "name": "Sodium perfluoroheptanoate",
+   "description": "",
+   "ec": [
+    "243-518-4"
+   ],
+   "cas": [
+    "20109-59-5"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "reaction-mass-of-2-2-3-3-5-5-6-6-octafluoro-4-1-1-1-2-3-3-3-",
+   "name": "reaction mass of 2,2,3,3,5,5,6,6-octafluoro-4-(1,1,1,2,3,3,3-heptafluoropropan-2-yl)morpholine and 2,2,3,3,5,5,6,6-octafluoro-4-(heptafluoropropyl)morpholine",
+   "description": "",
+   "ec": [
+    "473-390-7"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "potassium-perfluoroheptanoate",
+   "name": "potassium perfluoroheptanoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "21049-36-5"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "perfluoroheptanoic-acid-and-its-salts",
+   "name": "Perfluoroheptanoic acid and its salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "perfluoroheptanoic-acid",
+   "name": "Perfluoroheptanoic acid",
+   "description": "",
+   "ec": [
+    "206-798-9"
+   ],
+   "cas": [
+    "375-85-9"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "melamine",
+   "name": "Melamine",
+   "description": "",
+   "ec": [
+    "203-615-4"
+   ],
+   "cas": [
+    "108-78-1"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "isobutyl-4-hydroxybenzoate",
+   "name": "Isobutyl 4-hydroxybenzoate",
+   "description": "",
+   "ec": [
+    "224-208-8"
+   ],
+   "cas": [
+    "4247-02-3"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "bis-2-ethylhexyl-tetrabromophthalate-covering-any-of-the-ind",
+   "name": "bis(2-ethylhexyl) tetrabromophthalate covering any of the individual isomers and/or combinations thereof",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "bis-2-ethylhexyl-tetrabromophthalate",
+   "name": "Bis(2-ethylhexyl) tetrabromophthalate",
+   "description": "",
+   "ec": [
+    "247-426-5"
+   ],
+   "cas": [
+    "26040-51-7"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "barium-diboron-tetraoxide",
+   "name": "Barium diboron tetraoxide",
+   "description": "",
+   "ec": [
+    "237-222-4"
+   ],
+   "cas": [
+    "13701-59-2"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "ammonium-perfluoroheptanoate",
+   "name": "Ammonium perfluoroheptanoate",
+   "description": "",
+   "ec": [
+    "228-098-2"
+   ],
+   "cas": [
+    "6130-43-4"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-sulphonyldiphenol",
+   "name": "4,4'-sulphonyldiphenol",
+   "description": "",
+   "ec": [
+    "201-250-5"
+   ],
+   "cas": [
+    "80-09-1"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "2-2-6-6-tetrabromo-4-4-isopropylidenediphenol",
+   "name": "2,2',6,6'-tetrabromo-4,4'-isopropylidenediphenol",
+   "description": "",
+   "ec": [
+    "201-236-9"
+   ],
+   "cas": [
+    "79-94-7"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "1-1-ethane-1-2-diylbisoxy-bis-2-4-6-tribromobenzene",
+   "name": "1,1'-[ethane-1,2-diylbisoxy]bis[2,4,6-tribromobenzene]",
+   "description": "",
+   "ec": [
+    "253-692-3"
+   ],
+   "cas": [
+    "37853-59-1"
+   ],
+   "aliases": [],
+   "date": "2023-01-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "n-hydroxymethyl-acrylamide",
+   "name": "N-(hydroxymethyl)acrylamide",
+   "description": "",
+   "ec": [
+    "213-103-2"
+   ],
+   "cas": [
+    "924-42-5"
+   ],
+   "aliases": [],
+   "date": "2022-06-10",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "tris-2-methoxyethoxy-vinylsilane",
+   "name": "tris(2-methoxyethoxy)vinylsilane",
+   "description": "",
+   "ec": [
+    "213-934-0"
+   ],
+   "cas": [
+    "1067-53-4"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "s-tricyclo-5-2-1-0-2-6-deca-3-en-8-or-9-yl-o-isopropyl-or-is",
+   "name": "S-(tricyclo(5.2.1.0'2,6)deca-3-en-8(or 9)-yl O-(isopropyl or isobutyl or 2-ethylhexyl) O-(isopropyl or isobutyl or 2-ethylhexyl) phosphorodithioate",
+   "description": "X4261",
+   "ec": [
+    "401-850-9"
+   ],
+   "cas": [
+    "255881-94-8"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "6-6-di-tert-butyl-2-2-methylenedi-p-cresol",
+   "name": "6,6'-di-tert-butyl-2,2'-methylenedi-p-cresol",
+   "description": "",
+   "ec": [
+    "204-327-1"
+   ],
+   "cas": [
+    "119-47-1"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-7-7-trimethyl-3-4-methylphenyl-methylene-bicyclo-2-2-1-hep",
+   "name": "(±)-1,7,7-trimethyl-3-[(4-methylphenyl)methylene]bicyclo[2.2.1]heptan-2-one covering any of the individual isomers and/or combinations thereof (4-MBC)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1-7-7-trimethyl-3-4-methylphenyl-methylene-bicyclo-2-2-1-hep-2",
+   "name": "(±)-1,7,7-trimethyl-3-[(4-methylphenyl)methylene]bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [
+    "253-242-6"
+   ],
+   "cas": [
+    "36861-47-9"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "3e-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1-hepta",
+   "name": "(3E)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1782069-81-1"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1s-3z-4r-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1",
+   "name": "(1S,3Z,4R)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "852541-25-4"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1s-3e-4r-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1",
+   "name": "(1S,3E,4R)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "852541-30-1"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1r-4s-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1-he",
+   "name": "(1R,4S)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "741687-98-9"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1r-3z-4s-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1",
+   "name": "(1R,3Z,4S)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "852541-21-0"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "1r-3e-4s-1-7-7-trimethyl-3-4-methylbenzylidene-bicyclo-2-2-1",
+   "name": "(1R,3E,4S)-1,7,7-trimethyl-3-(4-methylbenzylidene)bicyclo[2.2.1]heptan-2-one",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "95342-41-9"
+   ],
+   "aliases": [],
+   "date": "2022-01-17",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "trisodium-orthoborate",
+   "name": "Trisodium orthoborate",
+   "description": "",
+   "ec": [
+    "238-253-6"
+   ],
+   "cas": [
+    "14312-40-4"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "tetradecane-chloro-derivs",
+   "name": "Tetradecane, chloro derivs.",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "198840-65-2"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "phenol-tetrapropylene",
+   "name": "Phenol, tetrapropylene-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "57427-55-1"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "phenol-dodecyl-branched",
+   "name": "Phenol, dodecyl-, branched",
+   "description": "",
+   "ec": [
+    "310-154-3"
+   ],
+   "cas": [
+    "121158-58-5"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "phenol-alkylation-products-mainly-in-para-position-with-c12-",
+   "name": "Phenol, alkylation products (mainly in para position) with C12-rich branched alkyl chains from oligomerisation, covering any individual isomers and/ or combinations thereof (PDDP)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "PDDP"
+   ],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "phenol-4-isododecyl",
+   "name": "Phenol, 4-isododecyl-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "27147-75-7"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "phenol-4-dodecyl-branched",
+   "name": "Phenol, 4-dodecyl, branched",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "210555-94-5"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "phenol-tetrapropenyl-derivatives",
+   "name": "Phenol, (tetrapropenyl) derivatives",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "74499-35-7"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "orthoboric-acid-sodium-salt",
+   "name": "orthoboric acid, sodium salt",
+   "description": "",
+   "ec": [
+    "237-560-2"
+   ],
+   "cas": [
+    "13840-56-7"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "medium-chain-chlorinated-paraffins-mccp",
+   "name": "Medium-chain chlorinated paraffins (MCCP)",
+   "description": "UVCB substances consisting of more than or equal to 80% linear chloroalkanes with carbon chain lengths within the range from C14 to C17",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "MCCP"
+   ],
+   "date": "2021-07-08",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "glutaral",
+   "name": "glutaral",
+   "description": "",
+   "ec": [
+    "203-856-5"
+   ],
+   "cas": [
+    "111-30-8"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "di-tri-and-tetrachlorotetradecane",
+   "name": "di-, tri- and tetrachlorotetradecane",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "boric-acid-sodium-salt",
+   "name": "Boric acid, sodium salt",
+   "description": "",
+   "ec": [
+    "215-604-1"
+   ],
+   "cas": [
+    "1333-73-9"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "boric-acid-h3bo3-sodium-salt-hydrate",
+   "name": "boric acid (H3BO3), sodium salt, hydrate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "25747-83-5"
+   ],
+   "aliases": [
+    "H3BO3"
+   ],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "boric-acid-h3bo3-sodium-salt-1-1",
+   "name": "boric acid (H3BO3), sodium salt (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "14890-53-0"
+   ],
+   "aliases": [
+    "H3BO3"
+   ],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "boric-acid-h3bo3-disodium-salt",
+   "name": "Boric acid (H3BO3), disodium salt",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "22454-04-2"
+   ],
+   "aliases": [
+    "H3BO3"
+   ],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "alkanes-c14-17-chloro",
+   "name": "Alkanes, C14-17, chloro",
+   "description": "",
+   "ec": [
+    "287-477-0"
+   ],
+   "cas": [
+    "85535-85-9"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "alkanes-c14-16-chloro",
+   "name": "Alkanes, C14-16, chloro",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1372804-76-6"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "4-isododecylphenol",
+   "name": "4-isododecylphenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "27459-10-5"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "4-4-1-methylpropylidene-bisphenol",
+   "name": "4,4'-(1-methylpropylidene)bisphenol",
+   "description": "",
+   "ec": [
+    "201-025-1"
+   ],
+   "cas": [
+    "77-40-7"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "3-bromo-2-2-bis-bromomethyl-1-propanol-tbnpa",
+   "name": "3-bromo-2,2-bis(bromomethyl)-1-propanol (TBNPA)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1522-92-5"
+   ],
+   "aliases": [
+    "TBNPA"
+   ],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-4-tert-butylbenzyl-propionaldehyde-and-its-individual-ster",
+   "name": "2-(4-tert-butylbenzyl)propionaldehyde and its individual stereoisomers",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-4-tert-butylbenzyl-propionaldehyde",
+   "name": "2-(4-tert-butylbenzyl)propionaldehyde",
+   "description": "",
+   "ec": [
+    "201-289-8"
+   ],
+   "cas": [
+    "80-54-6"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-3-dibromo-1-propanol-2-3-dbpa",
+   "name": "2,3-dibromo-1-propanol (2,3-DBPA)",
+   "description": "",
+   "ec": [
+    "202-480-9"
+   ],
+   "cas": [
+    "96-13-9"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-2-dimethylpropan-1-ol-tribromo-derivative-tbnpa",
+   "name": "2,2-dimethylpropan-1-ol, tribromo derivative (TBNPA)",
+   "description": "",
+   "ec": [
+    "253-057-0"
+   ],
+   "cas": [
+    "36483-57-5"
+   ],
+   "aliases": [
+    "TBNPA"
+   ],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-2-bis-bromomethyl-propane-1-3-diol-bmp-2-2-dimethylpropan-",
+   "name": "2,2-bis(bromomethyl)propane-1,3-diol (BMP); 2,2-dimethylpropan-1-ol, tribromo derivative/3-bromo-2,2-bis(bromomethyl)-1-propanol (TBNPA); 2,3-dibromo-1-propanol (2,3-DBPA)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "BMP",
+    "TBNPA"
+   ],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-2-bis-bromomethyl-propane-1-3-diol-bmp",
+   "name": "2,2-bis(bromomethyl)propane-1,3-diol (BMP)",
+   "description": "",
+   "ec": [
+    "221-967-7"
+   ],
+   "cas": [
+    "3296-90-0"
+   ],
+   "aliases": [
+    "BMP"
+   ],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "1-4-dioxane",
+   "name": "1,4-dioxane",
+   "description": "",
+   "ec": [
+    "204-661-8"
+   ],
+   "cas": [
+    "123-91-1"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Carcinogenic (Article 57a)\"Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "2s-3-4-tert-butylphenyl-2-methylpropanal",
+   "name": "(2S)-3-(4-tert-butylphenyl)-2-methylpropanal",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "75166-30-2"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2r-3-4-tert-butylphenyl-2-methylpropanal",
+   "name": "(2R)-3-(4-tert-butylphenyl)-2-methylpropanal",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "75166-31-3"
+   ],
+   "aliases": [],
+   "date": "2021-07-08",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "stannane-dioctyl-bis-coco-acyloxy-derivs",
+   "name": "Stannane, dioctyl-, bis(coco acyloxy) derivs.",
+   "description": "",
+   "ec": [
+    "293-901-5"
+   ],
+   "cas": [
+    "91648-39-4"
+   ],
+   "aliases": [],
+   "date": "2021-01-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dioctyltin-dilaurate-stannane-dioctyl-bis-coco-acyloxy-deriv-2",
+   "name": "dioctyltin dilaurate; stannane, dioctyl-, bis(coco acyloxy) derivs.",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2021-01-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dioctyltin-dilaurate-stannane-dioctyl-bis-coco-acyloxy-deriv",
+   "name": "Dioctyltin dilaurate, stannane, dioctyl-, bis(coco acyloxy) derivs., and any other stannane, dioctyl-, bis(fatty acyloxy) derivs. wherein C12 is the predominant carbon number of the fatty acyloxy moiety",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2021-01-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dioctyltin-dilaurate",
+   "name": "Dioctyltin dilaurate",
+   "description": "",
+   "ec": [
+    "222-883-3"
+   ],
+   "cas": [
+    "3648-18-8"
+   ],
+   "aliases": [],
+   "date": "2021-01-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-2-2-methoxyethoxy-ethyl-ether",
+   "name": "Bis(2-(2-methoxyethoxy)ethyl)ether",
+   "description": "",
+   "ec": [
+    "205-594-7"
+   ],
+   "cas": [
+    "143-24-8"
+   ],
+   "aliases": [],
+   "date": "2021-01-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dibutylbis-pentane-2-4-dionato-o-o-tin",
+   "name": "Dibutylbis(pentane-2,4-dionato-O,O')tin",
+   "description": "",
+   "ec": [
+    "245-152-0"
+   ],
+   "cas": [
+    "22673-19-4"
+   ],
+   "aliases": [],
+   "date": "2020-06-25",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "butyl-4-hydroxybenzoate",
+   "name": "Butyl 4-hydroxybenzoate",
+   "description": "",
+   "ec": [
+    "202-318-7"
+   ],
+   "cas": [
+    "94-26-8"
+   ],
+   "aliases": [],
+   "date": "2020-06-25",
+   "reason": "Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "2-methylimidazole",
+   "name": "2-methylimidazole",
+   "description": "",
+   "ec": [
+    "211-765-7"
+   ],
+   "cas": [
+    "693-98-1"
+   ],
+   "aliases": [],
+   "date": "2020-06-25",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-vinylimidazole",
+   "name": "1-vinylimidazole",
+   "description": "",
+   "ec": [
+    "214-012-0"
+   ],
+   "cas": [
+    "1072-63-5"
+   ],
+   "aliases": [],
+   "date": "2020-06-25",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "triphenylsulfanium-perfluorobutane-sulfonate",
+   "name": "Triphenylsulfanium perfluorobutane sulfonate",
+   "description": "",
+   "ec": [
+    "478-340-8"
+   ],
+   "cas": [
+    "144317-44-2"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "tetrabutyl-phosphonium-nonafluoro-butane-1-sulfonate",
+   "name": "tetrabutyl-phosphonium nonafluoro-butane-1-sulfonate",
+   "description": "",
+   "ec": [
+    "444-440-5"
+   ],
+   "cas": [
+    "220689-12-3"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "potassium-1-1-2-2-3-3-4-4-4-nonafluorobutane-1-sulphonate",
+   "name": "Potassium 1,1,2,2,3,3,4,4,4-nonafluorobutane-1-sulphonate",
+   "description": "",
+   "ec": [
+    "249-616-3"
+   ],
+   "cas": [
+    "29420-49-3"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "perfluorobutane-sulfonic-acid-pfbs-and-its-salts",
+   "name": "Perfluorobutane sulfonic acid (PFBS) and its salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "PFBS"
+   ],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "n-n-n-triethylethanaminium-1-1-2-2-3-3-4-4-4-nonafluorobutan",
+   "name": "N,N,N-triethylethanaminium 1,1,2,2,3,3,4,4,4-nonafluorobutane-1-sulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "25628-08-4"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "morpholinium-perfluorobutanesulfonate",
+   "name": "morpholinium perfluorobutanesulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "503155-89-3"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "magnesium-perfluorobutanesulfonate",
+   "name": "magnesium perfluorobutanesulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "507453-86-3"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "lithium-perfluorobutanesulfonate",
+   "name": "lithium perfluorobutanesulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "131651-65-5"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "dimethyl-phenyl-sulfanium-perfluorobutanesulfonate",
+   "name": "dimethyl(phenyl)sulfanium perfluorobutanesulfonate",
+   "description": "",
+   "ec": [
+    "452-310-4"
+   ],
+   "cas": [
+    "220133-51-7"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "diisohexyl-phthalate",
+   "name": "Diisohexyl phthalate",
+   "description": "",
+   "ec": [
+    "276-090-2"
+   ],
+   "cas": [
+    "71850-09-4"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-4-t-butylphenyl-iodonium-perfluorobutanesulfonate",
+   "name": "bis(4-t-butylphenyl)iodonium perfluorobutanesulfonate",
+   "description": "",
+   "ec": [
+    "432-660-4"
+   ],
+   "cas": [
+    "194999-85-4"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "ammonium-1-1-2-2-3-3-4-4-4-nonafluorobutane-1-sulphonate",
+   "name": "Ammonium 1,1,2,2,3,3,4,4,4-nonafluorobutane-1-sulphonate",
+   "description": "",
+   "ec": [
+    "269-513-7"
+   ],
+   "cas": [
+    "68259-10-9"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-methyl-1-4-methylthiophenyl-2-morpholinopropan-1-one",
+   "name": "2-methyl-1-(4-methylthiophenyl)-2-morpholinopropan-1-one",
+   "description": "ACETOCURE 97; GENOCURE*PMP; IGM 4817; IRGACURE 907; SPEEDCURE 97",
+   "ec": [
+    "400-600-6"
+   ],
+   "cas": [
+    "71868-10-5"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-benzyl-2-dimethylamino-4-morpholinobutyrophenone",
+   "name": "2-benzyl-2-dimethylamino-4'-morpholinobutyrophenone",
+   "description": "CG 25-369; IRGACURE 369; TK 11-319",
+   "ec": [
+    "404-360-3"
+   ],
+   "cas": [
+    "119313-12-1"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-4-butoxy-1-naphthalenyl-tetrahydrothiophenium-1-1-2-2-3-3-",
+   "name": "1-(4-butoxy-1-naphthalenyl)tetrahydrothiophenium 1,1,2,2,3,3,4,4,4-nonafluoro-1-butanesulfonate",
+   "description": "",
+   "ec": [
+    "468-770-4"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "1-1-2-2-3-3-4-4-4-nonafluorobutane-1-sulphonic-acid",
+   "name": "1,1,2,2,3,3,4,4,4-nonafluorobutane-1-sulphonic acid",
+   "description": "",
+   "ec": [
+    "206-793-1"
+   ],
+   "cas": [
+    "375-73-5"
+   ],
+   "aliases": [],
+   "date": "2020-01-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "tris-nonylphenyl-phosphite",
+   "name": "tris(nonylphenyl) phosphite",
+   "description": "",
+   "ec": [
+    "247-759-6"
+   ],
+   "cas": [
+    "26523-78-4"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "tris-4-nonylphenyl-branched-phosphite",
+   "name": "tris(4-nonylphenyl, branched) phosphite",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "tris-4-nonylphenyl-branched-and-linear-phosphite-tnpp",
+   "name": "Tris(4-nonylphenyl, branched and linear) phosphite (TNPP)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "TNPP"
+   ],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "propanoic-acid-2-3-3-3-tetrafluoro-2-heptafluoropropoxy",
+   "name": "Propanoic acid, 2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)-, (-)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "75579-40-7"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "propanoic-acid-2-3-3-3-tetrafluoro-2-heptafluoropropoxy-2",
+   "name": "Propanoic acid, 2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)-, (+)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "75579-39-4"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "potassium-2-3-3-3-tetrafluoro-2-heptafluoropropoxy-propionat",
+   "name": "potassium 2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)propionate",
+   "description": "",
+   "ec": [
+    "266-578-3"
+   ],
+   "cas": [
+    "67118-55-2"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-p-sec-nonyl-phosphite",
+   "name": "Phenol, p-sec-nonyl-, phosphite",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "106599-06-8"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-p-isononyl-phosphite-3-1",
+   "name": "Phenol, p-isononyl-, phosphite (3:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "31631-13-7"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-4-nonyl-phosphite-3-1",
+   "name": "Phenol, 4-nonyl-, phosphite (3:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "3050-88-2"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "ammonium-2-3-3-3-tetrafluoro-2-heptafluoropropoxy-propanoate",
+   "name": "ammonium 2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)propanoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "62037-80-3"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-tert-butylphenol",
+   "name": "4-tert-butylphenol",
+   "description": "",
+   "ec": [
+    "202-679-0"
+   ],
+   "cas": [
+    "98-54-4"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-methoxyethyl-acetate",
+   "name": "2-methoxyethyl acetate",
+   "description": "",
+   "ec": [
+    "203-772-9"
+   ],
+   "cas": [
+    "110-49-6"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-3-3-3-tetrafluoro-2-heptafluoropropoxy-propionyl-fluoride",
+   "name": "2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)propionyl fluoride",
+   "description": "",
+   "ec": [
+    "218-173-8"
+   ],
+   "cas": [
+    "2062-98-8"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-3-3-3-tetrafluoro-2-heptafluoropropoxy-propionic-acid-its-",
+   "name": "2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)propionic acid, its salts and its acyl halides",
+   "description": "covering any of their individual isomers and combinations thereof",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-3-3-3-tetrafluoro-2-heptafluoropropoxy-propionic-acid",
+   "name": "2,3,3,3-tetrafluoro-2-(heptafluoropropoxy)propionic acid",
+   "description": "",
+   "ec": [
+    "236-236-8"
+   ],
+   "cas": [
+    "13252-13-6"
+   ],
+   "aliases": [],
+   "date": "2019-07-16",
+   "reason": "Equivalent level of concern having probable serious effects to human health (Article 57(f) - human health)\"Equivalent level of concern having probable serious effects to the environment (Article 57(f) - environment)"
+  },
+  {
+   "id": "pyrene",
+   "name": "Pyrene",
+   "description": "",
+   "ec": [
+    "204-927-3"
+   ],
+   "cas": [
+    "129-00-0"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "phenanthrene",
+   "name": "Phenanthrene",
+   "description": "",
+   "ec": [
+    "201-581-5"
+   ],
+   "cas": [
+    "85-01-8"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "fluoranthene",
+   "name": "Fluoranthene",
+   "description": "",
+   "ec": [
+    "205-912-4"
+   ],
+   "cas": [
+    "206-44-0"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "benzo-k-fluoranthene",
+   "name": "Benzo[k]fluoranthene",
+   "description": "",
+   "ec": [
+    "205-916-6"
+   ],
+   "cas": [
+    "207-08-9"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "Carcinogenic (Article 57a)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "2-2-bis-4-hydroxyphenyl-4-methylpentane",
+   "name": "2,2-bis(4'-hydroxyphenyl)-4-methylpentane",
+   "description": "AP-5",
+   "ec": [
+    "401-720-1"
+   ],
+   "cas": [
+    "6807-17-6"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-7-7-trimethyl-3-phenylmethylene-bicyclo-2-2-1-heptan-2-one",
+   "name": "1,7,7-trimethyl-3-(phenylmethylene)bicyclo[2.2.1]heptan-2-one",
+   "description": "3-benzylidene camphor; 3-BC",
+   "ec": [
+    "239-139-9"
+   ],
+   "cas": [
+    "15087-24-8"
+   ],
+   "aliases": [],
+   "date": "2019-01-15",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "terphenyl-hydrogenated",
+   "name": "Terphenyl, hydrogenated",
+   "description": "",
+   "ec": [
+    "262-967-7"
+   ],
+   "cas": [
+    "61788-32-7"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "octamethylcyclotetrasiloxane",
+   "name": "Octamethylcyclotetrasiloxane",
+   "description": "D4",
+   "ec": [
+    "209-136-7"
+   ],
+   "cas": [
+    "556-67-2"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "lead",
+   "name": "Lead",
+   "description": "",
+   "ec": [
+    "231-100-4"
+   ],
+   "cas": [
+    "7439-92-1"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "ethylenediamine",
+   "name": "Ethylenediamine",
+   "description": "EDA",
+   "ec": [
+    "203-468-6"
+   ],
+   "cas": [
+    "107-15-3"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "dodecamethylcyclohexasiloxane",
+   "name": "Dodecamethylcyclohexasiloxane",
+   "description": "D6",
+   "ec": [
+    "208-762-8"
+   ],
+   "cas": [
+    "540-97-6"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "disodium-octaborate",
+   "name": "Disodium octaborate",
+   "description": "",
+   "ec": [
+    "234-541-0"
+   ],
+   "cas": [
+    "12008-41-2"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dicyclohexyl-phthalate",
+   "name": "Dicyclohexyl phthalate",
+   "description": "DCHP",
+   "ec": [
+    "201-545-9"
+   ],
+   "cas": [
+    "84-61-7"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "decamethylcyclopentasiloxane",
+   "name": "Decamethylcyclopentasiloxane",
+   "description": "D5",
+   "ec": [
+    "208-764-9"
+   ],
+   "cas": [
+    "541-02-6"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "benzo-ghi-perylene",
+   "name": "Benzo[ghi]perylene",
+   "description": "",
+   "ec": [
+    "205-883-8"
+   ],
+   "cas": [
+    "191-24-2"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "benzene-1-2-4-tricarboxylic-acid-1-2-anhydride",
+   "name": "Benzene-1,2,4-tricarboxylic acid 1,2 anhydride",
+   "description": "trimellitic anhydride; TMA",
+   "ec": [
+    "209-008-0"
+   ],
+   "cas": [
+    "552-30-7"
+   ],
+   "aliases": [],
+   "date": "2018-06-27",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "rel-1r-4s-4as-6as-7s-10r-10ar-12ar-1-2-3-4-7-8-9-10-13-13-14",
+   "name": "rel-(1R,4S,4aS,6aS,7S,10R,10aR,12aR)-1,2,3,4,7,8,9,10,13,13,14,14-dodecachloro-1,4,4a,5,6,6a,7,10,10a,11,12,12a-dodecahydro-1,4:7,10-dimethanodibenzo[a,e]cyclooctene",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "rel-1r-4s-4as-6ar-7r-10s-10as-12ar-1-2-3-4-7-8-9-10-13-13-14",
+   "name": "rel-(1R,4S,4aS,6aR,7R,10S,10aS,12aR)-1,2,3,4,7,8,9,10,13,13,14,14-dodecachloro-1,4,4a,5,6,6a,7,10,10a,11,12,12a-dodecahydro-1,4:7,10-dimethanodibenzo[a,e]cyclooctene",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "reaction-products-of-1-3-4-thiadiazolidine-2-5-dithione-form",
+   "name": "Reaction products of 1,3,4-thiadiazolidine-2,5-dithione, formaldehyde and 4-heptylphenol, branched and linear (RP-HP)",
+   "description": "with ≥0.1% w/w 4-heptylphenol, branched and linear (4-HPbl)",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "RP-HP"
+   ],
+   "date": "2018-01-15",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "reaction-product-of-1-3-4-thiadiazolidine-2-5-dithione-forma",
+   "name": "Reaction product of 1,3,4-thiadiazolidine-2,5-dithione, formaldehyde and phenol, heptyl derivs.",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1471311-26-8"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "formaldehyde-reaction-products-with-branched-and-linear-hept",
+   "name": "Formaldehyde, reaction products with branched and linear heptylphenol, carbon disulfide and hydrazine",
+   "description": "",
+   "ec": [
+    "300-298-5"
+   ],
+   "cas": [
+    "93925-00-9"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "chrysene",
+   "name": "Chrysene",
+   "description": "",
+   "ec": [
+    "205-923-4"
+   ],
+   "cas": [
+    "218-01-9"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Carcinogenic (Article 57a)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "cadmium-nitrate",
+   "name": "Cadmium nitrate",
+   "description": "",
+   "ec": [
+    "233-710-6"
+   ],
+   "cas": [
+    "10325-94-7"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "cadmium-hydroxide",
+   "name": "Cadmium hydroxide",
+   "description": "",
+   "ec": [
+    "244-168-5"
+   ],
+   "cas": [
+    "21041-95-2"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "cadmium-carbonate",
+   "name": "Cadmium carbonate",
+   "description": "",
+   "ec": [
+    "208-168-9"
+   ],
+   "cas": [
+    "513-78-0"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "benz-a-anthracene",
+   "name": "Benz[a]anthracene",
+   "description": "",
+   "ec": [
+    "200-280-6"
+   ],
+   "cas": [
+    "56-55-3"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "Carcinogenic (Article 57a)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "1-6-7-8-9-14-15-16-17-17-18-18-dodecachloropentacyclo-12-2-1",
+   "name": "1,6,7,8,9,14,15,16,17,17,18,18-Dodecachloropentacyclo[12.2.1.16,9.02,13.05,10]octadeca-7,15-diene (“Dechlorane Plus”™)",
+   "description": "covering any of its individual anti- and syn-isomers or any combination thereof",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-6-7-8-9-14-15-16-17-17-18-18-dodecachloropentacyclo-12-2-1-2",
+   "name": "1,6,7,8,9,14,15,16,17,17,18,18-dodecachloropentacyclo[12.2.1.16,9.02,13.05,10]octadeca-7,15-diene",
+   "description": "",
+   "ec": [
+    "236-948-9"
+   ],
+   "cas": [
+    "13560-89-9"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1s-2s-5s-6s-9r-10r-13r-14r-1-6-7-8-9-14-15-16-17-17-18-18-do",
+   "name": "(1S,2S,5S,6S,9R,10R,13R,14R)-1,6,7,8,9,14,15,16,17,17,18,18-Dodecachloropentacyclo[12.2.1.1⁶,⁹.0²,¹³.0⁵,¹⁰]octadeca-7,15-diene",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "135821-74-8"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1s-2s-5r-6r-9s-10s-13r-14r-1-6-7-8-9-14-15-16-17-17-18-18-do",
+   "name": "(1S,2S,5R,6R,9S,10S,13R,14R)-1,6,7,8,9,14,15,16,17,17,18,18-Dodecachloropentacyclo[12.2.1.1⁶,⁹.0²,¹³.0⁵,¹⁰]octadeca-7,15-diene",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "135821-03-3"
+   ],
+   "aliases": [],
+   "date": "2018-01-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "tridecafluorohexanesulphonic-acid-compound-with-2-2-iminodie",
+   "name": "tridecafluorohexanesulphonic acid, compound with 2,2'-iminodiethanol (1:1)",
+   "description": "",
+   "ec": [
+    "274-462-9"
+   ],
+   "cas": [
+    "70225-16-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-tris-4-1-1-dimethylethyl-phenyl-1-1-2-2-3-3-4-4-5-",
+   "name": "Sulfonium, tris[4-(1,1-dimethylethyl)phenyl]-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "425670-70-8"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-triphenyl-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluoro-",
+   "name": "Sulfonium, triphenyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "144116-10-9"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-bis-4-methylphenyl-phenyl-1-1-2-2-3-3-4-4-5-5-6-6-",
+   "name": "Sulfonium, bis(4-methylphenyl)phenyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "341548-85-4"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-4-2-methyl-1-oxo-2-propenyl-oxy-phenyl-diphenyl-sa",
+   "name": "Sulfonium, [4-[(2-methyl-1-oxo-2-propenyl)oxy]phenyl]diphenyl-, salt with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid (1:1), polymer with 2-ethyltricyclo[3.3.1.13,7]dec-2-yl 2-methyl-2-propenoate, 3-hydroxytricyclo[3.3.1.13,7]dec-1-yl 2-methyl-2-propenoate and tetrahydro-2-oxo-3-furanyl 2-methyl-2-propenoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "911027-69-5"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-4-2-methyl-1-oxo-2-propen-1-yl-oxy-phenyl-diphenyl",
+   "name": "Sulfonium, [4-[(2-methyl-1-oxo-2-propen-1-yl)oxy]phenyl]diphenyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "911027-68-4"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-thiodi-4-1-phenylene-bis-diphenyl-salt-with-1-1-2-",
+   "name": "Sulfonium, (thiodi-4,1-phenylene)bis[diphenyl-, salt with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid (1:2)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "421555-73-9"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sulfonium-4-methylphenyl-diphenyl-1-1-2-2-3-3-4-4-5-5-6-6-6-",
+   "name": "Sulfonium, (4-methylphenyl)diphenyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "910606-39-2"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "quinolinium-1-carboxymethyl-4-2-4-4-2-2-diphenylethenyl-phen",
+   "name": "Quinolinium, 1-(carboxymethyl)-4-[2-[4-[4-(2,2-diphenylethenyl)phenyl]-1,2,3,3a,4,8b-hexahydrocyclopent[b]indol-7-yl]ethenyl]-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1462414-59-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "potassium-perfluorohexane-1-sulphonate",
+   "name": "potassium perfluorohexane-1-sulphonate",
+   "description": "",
+   "ec": [
+    "223-393-2"
+   ],
+   "cas": [
+    "3871-99-6"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "phosphonium-triphenyl-phenylmethyl-1-1-2-2-3-3-4-4-5-5-6-6-6",
+   "name": "Phosphonium, triphenyl(phenylmethyl)-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1000597-52-3"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "perfluorohexane-1-sulphonic-acid-and-its-salts",
+   "name": "Perfluorohexane-1-sulphonic acid and its salts",
+   "description": "PFHxS",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "perfluorohexane-1-sulphonic-acid",
+   "name": "perfluorohexane-1-sulphonic acid",
+   "description": "",
+   "ec": [
+    "206-587-1"
+   ],
+   "cas": [
+    "355-46-4"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "n-n-n-triethylethanaminium-tridecafluorohexane-1-sulfonate",
+   "name": "N,N,N-triethylethanaminium tridecafluorohexane-1-sulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "108427-55-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "n-n-n-tributylbutan-1-aminium-tridecafluorohexane-1-sulfonat",
+   "name": "N,N,N-tributylbutan-1-aminium tridecafluorohexane-1-sulfonate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "108427-54-9"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "methanaminium-n-4-4-dimethylamino-phenyl-4-phenylamino-1-nap",
+   "name": "Methanaminium, N-[4-[[4-(dimethylamino)phenyl][4-(phenylamino)-1-naphthalenyl]methylene]-2,5-cyclohexadien-1-ylidene]-N-methyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1310480-28-4"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "methanaminium-n-4-4-dimethylamino-phenyl-4-ethylamino-1-naph",
+   "name": "Methanaminium, N-[4-[[4-(dimethylamino)phenyl][4-(ethylamino)-1-naphthalenyl]methylene]-2,5-cyclohexadien-1-ylidene]-N-methyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1310480-27-3"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "methanaminium-n-n-n-trimethyl-salt-with-1-1-2-2-3-3-4-4-5-5-",
+   "name": "Methanaminium, N,N,N-trimethyl-, salt with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "189274-31-5"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "iodonium-diphenyl-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluoro-1-",
+   "name": "Iodonium, diphenyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "153443-35-7"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "iodonium-bis-4-1-1-dimethylpropyl-phenyl-salt-with-1-1-2-2-3",
+   "name": "Iodonium, bis[4-(1,1-dimethylpropyl)phenyl]-, salt with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "421555-74-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "iodonium-bis-4-1-1-dimethylethyl-phenyl-1-1-2-2-3-3-4-4-5-5-",
+   "name": "Iodonium, bis[4-(1,1-dimethylethyl)phenyl]-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "213740-81-9"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "iodonium-bis-1-1-dimethylethyl-phenyl-salt-with-1-1-2-2-3-3-",
+   "name": "Iodonium, bis[(1,1-dimethylethyl)phenyl]-, salt with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid (1:1) (9CI)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "866621-50-3"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "gamma-cyclodextrin-compd-with-1-1-2-2-3-3-4-4-5-5-6-6-6-trid",
+   "name": "Gamma-Cyclodextrin, compd. with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid ion(1-)(1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1329995-69-8"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "ethanaminium-n-4-4-diethylamino-phenyl-4-ethylamino-1-naphth",
+   "name": "Ethanaminium, N-[4-[[4-(diethylamino)phenyl][4-(ethylamino)-1-naphthalenyl]methylene]-2,5-cyclohexadien-1-ylidene]-N-ethyl-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1310480-24-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "dibenzo-k-n-1-4-7-10-13-tetraoxathiacyclopentadecinium-19-4-",
+   "name": "Dibenzo[k,n][1,4,7,10,13]tetraoxathiacyclopentadecinium, 19-[4-(1,1-dimethylethyl)phenyl]-6,7,9,10,12,13-hexahydro-, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonate (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "928049-42-7"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "beta-cyclodextrin-compd-with-1-1-2-2-3-3-4-4-5-5-6-6-6-tride",
+   "name": "Beta-Cyclodextrin, compd. with 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-1-hexanesulfonic acid ion(1-)(1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1329995-45-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "ammonium-perfluorohexane-1-sulphonate",
+   "name": "ammonium perfluorohexane-1-sulphonate",
+   "description": "",
+   "ec": [
+    "269-511-6"
+   ],
+   "cas": [
+    "68259-08-5"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-6",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, zinc salt",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "70136-72-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-8",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, yttrium(3+) salt (3:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "41242-12-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-11",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, sodium salt",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "82382-12-5"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-5",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, scandium(3+) salt (3:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "350836-93-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-7",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, neodymium(3+) salt (3:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "41184-65-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-2",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, lithium salt (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "55120-77-9"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-4",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, gallium salt (9CI)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "341035-71-0"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-3",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, compd.with 2-methyl-2-propanamine (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "202189-84-2"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-9",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, compd. With pyrrolidine (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1187817-57-7"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor-10",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, compd. with N,N-diethylethanamine (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "72033-41-1"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-hexanesulfonic-acid-1-1-2-2-3-3-4-4-5-5-6-6-6-tridecafluor",
+   "name": "1-Hexanesulfonic acid, 1,1,2,2,3,3,4,4,5,5,6,6,6-tridecafluoro-, cesium salt (1:1)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "92011-17-1"
+   ],
+   "aliases": [],
+   "date": "2017-07-07",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "sodium-nonadecafluorodecanoate",
+   "name": "sodium nonadecafluorodecanoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "3830-45-3"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "phenol-heptyl-derivs",
+   "name": "Phenol, heptyl derivs.",
+   "description": "",
+   "ec": [
+    "276-743-1"
+   ],
+   "cas": [
+    "72624-02-3"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-4-tert-heptyl",
+   "name": "Phenol, 4-tert-heptyl-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "288864-02-8"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-4-1-ethyl-1-2-dimethylpropyl",
+   "name": "Phenol, 4-(1-ethyl-1,2-dimethylpropyl)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "30784-27-1"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "p-1-1-dimethylpropyl-phenol",
+   "name": "p-(1,1-dimethylpropyl)phenol",
+   "description": "",
+   "ec": [
+    "201-280-9"
+   ],
+   "cas": [
+    "80-46-6"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonadecafluorodecanoic-acid-pfda-and-its-sodium-and-ammonium",
+   "name": "Nonadecafluorodecanoic acid (PFDA) and its sodium and ammonium salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "PFDA"
+   ],
+   "date": "2017-01-12",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "nonadecafluorodecanoic-acid",
+   "name": "Nonadecafluorodecanoic acid",
+   "description": "",
+   "ec": [
+    "206-400-3"
+   ],
+   "cas": [
+    "335-76-2"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "ammonium-nonadecafluorodecanoate",
+   "name": "Ammonium nonadecafluorodecanoate",
+   "description": "",
+   "ec": [
+    "221-470-5"
+   ],
+   "cas": [
+    "3108-42-7"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "4-heptylphenol-branched-and-linear",
+   "name": "4-heptylphenol, branched and linear",
+   "description": "substances with a linear and/or branched alkyl chain with a carbon number of 7 covalently bound predominantly in position 4 to phenol, covering also UVCB- and well-defined substances which include any of the individual isomers or a combination thereof",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-heptylphenol",
+   "name": "4-heptylphenol",
+   "description": "",
+   "ec": [
+    "217-862-0"
+   ],
+   "cas": [
+    "1987-50-4"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-heptan-4-yl-phenol",
+   "name": "4-(heptan-4-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "6465-71-0"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-heptan-3-yl-phenol",
+   "name": "4-(heptan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "6465-74-3"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-heptan-2-yl-phenol",
+   "name": "4-(heptan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "6863-24-7"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-5-methylhexyl-phenol",
+   "name": "4-(5-methylhexyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "100532-36-3"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-5-methylhexan-3-yl-phenol",
+   "name": "4-(5-methylhexan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "854904-92-0"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-5-methylhexan-2-yl-phenol",
+   "name": "4-(5-methylhexan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "857629-71-1"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-methylhexyl-phenol",
+   "name": "4-(4-methylhexyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1139800-98-8"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-methylhexan-2-yl-phenol",
+   "name": "4-(4-methylhexan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "71945-81-8"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-4-dimethylpentan-2-yl-phenol",
+   "name": "4-(4,4-dimethylpentan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "911371-07-8"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-methylhexyl-phenol",
+   "name": "4-(3-methylhexyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "102570-52-5"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-methylhexan-3-yl-phenol",
+   "name": "4-(3-methylhexan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "30784-32-8"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-methylhexan-2-yl-phenol",
+   "name": "4-(3-methylhexan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "854904-93-1"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-ethylpentyl-phenol",
+   "name": "4-(3-ethylpentyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "911370-98-4"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-ethylpentan-3-yl-phenol",
+   "name": "4-(3-ethylpentan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "37872-24-5"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-3-3-dimethylpentan-2-yl-phenol",
+   "name": "4-(3,3-dimethylpentan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "911371-06-7"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-methylhexan-2-yl-phenol",
+   "name": "4-(2-methylhexan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "30784-31-7"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-4-dimethylpentan-3-yl-phenol",
+   "name": "4-(2,4-dimethylpentan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1824346-00-0"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-4-dimethylpentan-2-yl-phenol",
+   "name": "4-(2,4-dimethylpentan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "33104-11-9"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-3-dimethylpentan-2-yl-phenol",
+   "name": "4-(2,3-dimethylpentan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "861011-60-1"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-3-3-trimethylbutan-2-yl-phenol",
+   "name": "4-(2,3,3-trimethylbutan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "72861-06-4"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-2-2-dimethylpentan-3-yl-phenol",
+   "name": "4-(2,2-dimethylpentan-3-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "861010-65-3"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-isopropylidenediphenol",
+   "name": "4,4'-isopropylidenediphenol",
+   "description": "Bisphenol A; BPA",
+   "ec": [
+    "201-245-8"
+   ],
+   "cas": [
+    "80-05-7"
+   ],
+   "aliases": [],
+   "date": "2017-01-12",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "benzo-def-chrysene-benzo-a-pyrene",
+   "name": "Benzo[def]chrysene (Benzo[a]pyrene)",
+   "description": "",
+   "ec": [
+    "200-028-5"
+   ],
+   "cas": [
+    "50-32-8"
+   ],
+   "aliases": [],
+   "date": "2016-06-20",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "sodium-heptadecafluorononanoate",
+   "name": "sodium heptadecafluorononanoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "21049-39-8"
+   ],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "perfluorononan-1-oic-acid-and-its-sodium-and-ammonium-salts",
+   "name": "Perfluorononan-1-oic-acid and its sodium and ammonium salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "perfluorononan-1-oic-acid",
+   "name": "Perfluorononan-1-oic-acid",
+   "description": "",
+   "ec": [
+    "206-801-3"
+   ],
+   "cas": [
+    "375-95-1"
+   ],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "nitrobenzene",
+   "name": "Nitrobenzene",
+   "description": "",
+   "ec": [
+    "202-716-0"
+   ],
+   "cas": [
+    "98-95-3"
+   ],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "ammonium-heptadecafluorononanoate",
+   "name": "ammonium heptadecafluorononanoate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "4149-60-4"
+   ],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "2-2h-benzotriazol-2-yl-4-tert-butyl-6-sec-butyl-phenol-uv-35",
+   "name": "2-(2H-benzotriazol-2-yl)-4-(tert-butyl)-6-(sec-butyl)phenol (UV-350)",
+   "description": "",
+   "ec": [
+    "253-037-1"
+   ],
+   "cas": [
+    "36437-37-3"
+   ],
+   "aliases": [
+    "UV-350"
+   ],
+   "date": "2015-12-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "2-4-di-tert-butyl-6-5-chlorobenzotriazol-2-yl-phenol-uv-327",
+   "name": "2,4-di-tert-butyl-6-(5-chlorobenzotriazol-2-yl)phenol (UV-327)",
+   "description": "",
+   "ec": [
+    "223-383-8"
+   ],
+   "cas": [
+    "3864-99-1"
+   ],
+   "aliases": [
+    "UV-327"
+   ],
+   "date": "2015-12-17",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-propanesultone",
+   "name": "1,3-propanesultone",
+   "description": "",
+   "ec": [
+    "214-317-9"
+   ],
+   "cas": [
+    "1120-71-4"
+   ],
+   "aliases": [],
+   "date": "2015-12-17",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "reaction-mass-of-5-sec-butyl-2-2-4-dimethylcyclohex-3-en-1-y",
+   "name": "Reaction mass of 5-sec-butyl-2-(2,4-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane and 5-sec-butyl-2-(4,6-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane",
+   "description": "",
+   "ec": [
+    "413-720-9"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "reaction-mass-of-5-2r-butan-2-yl-2-1r-2r-2-4-dimethylcyclohe",
+   "name": "Reaction mass of 5-[(2R)-butan-2-yl]-2-[(1R,2R)-2,4-dimethylcyclohex-3-en-1-yl]-5-methyl-1,3-dioxane and 5-[(2R)-butan-2-yl]-2-[(1R,6R)-4,6-dimethylcyclohex-3-en-1-yl]-5-methyl-1,3-dioxane and 5-[(2S)-butan-2-yl]-2-[(1R,2R)-2,4-dimethylcyclohex-3-en-1-yl]-5-methyl-1,3-dioxane and 5-[(2S)-butan-2-yl]-2-[(1S,2R)-2,4-dimethylcyclohex-3-en-1-yl]-5-methyl-1,3-dioxane and 5-[(2S)-butan-2-yl]-2-[(1S,6R)-4,6-dimethylcyclohex-3-en-1-yl]-5-methyl-1,3-dioxane",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "5-sec-butyl-2-4-6-dimethylcyclohex-3-en-1-yl-5-methyl-1-3-di",
+   "name": "5-sec-butyl-2-(4,6-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "5-sec-butyl-2-2-4-dimethylcyclohex-3-en-1-yl-5-methyl-1-3-di",
+   "name": "5-sec-butyl-2-(2,4-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane [1], 5-sec-butyl-2-(4,6-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane [2]",
+   "description": "covering any of the individual stereoisomers of [1] and [2] or any combination thereof",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "5-sec-butyl-2-2-4-dimethylcyclohex-3-en-1-yl-5-methyl-1-3-di-2",
+   "name": "5-sec-butyl-2-(2,4-dimethylcyclohex-3-en-1-yl)-5-methyl-1,3-dioxane",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1s-2s-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl-",
+   "name": "1,3-Dioxane, 2-[(1S,2S)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, trans-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-06-9"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1s-2s-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--2",
+   "name": "1,3-Dioxane, 2-[(1S,2S)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, cis-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-02-5"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1s-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--2",
+   "name": "1,3-Dioxane, 2-[(1S,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, trans-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-07-0"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1s-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl-",
+   "name": "1,3-Dioxane, 2-[(1S,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, cis-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-03-6"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2s-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--2",
+   "name": "1,3-Dioxane, 2-[(1R,2S)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, trans-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-08-1"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2s-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl-",
+   "name": "1,3-Dioxane, 2-[(1R,2S)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, cis-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-04-7"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--4",
+   "name": "1,3-Dioxane, 2-[(1R,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, trans-rel-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "343934-05-4"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--3",
+   "name": "1,3-Dioxane, 2-[(1R,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, trans-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-09-2"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl--2",
+   "name": "1,3-Dioxane, 2-[(1R,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, cis-rel-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "343934-04-3"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-1r-2r-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl-",
+   "name": "1,3-Dioxane, 2-[(1R,2R)-2,4-dimethyl-3-cyclohexen-1-yl]-5-methyl-5-(1-methylpropyl)-, cis-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "676367-05-8"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-3-dioxane-2-2-4-dimethyl-3-cyclohexen-1-yl-5-methyl-5-1-me",
+   "name": "1,3-Dioxane, 2-(2,4-dimethyl-3-cyclohexen-1-yl)-5-methyl-5-(1-methylpropyl)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "117933-89-8"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-mixed-decyl-and-hexyl-and-octyl",
+   "name": "1,2-Benzenedicarboxylic acid, mixed decyl and hexyl and octyl diesters",
+   "description": "",
+   "ec": [
+    "272-013-1"
+   ],
+   "cas": [
+    "68648-93-1"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-di-c6-10-alkyl-esters-or-mixed-",
+   "name": "1,2-benzenedicarboxylic acid, di-C6-10-alkyl esters or mixed decyl and hexyl and octyl diesters",
+   "description": "with ≥ 0.3% of dihexyl phthalate (EC No. 201-559-5)",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-di-c6-10-alkyl-esters",
+   "name": "1,2-Benzenedicarboxylic acid, di-C6-10-alkyl esters",
+   "description": "",
+   "ec": [
+    "271-094-0"
+   ],
+   "cas": [
+    "68515-51-5"
+   ],
+   "aliases": [],
+   "date": "2015-06-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sulfuric-acid-cadmium-salt-hydrate-3-3-8",
+   "name": "Sulfuric acid, cadmium salt, hydrate (3:3:8)",
+   "description": "",
+   "ec": [
+    "616-572-5"
+   ],
+   "cas": [
+    "7790-84-3"
+   ],
+   "aliases": [],
+   "date": "2014-12-17",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "sulfuric-acid-cadmium-salt-1-1-hydrate",
+   "name": "Sulfuric acid, cadmium salt (1:1), hydrate",
+   "description": "",
+   "ec": [
+    "626-360-4"
+   ],
+   "cas": [
+    "15244-35-6"
+   ],
+   "aliases": [],
+   "date": "2014-12-17",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "reaction-mass-of-2-ethylhexyl-10-ethyl-4-4-dioctyl-7-oxo-8-o",
+   "name": "Reaction mass of 2-ethylhexyl 10-ethyl-4,4-dioctyl-7-oxo-8-oxa-3,5-dithia-4-stannatetradecanoate and 2-ethylhexyl 10-ethyl-4-[[2-[(2-ethylhexyl)oxy]-2-oxoethyl]thio]-4-octyl-7-oxo-8-oxa-3,5-dithia-4-stannatetradecanoate (reaction mass of DOTE and MOTE)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2014-12-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cadmium-sulphate",
+   "name": "Cadmium sulphate",
+   "description": "",
+   "ec": [
+    "233-331-6"
+   ],
+   "cas": [
+    "10124-36-4",
+    "31119-53-6"
+   ],
+   "aliases": [],
+   "date": "2014-12-17",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "cadmium-fluoride",
+   "name": "Cadmium fluoride",
+   "description": "",
+   "ec": [
+    "232-222-0"
+   ],
+   "cas": [
+    "7790-79-6"
+   ],
+   "aliases": [],
+   "date": "2014-12-17",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "2-ethylhexyl-10-ethyl-4-4-dioctyl-7-oxo-8-oxa-3-5-dithia-4-s",
+   "name": "2-ethylhexyl 10-ethyl-4,4-dioctyl-7-oxo-8-oxa-3,5-dithia-4-stannatetradecanoate (DOTE)",
+   "description": "",
+   "ec": [
+    "239-622-4"
+   ],
+   "cas": [
+    "15571-58-1"
+   ],
+   "aliases": [
+    "DOTE"
+   ],
+   "date": "2014-12-17",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-benzotriazol-2-yl-4-6-di-tert-butylphenol-uv-320",
+   "name": "2-benzotriazol-2-yl-4,6-di-tert-butylphenol (UV-320)",
+   "description": "",
+   "ec": [
+    "223-346-6"
+   ],
+   "cas": [
+    "3846-71-7"
+   ],
+   "aliases": [
+    "UV-320"
+   ],
+   "date": "2014-12-17",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "2-2h-benzotriazol-2-yl-4-6-ditertpentylphenol-uv-328",
+   "name": "2-(2H-benzotriazol-2-yl)-4,6-ditertpentylphenol (UV-328)",
+   "description": "",
+   "ec": [
+    "247-384-8"
+   ],
+   "cas": [
+    "25973-55-1"
+   ],
+   "aliases": [
+    "UV-328"
+   ],
+   "date": "2014-12-17",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "sodium-peroxometaborate",
+   "name": "Sodium peroxometaborate",
+   "description": "",
+   "ec": [
+    "231-556-4"
+   ],
+   "cas": [
+    "7632-04-4"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sodium-perborate-perboric-acid-sodium-salt",
+   "name": "Sodium perborate, perboric acid, sodium salt",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sodium-perborate-monohydrate",
+   "name": "Sodium perborate monohydrate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "10332-33-9"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sodium-perborate",
+   "name": "Sodium perborate",
+   "description": "",
+   "ec": [
+    "239-172-9"
+   ],
+   "cas": [
+    "15120-21-5"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "perboric-acid-sodium-salt-tetrahydrate",
+   "name": "Perboric acid, sodium salt, tetrahydrate ()",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "37244-98-7"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "perboric-acid-sodium-salt",
+   "name": "Perboric acid, sodium salt",
+   "description": "",
+   "ec": [
+    "234-390-0"
+   ],
+   "cas": [
+    "11138-47-9"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "perboric-acid-hbo-o2-sodium-salt-tetrahydrate",
+   "name": "Perboric acid (HBO(O2)), sodium salt, tetrahydrate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "10486-00-7"
+   ],
+   "aliases": [
+    "O2"
+   ],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "perboric-acid-h3bo2-o2-monosodium-salt-trihydrate",
+   "name": "Perboric acid (H3BO2(O2)), monosodium salt, trihydrate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "13517-20-9"
+   ],
+   "aliases": [
+    "O2"
+   ],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cadmium-chloride-cdcl2-hydrate-2-5",
+   "name": "cadmium chloride (CdCl2), hydrate (2:5)",
+   "description": "",
+   "ec": [
+    "640-998-0"
+   ],
+   "cas": [
+    "7790-78-5"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "cadmium-chloride",
+   "name": "Cadmium chloride",
+   "description": "",
+   "ec": [
+    "233-296-7"
+   ],
+   "cas": [
+    "10108-64-2"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "borate-2-tetrahydroxybis-peroxy-o1-o2-di-sodium-hydrate-1-2-",
+   "name": "Borate(2-), tetrahydroxybis[μ-(peroxy-κO1:κO2)]di-, sodium, hydrate (1:2:6)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "125022-34-6"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "borate-2-tetrahydroxybis-peroxy-o1-o2-di-sodium-1-2",
+   "name": "Borate(2-), tetrahydroxybis[μ-(peroxy-κO1:κO2)]di-, sodium (1:2)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "90568-23-3"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-dihexyl-ester-branched-and-line",
+   "name": "1,2-Benzenedicarboxylic acid, dihexyl ester, branched and linear",
+   "description": "",
+   "ec": [
+    "271-093-5"
+   ],
+   "cas": [
+    "68515-50-4"
+   ],
+   "aliases": [],
+   "date": "2014-06-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "trixylyl-phosphate",
+   "name": "Trixylyl phosphate",
+   "description": "",
+   "ec": [
+    "246-677-8"
+   ],
+   "cas": [
+    "25155-23-1"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-di-acetate",
+   "name": "Lead di(acetate)",
+   "description": "",
+   "ec": [
+    "206-104-4"
+   ],
+   "cas": [
+    "301-04-2"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "imidazolidine-2-thione-2-imidazoline-2-thiol",
+   "name": "Imidazolidine-2-thione (2-imidazoline-2-thiol)",
+   "description": "",
+   "ec": [
+    "202-506-9"
+   ],
+   "cas": [
+    "96-45-7"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "disodium-4-amino-3-4-2-4-diaminophenyl-azo-1-1-biphenyl-4-yl",
+   "name": "Disodium 4-amino-3-[[4'-[(2,4-diaminophenyl)azo][1,1'-biphenyl]-4-yl]azo] -5-hydroxy-6-(phenylazo)naphthalene-2,7-disulphonate (C.I. Direct Black 38)",
+   "description": "",
+   "ec": [
+    "217-710-3"
+   ],
+   "cas": [
+    "1937-37-7"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "disodium-3-3-1-1-biphenyl-4-4-diylbis-azo-bis-4-aminonaphtha",
+   "name": "Disodium 3,3'-[[1,1'-biphenyl]-4,4'-diylbis(azo)]bis(4-aminonaphthalene-1-sulphonate) (C.I. Direct Red 28)",
+   "description": "",
+   "ec": [
+    "209-358-4"
+   ],
+   "cas": [
+    "573-58-0"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "dihexyl-phthalate",
+   "name": "Dihexyl phthalate",
+   "description": "",
+   "ec": [
+    "201-559-5"
+   ],
+   "cas": [
+    "84-75-3"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cadmium-sulphide",
+   "name": "Cadmium sulphide",
+   "description": "",
+   "ec": [
+    "215-147-8"
+   ],
+   "cas": [
+    "1306-23-6"
+   ],
+   "aliases": [],
+   "date": "2013-12-16",
+   "reason": "Carcinogenic (Article 57a)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "poly-oxy-1-2-ethanediyl-nonylphenyl-hydroxy-branched",
+   "name": "Poly(oxy-1,2-ethanediyl), α-(nonylphenyl)-ω-hydroxy-, branched",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "68412-54-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "poly-oxy-1-2-ethanediyl-nonylphenyl-hydroxy",
+   "name": "Poly(oxy-1,2-ethanediyl), α-(nonylphenyl)-ω-hydroxy-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "poly-oxy-1-2-ethanediyl-alpha-nonylphenyl-omega-hydroxy-bran",
+   "name": "Poly (oxy-1,2-ethanediyl), alpha -(nonylphenyl)-omega-hydroxy-, branched",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "68412-54-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "pentadecafluorooctanoic-acid-pfoa",
+   "name": "Pentadecafluorooctanoic acid (PFOA)",
+   "description": "",
+   "ec": [
+    "206-397-9"
+   ],
+   "cas": [
+    "335-67-1"
+   ],
+   "aliases": [
+    "PFOA"
+   ],
+   "date": "2013-06-20",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "nonylphenolpolyglycolether",
+   "name": "Nonylphenolpolyglycolether",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-polymer",
+   "name": "Nonylphenol, ethoxylated (polymer)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-eo-4",
+   "name": "Nonylphenol, ethoxylated (EO = 4)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-eo-10",
+   "name": "Nonylphenol, ethoxylated (EO = 10)",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-8-eo",
+   "name": "Nonylphenol, ethoxylated (8-EO)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-6-5-eo",
+   "name": "Nonylphenol, ethoxylated (6,5-EO)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-15-eo",
+   "name": "Nonylphenol, ethoxylated (15-EO)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated-10-eo",
+   "name": "Nonylphenol, ethoxylated (10-EO)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-ethoxylated",
+   "name": "Nonylphenol, ethoxylated",
+   "description": "",
+   "ec": [
+    "500-024-6"
+   ],
+   "cas": [
+    "9016-45-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "nonylphenol-branched-ethoxylated",
+   "name": "Nonylphenol, branched, ethoxylated",
+   "description": "1 - 2.5 moles ethoxylated",
+   "ec": [
+    "500-209-1"
+   ],
+   "cas": [
+    "68412-54-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "monteponite-cdo",
+   "name": "Monteponite (CdO)",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "12139-21-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Carcinogenic (Article 57a)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "isononylphenol-ethoxylated",
+   "name": "Isononylphenol, ethoxylated",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "37205-87-1"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "dipentyl-phthalate-dpp",
+   "name": "Dipentyl phthalate (DPP)",
+   "description": "",
+   "ec": [
+    "205-017-9"
+   ],
+   "cas": [
+    "131-18-0"
+   ],
+   "aliases": [
+    "DPP"
+   ],
+   "date": "2013-06-20",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cadmium-oxide",
+   "name": "Cadmium oxide",
+   "description": "",
+   "ec": [
+    "215-146-2"
+   ],
+   "cas": [
+    "1306-19-0"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Carcinogenic (Article 57a)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "cadmium",
+   "name": "Cadmium",
+   "description": "",
+   "ec": [
+    "231-152-8"
+   ],
+   "cas": [
+    "7440-43-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Carcinogenic (Article 57a)\"Specific target organ toxicity after repeated exposure (Article 57(f) - human health)"
+  },
+  {
+   "id": "ammonium-pentadecafluorooctanoate-apfo",
+   "name": "Ammonium pentadecafluorooctanoate (APFO)",
+   "description": "",
+   "ec": [
+    "223-320-4"
+   ],
+   "cas": [
+    "3825-26-1"
+   ],
+   "aliases": [
+    "APFO"
+   ],
+   "date": "2013-06-20",
+   "reason": "Toxic for reproduction (Article 57c)\"PBT (Article 57d)"
+  },
+  {
+   "id": "44-nonylphenoxy-3-6-9-12-15-18-21-24-27-30-33-36-39-42-tetra",
+   "name": "44-(nonylphenoxy)-3,6,9,12,15,18,21,24,27,30,33,36,39,42-tetradecaoxatetratetracontanol",
+   "description": "",
+   "ec": [
+    "260-678-0"
+   ],
+   "cas": [
+    "57321-10-5"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-t-nonylphenol-diethoxylate",
+   "name": "4-t-Nonylphenol-diethoxylate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "156609-10-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-nonylphenol-ethoxylated",
+   "name": "4-Nonylphenol, ethoxylated",
+   "description": "1 - 2.5 moles ethoxylated",
+   "ec": [
+    "500-045-0"
+   ],
+   "cas": [
+    "26027-38-3"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-nonylphenol-branched-ethoxylated",
+   "name": "4-Nonylphenol, branched, ethoxylated",
+   "description": "1 - 2.5 moles ethoxylated",
+   "ec": [
+    "500-315-8"
+   ],
+   "cas": [
+    "127087-87-0"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-nonylphenol-branched-and-linear-ethoxylated",
+   "name": "4-Nonylphenol, branched and linear, ethoxylated",
+   "description": "substances with a linear and/or branched alkyl chain with a carbon number of 9 covalently bound in position 4 to phenol, ethoxylated covering UVCB- and well-defined substances, polymers and homologues, which include any of the individual isomers and/or combinations thereof",
+   "ec": [
+    "799-990-1"
+   ],
+   "cas": [],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "3-6-9-12-tetraoxatetradecan-1-ol-14-4-nonylphenoxy-branched",
+   "name": "3,6,9,12-Tetraoxatetradecan-1-ol, 14-(4-nonylphenoxy)-, branched",
+   "description": "",
+   "ec": [
+    "293-926-1"
+   ],
+   "cas": [
+    "91648-64-5"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "3-6-9-12-tetraoxatetradecan-1-ol-14-4-nonylphenoxy",
+   "name": "3,6,9,12-Tetraoxatetradecan-1-ol, 14-(4-nonylphenoxy)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "20636-48-0"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "3-6-9-12-15-pentaoxaheptadecan-1-ol-17-nonylphenoxy",
+   "name": "3,6,9,12,15-Pentaoxaheptadecan-1-ol, 17-(nonylphenoxy)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "27177-01-1"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "3-6-9-12-15-18-21-24-27-nonaoxanonacosan-1-ol-29-isononylphe",
+   "name": "3,6,9,12,15,18,21,24,27-Nonaoxanonacosan-1-ol, 29-(isononylphenoxy)-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "65455-72-3"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "29-nonylphenoxy-3-6-9-12-15-18-21-24-27-nonaoxanonacosanol",
+   "name": "29-(nonylphenoxy)-3,6,9,12,15,18,21,24,27-nonaoxanonacosanol",
+   "description": "",
+   "ec": [
+    "248-294-1"
+   ],
+   "cas": [
+    "27177-08-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "26-nonylphenoxy-3-6-9-12-15-18-21-24-octaoxahexacosan-1-ol",
+   "name": "26-(nonylphenoxy)-3,6,9,12,15,18,21,24-octaoxahexacosan-1-ol;",
+   "description": "",
+   "ec": [
+    "255-695-5"
+   ],
+   "cas": [
+    "42173-90-0"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "26-nonylphenoxy-3-6-9-12-15-18-21-24-octaoxahexacosan-1-ol-2",
+   "name": "26-(nonylphenoxy)-3,6,9,12,15,18,21,24-octaoxahexacosan-1-ol",
+   "description": "",
+   "ec": [
+    "247-816-5"
+   ],
+   "cas": [
+    "26571-11-9"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "26-4-nonylphenoxy-3-6-9-12-15-18-21-24-octaoxahexacosan-1-ol",
+   "name": "26-(4-Nonylphenoxy)-3,6,9,12,15,18,21,24- octaoxahexacosan -1-ol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "14409-72-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "23-nonylphenoxy-3-6-9-12-15-18-21-heptaoxatricosan-1-ol",
+   "name": "23-(nonylphenoxy)-3,6,9,12,15,18,21-heptaoxatricosan-1-ol",
+   "description": "",
+   "ec": [
+    "248-293-6"
+   ],
+   "cas": [
+    "27177-05-5"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "20-nonylphenoxy-3-6-9-12-15-18-hexaoxaicosan-1-ol",
+   "name": "20-(nonylphenoxy)-3,6,9,12,15,18-hexaoxaicosan-1-ol",
+   "description": "",
+   "ec": [
+    "248-292-0"
+   ],
+   "cas": [
+    "27177-03-3"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "20-isononylphenoxy-3-6-9-12-15-18-hexaoxaicosan-1-ol",
+   "name": "20-(isononylphenoxy)-3,6,9,12,15,18-hexaoxaicosan-1-ol",
+   "description": "",
+   "ec": [
+    "265-785-6"
+   ],
+   "cas": [
+    "65455-69-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "20-4-nonylphenoxy-3-6-9-12-15-18-hexaoxaicosan-1-ol",
+   "name": "20-(4-nonylphenoxy)-3,6,9,12,15,18-hexaoxaicosan-1-ol",
+   "description": "",
+   "ec": [
+    "248-743-1"
+   ],
+   "cas": [
+    "27942-27-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-2-4-3-6-dimethylheptan-3-yl-phenoxy-ethoxy-ethanol",
+   "name": "2-{2-[4-(3,6-dimethylheptan-3-yl)phenoxy]ethoxy}ethanol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1119449-38-5"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-4-3-6-dimethylheptan-3-yl-phenoxy-ethanol",
+   "name": "2-[4-(3,6-dimethylheptan-3-yl)phenoxy]ethanol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "1119449-37-4"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-2-2-2-4-nonylphenoxy-ethoxy-ethoxy-ethoxy-ethanol",
+   "name": "2-[2-[2-[2-(4-nonylphenoxy)ethoxy]ethoxy]ethoxy]ethanol",
+   "description": "",
+   "ec": [
+    "230-770-5"
+   ],
+   "cas": [
+    "7311-27-5"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-2-nonylphenoxy-ethoxy-ethanol",
+   "name": "2-[2-(nonylphenoxy)ethoxy]ethanol",
+   "description": "",
+   "ec": [
+    "248-291-5"
+   ],
+   "cas": [
+    "27176-93-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-2-4-nonylphenoxy-ethoxy-ethanol",
+   "name": "2-[2-(4-nonylphenoxy)ethoxy]ethanol",
+   "description": "",
+   "ec": [
+    "243-816-4"
+   ],
+   "cas": [
+    "20427-84-3"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-nonylphenoxy-ethanol",
+   "name": "2-(nonylphenoxy)ethanol",
+   "description": "",
+   "ec": [
+    "248-762-5"
+   ],
+   "cas": [
+    "27986-36-3"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-isononylphenoxy-ethanol",
+   "name": "2-(isononylphenoxy)ethanol",
+   "description": "",
+   "ec": [
+    "284-987-5"
+   ],
+   "cas": [
+    "85005-55-6"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-4-nonylphenoxy-ethanol",
+   "name": "2-(4-nonylphenoxy)ethanol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "104-35-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "17-4-nonylphenoxy-3-6-9-12-15-pentaoxaheptadecan-1-ol",
+   "name": "17-(4-nonylphenoxy)-3,6,9,12,15-pentaoxaheptadecan-1-ol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "34166-38-6"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "14-nonylphenoxy-3-6-9-12-tetraoxatetradecan-1-ol",
+   "name": "14-(nonylphenoxy)-3,6,9,12-tetraoxatetradecan-1-ol",
+   "description": "",
+   "ec": [
+    "247-555-7"
+   ],
+   "cas": [
+    "26264-02-8"
+   ],
+   "aliases": [],
+   "date": "2013-06-20",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "trilead-dioxide-phosphonate",
+   "name": "Trilead dioxide phosphonate",
+   "description": "",
+   "ec": [
+    "235-252-2"
+   ],
+   "cas": [
+    "12141-20-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "trilead-bis-carbonate-dihydroxide",
+   "name": "Trilead bis(carbonate) dihydroxide",
+   "description": "",
+   "ec": [
+    "215-290-6"
+   ],
+   "cas": [
+    "1319-46-6"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "tricosafluorododecanoic-acid",
+   "name": "Tricosafluorododecanoic acid",
+   "description": "",
+   "ec": [
+    "206-203-2"
+   ],
+   "cas": [
+    "307-55-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "trans-cyclohexane-1-2-dicarboxylic-anhydride",
+   "name": "trans-cyclohexane-1,2-dicarboxylic anhydride",
+   "description": "",
+   "ec": [
+    "238-009-9"
+   ],
+   "cas": [
+    "14166-21-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "tetralead-trioxide-sulphate",
+   "name": "Tetralead trioxide sulphate",
+   "description": "",
+   "ec": [
+    "235-380-9"
+   ],
+   "cas": [
+    "12202-17-4"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "tetraethyllead",
+   "name": "Tetraethyllead",
+   "description": "",
+   "ec": [
+    "201-075-4"
+   ],
+   "cas": [
+    "78-00-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sulfurous-acid-lead-salt-dibasic",
+   "name": "Sulfurous acid, lead salt, dibasic",
+   "description": "",
+   "ec": [
+    "263-467-1"
+   ],
+   "cas": [
+    "62229-08-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "silicic-acid-lead-salt",
+   "name": "Silicic acid, lead salt",
+   "description": "",
+   "ec": [
+    "234-363-3"
+   ],
+   "cas": [
+    "11120-22-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "silicic-acid-h2si2o5-barium-salt-1-1-lead-doped",
+   "name": "Silicic acid (H2Si2O5), barium salt (1:1), lead-doped",
+   "description": "with lead (Pb) content above the applicable generic concentration limit for ’toxicity for reproduction’ Repr. 1A (CLP) or category 1 (DSD),the substance is a member of the group entry of lead compounds, with index number 082-001-00-6 in Regulation (EC) No 1272/2008",
+   "ec": [
+    "272-271-5"
+   ],
+   "cas": [
+    "68784-75-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "pyrochlore-antimony-lead-yellow",
+   "name": "Pyrochlore, antimony lead yellow",
+   "description": "-",
+   "ec": [
+    "232-382-1"
+   ],
+   "cas": [
+    "8012-00-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "polyethylene-glycol-p-1-1-3-3-tetramethylbutyl-phenyl-ether",
+   "name": "Polyethylene glycol p-(1,1,3,3-tetramethylbutyl)phenyl ether",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9002-93-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "poly-oxy-1-2-ethanediyl-1-1-3-3-tetramethylbutyl-phenyl-hydr",
+   "name": "Poly(oxy-1,2-ethanediyl), α-[(1,1,3,3-tetramethylbutyl)phenyl]-ω-hydroxy-",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "9036-19-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-nonyl-branched",
+   "name": "Phenol, nonyl-, branched",
+   "description": "",
+   "ec": [
+    "291-844-0"
+   ],
+   "cas": [
+    "90481-04-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "phenol-4-nonyl-branched",
+   "name": "Phenol, 4-nonyl-, branched",
+   "description": "",
+   "ec": [
+    "284-325-5"
+   ],
+   "cas": [
+    "84852-15-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "pentalead-tetraoxide-sulphate",
+   "name": "Pentalead tetraoxide sulphate",
+   "description": "",
+   "ec": [
+    "235-067-7"
+   ],
+   "cas": [
+    "12065-90-6"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "pentacosafluorotridecanoic-acid",
+   "name": "Pentacosafluorotridecanoic acid",
+   "description": "",
+   "ec": [
+    "276-745-2"
+   ],
+   "cas": [
+    "72629-94-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "p-nonylphenol",
+   "name": "p-nonylphenol",
+   "description": "",
+   "ec": [
+    "203-199-4"
+   ],
+   "cas": [
+    "104-40-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "p-isononylphenol",
+   "name": "p-isononylphenol",
+   "description": "",
+   "ec": [
+    "247-770-6"
+   ],
+   "cas": [
+    "26543-97-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "p-1-methyloctyl-phenol",
+   "name": "p-(1-methyloctyl)phenol",
+   "description": "",
+   "ec": [
+    "241-427-4"
+   ],
+   "cas": [
+    "17404-66-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "p-1-1-dimethylheptyl-phenol",
+   "name": "p-(1,1-dimethylheptyl)phenol",
+   "description": "",
+   "ec": [
+    "250-339-5"
+   ],
+   "cas": [
+    "30784-30-6"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "orange-lead-lead-tetroxide",
+   "name": "Orange lead (lead tetroxide)",
+   "description": "",
+   "ec": [
+    "215-235-6"
+   ],
+   "cas": [
+    "1314-41-6"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "o-toluidine",
+   "name": "o-toluidine",
+   "description": "",
+   "ec": [
+    "202-429-0"
+   ],
+   "cas": [
+    "95-53-4"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "o-aminoazotoluene",
+   "name": "o-aminoazotoluene",
+   "description": "",
+   "ec": [
+    "202-591-2"
+   ],
+   "cas": [
+    "97-56-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "nonylphenol",
+   "name": "Nonylphenol",
+   "description": "",
+   "ec": [
+    "246-672-0"
+   ],
+   "cas": [
+    "25154-52-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "n-pentyl-isopentyl-phthalate",
+   "name": "n-pentyl-isopentyl phthalate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "776297-69-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "n-methylacetamide",
+   "name": "N-methylacetamide",
+   "description": "",
+   "ec": [
+    "201-182-6"
+   ],
+   "cas": [
+    "79-16-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "n-n-dimethylformamide",
+   "name": "N,N-dimethylformamide",
+   "description": "",
+   "ec": [
+    "200-679-5"
+   ],
+   "cas": [
+    "68-12-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "methyloxirane-propylene-oxide",
+   "name": "Methyloxirane (Propylene oxide)",
+   "description": "",
+   "ec": [
+    "200-879-2"
+   ],
+   "cas": [
+    "75-56-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "methoxyacetic-acid",
+   "name": "Methoxyacetic acid",
+   "description": "",
+   "ec": [
+    "210-894-6"
+   ],
+   "cas": [
+    "625-45-6"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-titanium-zirconium-oxide",
+   "name": "Lead titanium zirconium oxide",
+   "description": "",
+   "ec": [
+    "235-727-4"
+   ],
+   "cas": [
+    "12626-81-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-titanium-trioxide",
+   "name": "Lead titanium trioxide",
+   "description": "",
+   "ec": [
+    "235-038-9"
+   ],
+   "cas": [
+    "12060-00-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-oxide-sulfate",
+   "name": "Lead oxide sulfate",
+   "description": "",
+   "ec": [
+    "234-853-7"
+   ],
+   "cas": [
+    "12036-76-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-monoxide-lead-oxide",
+   "name": "Lead monoxide (lead oxide)",
+   "description": "",
+   "ec": [
+    "215-267-0"
+   ],
+   "cas": [
+    "1317-36-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-dinitrate",
+   "name": "Lead dinitrate",
+   "description": "",
+   "ec": [
+    "233-245-9"
+   ],
+   "cas": [
+    "10099-74-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-cyanamidate",
+   "name": "Lead cyanamidate",
+   "description": "",
+   "ec": [
+    "244-073-9"
+   ],
+   "cas": [
+    "20837-86-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-bis-tetrafluoroborate",
+   "name": "Lead bis(tetrafluoroborate)",
+   "description": "",
+   "ec": [
+    "237-486-0"
+   ],
+   "cas": [
+    "13814-96-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "isononylphenol",
+   "name": "Isononylphenol",
+   "description": "",
+   "ec": [
+    "234-284-4"
+   ],
+   "cas": [
+    "11066-49-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "hexahydromethylphthalic-anhydride",
+   "name": "Hexahydromethylphthalic anhydride",
+   "description": "including cis- and trans- stereo isomeric forms and all possible combinations of the isomers",
+   "ec": [
+    "247-094-1"
+   ],
+   "cas": [
+    "25550-51-0"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "hexahydro-4-methylphthalic-anhydride",
+   "name": "Hexahydro-4-methylphthalic anhydride",
+   "description": "",
+   "ec": [
+    "243-072-0"
+   ],
+   "cas": [
+    "19438-60-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "hexahydro-3-methylphthalic-anhydride",
+   "name": "Hexahydro-3-methylphthalic anhydride",
+   "description": "",
+   "ec": [
+    "260-566-1"
+   ],
+   "cas": [
+    "57110-29-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "hexahydro-1-methylphthalic-anhydride",
+   "name": "Hexahydro-1-methylphthalic anhydride",
+   "description": "",
+   "ec": [
+    "256-356-4"
+   ],
+   "cas": [
+    "48122-14-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "heptacosafluorotetradecanoic-acid",
+   "name": "Heptacosafluorotetradecanoic acid",
+   "description": "",
+   "ec": [
+    "206-803-4"
+   ],
+   "cas": [
+    "376-06-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "henicosafluoroundecanoic-acid",
+   "name": "Henicosafluoroundecanoic acid",
+   "description": "",
+   "ec": [
+    "218-165-4"
+   ],
+   "cas": [
+    "2058-94-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "furan",
+   "name": "Furan",
+   "description": "",
+   "ec": [
+    "203-727-3"
+   ],
+   "cas": [
+    "110-00-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "fatty-acids-c16-18-lead-salts",
+   "name": "Fatty acids, C16-18, lead salts",
+   "description": "",
+   "ec": [
+    "292-966-7"
+   ],
+   "cas": [
+    "91031-62-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dioxobis-stearato-trilead",
+   "name": "Dioxobis(stearato)trilead",
+   "description": "",
+   "ec": [
+    "235-702-8"
+   ],
+   "cas": [
+    "12578-12-0"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dinoseb-6-sec-butyl-2-4-dinitrophenol",
+   "name": "Dinoseb (6-sec-butyl-2,4-dinitrophenol)",
+   "description": "",
+   "ec": [
+    "201-861-7"
+   ],
+   "cas": [
+    "88-85-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "dimethyl-sulphate",
+   "name": "Dimethyl sulphate",
+   "description": "",
+   "ec": [
+    "201-058-1"
+   ],
+   "cas": [
+    "77-78-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "diisopentyl-phthalate",
+   "name": "Diisopentyl phthalate",
+   "description": "",
+   "ec": [
+    "210-088-4"
+   ],
+   "cas": [
+    "605-50-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "diethyl-sulphate",
+   "name": "Diethyl sulphate",
+   "description": "",
+   "ec": [
+    "200-589-6"
+   ],
+   "cas": [
+    "64-67-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "dibutyltin-dichloride-dbtc",
+   "name": "Dibutyltin dichloride (DBTC)",
+   "description": "",
+   "ec": [
+    "211-670-0"
+   ],
+   "cas": [
+    "683-18-1"
+   ],
+   "aliases": [
+    "DBTC"
+   ],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "diazene-1-2-dicarboxamide-c-c-azodi-formamide-adca",
+   "name": "Diazene-1,2-dicarboxamide (C,C'-azodi(formamide)) (ADCA)",
+   "description": "",
+   "ec": [
+    "204-650-8"
+   ],
+   "cas": [
+    "123-77-3"
+   ],
+   "aliases": [
+    "ADCA"
+   ],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "cyclohexane-1-2-dicarboxylic-anhydride",
+   "name": "Cyclohexane-1,2-dicarboxylic anhydride",
+   "description": "all possible combinations of the cis- and trans-isomers",
+   "ec": [
+    "201-604-9"
+   ],
+   "cas": [
+    "85-42-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "cis-cyclohexane-1-2-dicarboxylic-anhydride",
+   "name": "cis-cyclohexane-1,2-dicarboxylic anhydride",
+   "description": "",
+   "ec": [
+    "236-086-3"
+   ],
+   "cas": [
+    "13149-00-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Respiratory sensitising properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "bis-pentabromophenyl-ether-decabromodiphenyl-ether-decabde",
+   "name": "Bis(pentabromophenyl) ether (decabromodiphenyl ether) (DecaBDE)",
+   "description": "",
+   "ec": [
+    "214-604-9"
+   ],
+   "cas": [
+    "1163-19-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "biphenyl-4-ylamine",
+   "name": "Biphenyl-4-ylamine",
+   "description": "",
+   "ec": [
+    "202-177-1"
+   ],
+   "cas": [
+    "92-67-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "acetic-acid-lead-salt-basic",
+   "name": "Acetic acid, lead salt, basic",
+   "description": "",
+   "ec": [
+    "257-175-3"
+   ],
+   "cas": [
+    "51404-69-4"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "phthalato-2-dioxotrilead",
+   "name": "[Phthalato(2-)]dioxotrilead",
+   "description": "",
+   "ec": [
+    "273-688-5"
+   ],
+   "cas": [
+    "69011-06-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "6-methoxy-m-toluidine-p-cresidine",
+   "name": "6-methoxy-m-toluidine (p-cresidine)",
+   "description": "",
+   "ec": [
+    "204-419-1"
+   ],
+   "cas": [
+    "120-71-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-nonylphenol-branched-and-linear",
+   "name": "4-Nonylphenol, branched and linear",
+   "description": "substances with a linear and/or branched alkyl chain with a carbon number of 9 covalently bound in position 4 to phenol, covering also UVCB- and well-defined substances which include any of the individual isomers or a combination thereof",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-methyl-m-phenylenediamine-toluene-2-4-diamine",
+   "name": "4-methyl-m-phenylenediamine (toluene-2,4-diamine)",
+   "description": "",
+   "ec": [
+    "202-453-1"
+   ],
+   "cas": [
+    "95-80-7"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-aminoazobenzene",
+   "name": "4-aminoazobenzene",
+   "description": "",
+   "ec": [
+    "200-453-6"
+   ],
+   "cas": [
+    "60-09-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-3-ethylheptan-2-yl-phenol",
+   "name": "4-(3-ethylheptan-2-yl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "186825-39-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-1-ethyl-1-methylhexyl-phenol",
+   "name": "4-(1-ethyl-1-methylhexyl)phenol",
+   "description": "",
+   "ec": [
+    "257-907-1"
+   ],
+   "cas": [
+    "52427-13-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-1-ethyl-1-4-dimethylpentyl-phenol",
+   "name": "4-(1-Ethyl-1,4-dimethylpentyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "142731-63-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-1-ethyl-1-3-dimethylpentyl-phenol",
+   "name": "4-(1-Ethyl-1,3-dimethylpentyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "186825-36-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-1-1-5-trimethylhexyl-phenol",
+   "name": "4-(1,1,5-Trimethylhexyl)phenol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "521947-27-3"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-1-1-3-3-tetramethylbutyl-phenol-ethoxylated",
+   "name": "4-(1,1,3,3-tetramethylbutyl)phenol, ethoxylated",
+   "description": "covering well-defined substances and UVCB substances, polymers and homologues",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "4-4-oxydianiline-and-its-salts",
+   "name": "4,4'-oxydianiline and its salts",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "4-4-oxydianiline",
+   "name": "4,4'-oxydianiline",
+   "description": "",
+   "ec": [
+    "202-977-0"
+   ],
+   "cas": [
+    "101-80-4"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "4-4-methylenedi-o-toluidine",
+   "name": "4,4'-methylenedi-o-toluidine",
+   "description": "",
+   "ec": [
+    "212-658-8"
+   ],
+   "cas": [
+    "838-88-0"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "3-ethyl-2-methyl-2-3-methylbutyl-1-3-oxazolidine",
+   "name": "3-ethyl-2-methyl-2-(3-methylbutyl)-1,3-oxazolidine",
+   "description": "ZOLDINE MS-PLUS",
+   "ec": [
+    "421-150-7"
+   ],
+   "cas": [
+    "143860-04-2"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "20-4-1-1-3-3-tetramethylbutyl-phenoxy-3-6-9-12-15-18-hexaoxa",
+   "name": "20-[4-(1,1,3,3-tetramethylbutyl)phenoxy]-3,6,9,12,15,18-hexaoxaicosan-1-ol",
+   "description": "",
+   "ec": [
+    "219-682-8"
+   ],
+   "cas": [
+    "2497-59-8"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-4-1-1-3-3-tetramethylbutyl-phenoxy-ethanol",
+   "name": "2-[4-(1,1,3,3-tetramethylbutyl)phenoxy]ethanol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "2315-67-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-2-4-1-1-3-3-tetramethylbutyl-phenoxy-ethoxy-ethanol",
+   "name": "2-[2-[4-(1,1,3,3-tetramethylbutyl)phenoxy]ethoxy]ethanol",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "2315-61-9"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "1-bromopropane-n-propyl-bromide",
+   "name": "1-bromopropane (n-propyl bromide)",
+   "description": "",
+   "ec": [
+    "203-445-0"
+   ],
+   "cas": [
+    "106-94-5"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-diethoxyethane",
+   "name": "1,2-diethoxyethane",
+   "description": "",
+   "ec": [
+    "211-076-1"
+   ],
+   "cas": [
+    "629-14-1"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-dipentyl-ester-branched-and-lin",
+   "name": "1,2-Benzenedicarboxylic acid, dipentyl ester, branched and linear",
+   "description": "",
+   "ec": [
+    "284-032-2"
+   ],
+   "cas": [
+    "84777-06-0"
+   ],
+   "aliases": [],
+   "date": "2012-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-4-dimethylamino-phenyl-4-phenylamino-naphthalene-1-metha",
+   "name": "α,α-Bis[4-(dimethylamino)phenyl]-4 (phenylamino)naphthalene-1-methanol (C.I. Solvent Blue 4)",
+   "description": "with ≥ 0.1% of Michler's ketone (EC No. 202-027-5) or Michler's base (EC No. 202-959-2)",
+   "ec": [
+    "229-851-8"
+   ],
+   "cas": [
+    "6786-83-0"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "n-n-n-n-tetramethyl-4-4-methylenedianiline-michler-s-base",
+   "name": "N,N,N',N'-tetramethyl-4,4'-methylenedianiline (Michler’s base)",
+   "description": "",
+   "ec": [
+    "202-959-2"
+   ],
+   "cas": [
+    "101-61-1"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "lead-ii-bis-methanesulfonate",
+   "name": "Lead(II) bis(methanesulfonate)",
+   "description": "-",
+   "ec": [
+    "401-750-5"
+   ],
+   "cas": [
+    "17570-76-2"
+   ],
+   "aliases": [
+    "II"
+   ],
+   "date": "2012-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "formamide",
+   "name": "Formamide",
+   "description": "",
+   "ec": [
+    "200-842-0"
+   ],
+   "cas": [
+    "75-12-7"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "diboron-trioxide",
+   "name": "Diboron trioxide",
+   "description": "",
+   "ec": [
+    "215-125-8"
+   ],
+   "cas": [
+    "1303-86-2"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "4-4-anilino-1-naphthyl-4-dimethylamino-phenyl-methylene-cycl",
+   "name": "[4-[[4-anilino-1-naphthyl][4-(dimethylamino)phenyl]methylene]cyclohexa-2,5-dien-1-ylidene] dimethylammonium chloride (C.I. Basic Blue 26)",
+   "description": "with ≥ 0.1% of Michler's ketone (EC No. 202-027-5) or Michler's base (EC No. 202-959-2)",
+   "ec": [
+    "219-943-6"
+   ],
+   "cas": [
+    "2580-56-5"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-4-4-bis-dimethylamino-benzhydrylidene-cyclohexa-2-5-dien-1",
+   "name": "[4-[4,4'-bis(dimethylamino) benzhydrylidene]cyclohexa-2,5-dien-1-ylidene]dimethylammonium chloride (C.I. Basic Violet 3)",
+   "description": "with ≥ 0.1% of Michler's ketone (EC No. 202-027-5) or Michler's base (EC No. 202-959-2)",
+   "ec": [
+    "208-953-6"
+   ],
+   "cas": [
+    "548-62-9"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-4-bis-dimethylamino-benzophenone-michler-s-ketone",
+   "name": "4,4'-bis(dimethylamino)benzophenone (Michler’s ketone)",
+   "description": "",
+   "ec": [
+    "202-027-5"
+   ],
+   "cas": [
+    "90-94-8"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-4-bis-dimethylamino-4-methylamino-trityl-alcohol",
+   "name": "4,4'-bis(dimethylamino)-4''-(methylamino)trityl alcohol",
+   "description": "with ≥ 0.1% of Michler's ketone (EC No. 202-027-5) or Michler's base (EC No. 202-959-2)",
+   "ec": [
+    "209-218-2"
+   ],
+   "cas": [
+    "561-41-1"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "1-3-5-tris-2s-and-2r-2-3-epoxypropyl-1-3-5-triazine-2-4-6-1h",
+   "name": "1,3,5-tris[(2S and 2R)-2,3-epoxypropyl]-1,3,5-triazine-2,4,6-(1H,3H,5H)-trione (β-TGIC)",
+   "description": "-",
+   "ec": [
+    "423-400-0"
+   ],
+   "cas": [
+    "59653-74-6"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Mutagenic (Article 57b)"
+  },
+  {
+   "id": "1-3-5-tris-oxiran-2-ylmethyl-1-3-5-triazinane-2-4-6-trione-t",
+   "name": "1,3,5-Tris(oxiran-2-ylmethyl)-1,3,5-triazinane-2,4,6-trione (TGIC)",
+   "description": "",
+   "ec": [
+    "219-514-3"
+   ],
+   "cas": [
+    "2451-62-9"
+   ],
+   "aliases": [
+    "TGIC"
+   ],
+   "date": "2012-06-18",
+   "reason": "Mutagenic (Article 57b)"
+  },
+  {
+   "id": "1-2-bis-2-methoxyethoxy-ethane-tegdme-triglyme",
+   "name": "1,2-bis(2-methoxyethoxy)ethane (TEGDME; triglyme)",
+   "description": "",
+   "ec": [
+    "203-977-3"
+   ],
+   "cas": [
+    "112-49-2"
+   ],
+   "aliases": [],
+   "date": "2012-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-dimethoxyethane-ethylene-glycol-dimethyl-ether-egdme",
+   "name": "1, 2-dimethoxyethane; ethylene glycol dimethyl ether (EGDME)",
+   "description": "",
+   "ec": [
+    "203-794-9"
+   ],
+   "cas": [
+    "110-71-4"
+   ],
+   "aliases": [
+    "EGDME"
+   ],
+   "date": "2012-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "zirconia-aluminosilicate-refractory-ceramic-fibres",
+   "name": "Zirconia Aluminosilicate Refractory Ceramic Fibres",
+   "description": "are fibres covered by index number 650-017-00-8 in Annex VI, part 3, table 3.1 of Regulation (EC) No 1272/2008 of the European Parliament and of the Council of 16 December 2008 on classification, labelling and packaging of substances and mixtures, and fulfil the three following conditions: a) oxides of aluminium, silicon and zirconium are the main components present (in the fibres) within variable concentration ranges b) fibres have a length weighted geometric mean diameter less two standard geometric errors of 6 or less micrometres (µm). c) alkaline oxide and alkali earth oxide (Na2O+K2O+CaO+MgO+BaO) content less or equal to 18% by weight",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "trilead-diarsenate",
+   "name": "Trilead diarsenate",
+   "description": "",
+   "ec": [
+    "222-979-5"
+   ],
+   "cas": [
+    "3687-31-8"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "refractories-fibers-aluminosilicate",
+   "name": "Refractories, fibers, aluminosilicate",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "142844-00-6"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "potassium-hydroxyoctaoxodizincatedichromate",
+   "name": "Potassium hydroxyoctaoxodizincatedichromate",
+   "description": "",
+   "ec": [
+    "234-329-8"
+   ],
+   "cas": [
+    "11103-86-9"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "phenolphthalein",
+   "name": "Phenolphthalein",
+   "description": "",
+   "ec": [
+    "201-004-7"
+   ],
+   "cas": [
+    "77-09-8"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "pentazinc-chromate-octahydroxide",
+   "name": "Pentazinc chromate octahydroxide",
+   "description": "",
+   "ec": [
+    "256-418-0"
+   ],
+   "cas": [
+    "49663-84-5"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "n-n-dimethylacetamide",
+   "name": "N,N-dimethylacetamide",
+   "description": "",
+   "ec": [
+    "204-826-4"
+   ],
+   "cas": [
+    "127-19-5"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-styphnate",
+   "name": "Lead styphnate",
+   "description": "",
+   "ec": [
+    "239-290-0"
+   ],
+   "cas": [
+    "15245-44-0"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-dipicrate",
+   "name": "Lead dipicrate",
+   "description": "",
+   "ec": [
+    "229-335-2"
+   ],
+   "cas": [
+    "6477-64-1"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-diazide-lead-azide",
+   "name": "Lead diazide, Lead azide",
+   "description": "",
+   "ec": [
+    "236-542-1"
+   ],
+   "cas": [
+    "13424-46-9"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "formaldehyde-oligomeric-reaction-products-with-aniline",
+   "name": "Formaldehyde, oligomeric reaction products with aniline",
+   "description": "",
+   "ec": [
+    "500-036-1"
+   ],
+   "cas": [
+    "25214-70-4"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "dichromium-tris-chromate",
+   "name": "Dichromium tris(chromate)",
+   "description": "",
+   "ec": [
+    "246-356-2"
+   ],
+   "cas": [
+    "24613-89-6"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "calcium-arsenate",
+   "name": "Calcium arsenate",
+   "description": "",
+   "ec": [
+    "231-904-5"
+   ],
+   "cas": [
+    "7778-44-1"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "bis-2-methoxyethyl-phthalate",
+   "name": "Bis(2-methoxyethyl) phthalate",
+   "description": "",
+   "ec": [
+    "204-212-6"
+   ],
+   "cas": [
+    "117-82-8"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-2-methoxyethyl-ether",
+   "name": "Bis(2-methoxyethyl) ether",
+   "description": "",
+   "ec": [
+    "203-924-4"
+   ],
+   "cas": [
+    "111-96-6"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "arsenic-acid",
+   "name": "Arsenic acid",
+   "description": "",
+   "ec": [
+    "231-901-9"
+   ],
+   "cas": [
+    "7778-39-4"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "aluminosilicate-refractory-ceramic-fibres",
+   "name": "Aluminosilicate Refractory Ceramic Fibres",
+   "description": "are fibres covered by index number 650-017-00-8 in Annex VI, part 3, table 3.1 of Regulation (EC) No 1272/2008 of the European Parliament and of the Council of 16 December 2008 on classification, labelling and packaging of substances and mixtures, and fulfil the three following conditions: a) oxides of aluminium and silicon are the main components present (in the fibres) within variable concentration ranges b) fibres have a length weighted geometric mean diameter less two standard geometric errors of 6 or less micrometres (µm) c) alkaline oxide and alkali earth oxide (Na2O+K2O+CaO+MgO+BaO) content less or equal to 18% by weight",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "4-1-1-3-3-tetramethylbutyl-phenol",
+   "name": "4-(1,1,3,3-tetramethylbutyl)phenol",
+   "description": "",
+   "ec": [
+    "205-426-2"
+   ],
+   "cas": [
+    "140-66-9"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Endocrine disrupting properties (Article 57(f) - environment)"
+  },
+  {
+   "id": "2-methoxyaniline-o-anisidine",
+   "name": "2-Methoxyaniline, o-Anisidine",
+   "description": "",
+   "ec": [
+    "201-963-1"
+   ],
+   "cas": [
+    "90-04-0"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-2-dichloro-4-4-methylenedianiline",
+   "name": "2,2'-dichloro-4,4'-methylenedianiline",
+   "description": "",
+   "ec": [
+    "202-918-9"
+   ],
+   "cas": [
+    "101-14-4"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "1-2-dichloroethane",
+   "name": "1,2-dichloroethane",
+   "description": "",
+   "ec": [
+    "203-458-1"
+   ],
+   "cas": [
+    "107-06-2"
+   ],
+   "aliases": [],
+   "date": "2011-12-19",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "strontium-chromate",
+   "name": "Strontium chromate",
+   "description": "",
+   "ec": [
+    "232-142-6"
+   ],
+   "cas": [
+    "7789-06-2"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "hydrazine",
+   "name": "Hydrazine",
+   "description": "",
+   "ec": [
+    "206-114-9"
+   ],
+   "cas": [
+    "302-01-2",
+    "7803-57-8"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-ethoxyethyl-acetate",
+   "name": "2-ethoxyethyl acetate",
+   "description": "",
+   "ec": [
+    "203-839-2"
+   ],
+   "cas": [
+    "111-15-9"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-methyl-2-pyrrolidone-nmp",
+   "name": "1-Methyl-2-pyrrolidone (NMP)",
+   "description": "",
+   "ec": [
+    "212-828-1"
+   ],
+   "cas": [
+    "872-50-4"
+   ],
+   "aliases": [
+    "NMP"
+   ],
+   "date": "2011-06-20",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-di-c7-11-branched-and-linear-al",
+   "name": "1,2-Benzenedicarboxylic acid, di-C7-11-branched and linear alkyl esters",
+   "description": "",
+   "ec": [
+    "271-084-6"
+   ],
+   "cas": [
+    "68515-42-4"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-benzenedicarboxylic-acid-di-c6-8-branched-alkyl-esters-c",
+   "name": "1,2-Benzenedicarboxylic acid, di-C6-8-branched alkyl esters, C7-rich",
+   "description": "",
+   "ec": [
+    "276-158-1"
+   ],
+   "cas": [
+    "71888-89-6"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "1-2-3-trichloropropane",
+   "name": "1,2,3-trichloropropane",
+   "description": "",
+   "ec": [
+    "202-486-1"
+   ],
+   "cas": [
+    "96-18-4"
+   ],
+   "aliases": [],
+   "date": "2011-06-20",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "oligomers-of-chromic-acid-and-dichromic-acid",
+   "name": "Oligomers of chromic acid and dichromic acid",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "dichromic-acid",
+   "name": "Dichromic acid",
+   "description": "",
+   "ec": [
+    "236-881-5"
+   ],
+   "cas": [
+    "13530-68-2"
+   ],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "cobalt-ii-sulphate",
+   "name": "Cobalt(II) sulphate",
+   "description": "",
+   "ec": [
+    "233-334-2"
+   ],
+   "cas": [
+    "10124-43-3"
+   ],
+   "aliases": [
+    "II"
+   ],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cobalt-ii-dinitrate",
+   "name": "Cobalt(II) dinitrate",
+   "description": "",
+   "ec": [
+    "233-402-1"
+   ],
+   "cas": [
+    "10141-05-6"
+   ],
+   "aliases": [
+    "II"
+   ],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cobalt-ii-diacetate",
+   "name": "Cobalt(II) diacetate",
+   "description": "",
+   "ec": [
+    "200-755-8"
+   ],
+   "cas": [
+    "71-48-7"
+   ],
+   "aliases": [
+    "II"
+   ],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "cobalt-ii-carbonate",
+   "name": "Cobalt(II) carbonate",
+   "description": "",
+   "ec": [
+    "208-169-4"
+   ],
+   "cas": [
+    "513-79-1"
+   ],
+   "aliases": [
+    "II"
+   ],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "chromium-trioxide",
+   "name": "Chromium trioxide",
+   "description": "",
+   "ec": [
+    "215-607-8"
+   ],
+   "cas": [
+    "1333-82-0"
+   ],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "chromic-acid",
+   "name": "Chromic acid",
+   "description": "",
+   "ec": [
+    "231-801-5"
+   ],
+   "cas": [
+    "7738-94-5"
+   ],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "acids-generated-from-chromium-trioxide-and-their-oligomers",
+   "name": "Acids generated from chromium trioxide and their oligomers",
+   "description": "",
+   "ec": [],
+   "cas": [],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "2-methoxyethanol",
+   "name": "2-methoxyethanol",
+   "description": "",
+   "ec": [
+    "203-713-7"
+   ],
+   "cas": [
+    "109-86-4"
+   ],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "2-ethoxyethanol",
+   "name": "2-ethoxyethanol",
+   "description": "",
+   "ec": [
+    "203-804-1"
+   ],
+   "cas": [
+    "110-80-5"
+   ],
+   "aliases": [],
+   "date": "2010-12-15",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "trichloroethylene",
+   "name": "Trichloroethylene",
+   "description": "",
+   "ec": [
+    "201-167-4"
+   ],
+   "cas": [
+    "79-01-6"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "tetraboron-disodium-heptaoxide-hydrate",
+   "name": "Tetraboron disodium heptaoxide, hydrate",
+   "description": "",
+   "ec": [
+    "235-541-3"
+   ],
+   "cas": [
+    "12267-73-1"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "sodium-chromate",
+   "name": "Sodium chromate",
+   "description": "",
+   "ec": [
+    "231-889-5"
+   ],
+   "cas": [
+    "7775-11-3"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "potassium-dichromate",
+   "name": "Potassium dichromate",
+   "description": "",
+   "ec": [
+    "231-906-6"
+   ],
+   "cas": [
+    "7778-50-9"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "potassium-chromate",
+   "name": "Potassium chromate",
+   "description": "",
+   "ec": [
+    "232-140-5"
+   ],
+   "cas": [
+    "7789-00-6"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "disodium-tetraborate-anhydrous",
+   "name": "Disodium tetraborate, anhydrous",
+   "description": "",
+   "ec": [
+    "215-540-4"
+   ],
+   "cas": [
+    "12179-04-3",
+    "1303-96-4",
+    "1330-43-4"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "boric-acid-crude-natural",
+   "name": "Boric acid, crude natural",
+   "description": "",
+   "ec": [
+    "234-343-4"
+   ],
+   "cas": [
+    "11113-50-1"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "boric-acid",
+   "name": "Boric acid",
+   "description": "EC No. 233-139-2 and EC No. 234-343-4",
+   "ec": [
+    "233-139-2"
+   ],
+   "cas": [
+    "10043-35-3"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "ammonium-dichromate",
+   "name": "Ammonium dichromate",
+   "description": "",
+   "ec": [
+    "232-143-1"
+   ],
+   "cas": [
+    "7789-09-5"
+   ],
+   "aliases": [],
+   "date": "2010-06-18",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "acrylamide",
+   "name": "Acrylamide",
+   "description": "",
+   "ec": [
+    "201-173-7"
+   ],
+   "cas": [
+    "79-06-1"
+   ],
+   "aliases": [],
+   "date": "2010-03-30",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)"
+  },
+  {
+   "id": "tris-2-chloroethyl-phosphate",
+   "name": "Tris(2-chloroethyl) phosphate",
+   "description": "",
+   "ec": [
+    "204-118-5"
+   ],
+   "cas": [
+    "115-96-8"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "pitch-coal-tar-high-temp",
+   "name": "Pitch, coal tar, high-temp.",
+   "description": "-",
+   "ec": [
+    "266-028-2"
+   ],
+   "cas": [
+    "65996-93-2"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "lead-sulfochromate-yellow-c-i-pigment-yellow-34",
+   "name": "Lead sulfochromate yellow (C.I. Pigment Yellow 34)",
+   "description": "-",
+   "ec": [
+    "215-693-7"
+   ],
+   "cas": [
+    "1344-37-2"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-chromate-molybdate-sulphate-red-c-i-pigment-red-104",
+   "name": "Lead chromate molybdate sulphate red (C.I. Pigment Red 104)",
+   "description": "-",
+   "ec": [
+    "235-759-9"
+   ],
+   "cas": [
+    "12656-85-8"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-chromate",
+   "name": "Lead chromate",
+   "description": "",
+   "ec": [
+    "231-846-0"
+   ],
+   "cas": [
+    "7758-97-6"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "diisobutyl-phthalate",
+   "name": "Diisobutyl phthalate",
+   "description": "",
+   "ec": [
+    "201-553-2"
+   ],
+   "cas": [
+    "84-69-5"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "anthracene-oil-anthracene-low",
+   "name": "Anthracene oil, anthracene-low",
+   "description": "-",
+   "ec": [
+    "292-604-8"
+   ],
+   "cas": [
+    "90640-82-7"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "anthracene-oil-anthracene-paste-distn-lights",
+   "name": "Anthracene oil, anthracene paste, distn. lights",
+   "description": "-",
+   "ec": [
+    "295-278-5"
+   ],
+   "cas": [
+    "91995-17-4"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "anthracene-oil-anthracene-paste-anthracene-fraction",
+   "name": "Anthracene oil, anthracene paste, anthracene fraction",
+   "description": "-",
+   "ec": [
+    "295-275-9"
+   ],
+   "cas": [
+    "91995-15-2"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "anthracene-oil-anthracene-paste",
+   "name": "Anthracene oil, anthracene paste",
+   "description": "-",
+   "ec": [
+    "292-603-2"
+   ],
+   "cas": [
+    "90640-81-6"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "anthracene-oil",
+   "name": "Anthracene oil",
+   "description": "-",
+   "ec": [
+    "292-602-7"
+   ],
+   "cas": [
+    "90640-80-5"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)\"PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "2-4-dinitrotoluene",
+   "name": "2,4-dinitrotoluene",
+   "description": "",
+   "ec": [
+    "204-450-0"
+   ],
+   "cas": [
+    "121-14-2"
+   ],
+   "aliases": [],
+   "date": "2010-01-13",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "triethyl-arsenate",
+   "name": "Triethyl arsenate",
+   "description": "-",
+   "ec": [
+    "427-700-2"
+   ],
+   "cas": [
+    "15606-95-8"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "sodium-dichromate",
+   "name": "Sodium dichromate",
+   "description": "",
+   "ec": [
+    "234-190-3"
+   ],
+   "cas": [
+    "10588-01-9",
+    "7789-12-0"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)\"Mutagenic (Article 57b)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "lead-hydrogen-arsenate",
+   "name": "Lead hydrogen arsenate",
+   "description": "",
+   "ec": [
+    "232-064-2"
+   ],
+   "cas": [
+    "7784-40-9"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "hexabromocyclododecane-hbcdd",
+   "name": "Hexabromocyclododecane (HBCDD)",
+   "description": "and all major diastereoisomers identified",
+   "ec": [],
+   "cas": [],
+   "aliases": [
+    "HBCDD"
+   ],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "hexabromocyclododecane",
+   "name": "Hexabromocyclododecane",
+   "description": "",
+   "ec": [
+    "247-148-4"
+   ],
+   "cas": [
+    "25637-99-4"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "gamma-hexabromocyclododecane",
+   "name": "gamma-hexabromocyclododecane",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "134237-52-8"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "dibutyl-phthalate-dbp",
+   "name": "Dibutyl phthalate (DBP)",
+   "description": "",
+   "ec": [
+    "201-557-4"
+   ],
+   "cas": [
+    "84-74-2"
+   ],
+   "aliases": [
+    "DBP"
+   ],
+   "date": "2008-10-28",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "diarsenic-trioxide",
+   "name": "Diarsenic trioxide",
+   "description": "",
+   "ec": [
+    "215-481-4"
+   ],
+   "cas": [
+    "1327-53-3"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "diarsenic-pentaoxide",
+   "name": "Diarsenic pentaoxide",
+   "description": "",
+   "ec": [
+    "215-116-9"
+   ],
+   "cas": [
+    "1303-28-2"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "cobalt-dichloride",
+   "name": "Cobalt dichloride",
+   "description": "",
+   "ec": [
+    "231-589-4"
+   ],
+   "cas": [
+    "7646-79-9"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)\"Toxic for reproduction (Article 57c)"
+  },
+  {
+   "id": "bis-tributyltin-oxide-tbto",
+   "name": "Bis(tributyltin) oxide (TBTO)",
+   "description": "",
+   "ec": [
+    "200-268-0"
+   ],
+   "cas": [
+    "56-35-9"
+   ],
+   "aliases": [
+    "TBTO"
+   ],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "bis-2-ethylhexyl-phthalate-dehp",
+   "name": "Bis (2-ethylhexyl)phthalate (DEHP)",
+   "description": "",
+   "ec": [
+    "204-211-0"
+   ],
+   "cas": [
+    "117-81-7"
+   ],
+   "aliases": [
+    "DEHP"
+   ],
+   "date": "2008-10-28",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - environment)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "beta-hexabromocyclododecane",
+   "name": "beta-hexabromocyclododecane",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "134237-51-7"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "benzyl-butyl-phthalate-bbp",
+   "name": "Benzyl butyl phthalate (BBP)",
+   "description": "",
+   "ec": [
+    "201-622-7"
+   ],
+   "cas": [
+    "85-68-7"
+   ],
+   "aliases": [
+    "BBP"
+   ],
+   "date": "2008-10-28",
+   "reason": "Toxic for reproduction (Article 57c)\"Endocrine disrupting properties (Article 57(f) - human health)"
+  },
+  {
+   "id": "anthracene",
+   "name": "Anthracene",
+   "description": "",
+   "ec": [
+    "204-371-1"
+   ],
+   "cas": [
+    "120-12-7"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "alpha-hexabromocyclododecane",
+   "name": "alpha-hexabromocyclododecane",
+   "description": "",
+   "ec": [],
+   "cas": [
+    "134237-50-6"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  },
+  {
+   "id": "alkanes-c10-13-chloro-short-chain-chlorinated-paraffins",
+   "name": "Alkanes, C10-13, chloro (Short Chain Chlorinated Paraffins)",
+   "description": "",
+   "ec": [
+    "287-476-5"
+   ],
+   "cas": [
+    "85535-84-8"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)\"vPvB (Article 57e)"
+  },
+  {
+   "id": "5-tert-butyl-2-4-6-trinitro-m-xylene-musk-xylene",
+   "name": "5-tert-butyl-2,4,6-trinitro-m-xylene (Musk xylene)",
+   "description": "",
+   "ec": [
+    "201-329-4"
+   ],
+   "cas": [
+    "81-15-2"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "vPvB (Article 57e)"
+  },
+  {
+   "id": "4-4-diaminodiphenylmethane-mda",
+   "name": "4,4'- Diaminodiphenylmethane (MDA)",
+   "description": "",
+   "ec": [
+    "202-974-4"
+   ],
+   "cas": [
+    "101-77-9"
+   ],
+   "aliases": [
+    "MDA"
+   ],
+   "date": "2008-10-28",
+   "reason": "Carcinogenic (Article 57a)"
+  },
+  {
+   "id": "1-2-5-6-9-10-hexabromocyclododecane",
+   "name": "1,2,5,6,9,10-hexabromocyclododecane",
+   "description": "",
+   "ec": [
+    "221-695-9"
+   ],
+   "cas": [
+    "3194-55-6"
+   ],
+   "aliases": [],
+   "date": "2008-10-28",
+   "reason": "PBT (Article 57d)"
+  }
+ ]
+}

@@ -1316,6 +1316,10 @@ def test_candidate_list_conversion(sample_candidate_list):
     assert (lead["ec"], lead["cas"], lead["date"]) == (["231-100-4"], ["7439-92-1"], "2018-06-27")
     hbcdd = subs["hexabromocyclododecane-hbcdd"]
     assert hbcdd["cas"] == ["25637-99-4", "3194-55-6"] and hbcdd["aliases"] == ["HBCDD"]
+    assert hbcdd["date"] == "2008-10-28"  # dates written 28/10/2008 or 28-Oct-2008
+    # A group entry split into several rows by ECHA gives one substance with all its numbers
+    anhydride = subs["hexahydromethylphthalic-anhydride"]
+    assert (anhydride["ec"], anhydride["cas"]) == (["247-094-1"], ["25550-51-0"]) and len(subs) == 5
     assert sample_candidate_list["version"] == "2018-06-27"  # latest inclusion
 
 
@@ -1338,7 +1342,18 @@ def test_svhc_tab(sample_candidate_list):
     assert "lead" in [x["id"] for x in client.get(f"/api/components/{cid}/sheet").json()["svhc"]]
 
 
-def test_svhc_tab_without_the_list():
+def test_svhc_tab_without_the_list(monkeypatch):
+    from app import svhc
+    monkeypatch.setattr(svhc, "_data", lambda: {"substances": []})
+    monkeypatch.setattr(svhc, "_patterns", lambda: [])
     listing = client.get("/api/svhc").json()
-    if not listing["available"]:  # list not generated in this checkout
-        assert listing["substances"] == [] and listing["components_with_svhc"] >= 1
+    assert not listing["available"] and listing["substances"] == [] and listing["components_with_svhc"] >= 1
+    assert client.get("/api/svhc/lead").status_code == 404
+
+
+def test_candidate_list_data_file():
+    # data/svhc_candidate_list.json, converted from ECHA's export
+    from app import svhc
+    subs = {s["id"]: s for s in svhc.substances()}
+    assert len(subs) > 400 and subs["lead"]["cas"] == ["7439-92-1"]
+    assert all(len(s["date"]) == 10 and s["name"] for s in subs.values())
