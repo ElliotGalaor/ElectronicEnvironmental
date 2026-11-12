@@ -198,11 +198,12 @@ Updating the official text when a new consolidated version is published:
 
 "SVHC" tab: the substances of very high concern of the REACH Candidate List published by ECHA, with their EC
 and CAS numbers, their date of inclusion, the reason for inclusion and the number of database components that
-contain them. A substance's page lists those components. A component is linked to a substance when its SVHC
+contain them (501 substances, latest inclusion on 4 February 2026, `data/svhc_candidate_list.json`). A
+substance's page lists those components. A component is linked to a substance when its SVHC
 list gives the substance's CAS number, its abbreviation (`DEHP`) or its English name.
 
-ECHA's site does not let scripts download the list (`data/svhc_candidate_list.json`). To update it, export the
-table of https://echa.europa.eu/candidate-list-table from a browser (Excel or CSV), then:
+ECHA's site does not let scripts download the list. To update it after new inclusions (about twice a year),
+export the table of https://echa.europa.eu/candidate-list-table from a browser (Excel or CSV), then:
 
 ```bash
 .venv\Scripts\python tools\extract_svhc_candidate_list.py candidate-list.xlsx
