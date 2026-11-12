@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-89%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-91%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -85,7 +85,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (89 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (91 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -132,6 +132,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#25](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/25) | **Tab bar on touch screens**: slim scroll indicator on the bottom line in place of the native scrollbar, fades on the sides with hidden tabs, selected tab scrolled into view |
 | | [#26](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/26) | **Component database**: changing page goes back to the top, to read the new page from its first row |
 | | [#27](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/27) | **Build once, promote**: CI builds and smoke-tests the Docker image once and publishes it; CD deploys that exact image (pinned by digest) to staging, then to production after approval, and can redeploy or roll back any published tag |
+| | [#28](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/28) | **Fixes from testing**: `.xlsb` BOMs read, distributor statuses such as `Compliant(YES)_` or `RoHS Compliant by Exemption` understood (RoHS and REACH), long column names wrapped in the column mapping, add and edit forms opened only for accounts allowed to change the database, page behind a dialog no longer scrolls, links to the manufacturers on the exemption and ECCN pages |
 
 ## Quick start
 

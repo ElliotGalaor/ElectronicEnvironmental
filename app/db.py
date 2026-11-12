@@ -27,6 +27,7 @@ import os
 import re
 import sqlite3
 import unicodedata
+from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -410,7 +411,43 @@ def clean_status(value: str | None, allowed: tuple[str, ...], field: str) -> str
     for status, words in STATUS_SYNONYMS.items():
         if v in words and status in allowed:
             return status
+    status = _status_from_words(v, allowed)
+    if status:
+        return status
     raise ValidationError(f"Invalid status for {field!r}: {value!r} (expected: {', '.join(allowed)})")
+
+
+# Words of the longer statuses written by distributors and PLM tools: "Compliant(YES)_", "ROHS3 Compliant",
+# "RoHS Compliant by Exemption", "Not RoHS Compliant", "REACH Unaffected", "Contains SVHC", "SVHC free"...
+_UNKNOWN_WORDS = {"unknown", "inconnu", "undefined", "tbd", "applicable", "available", "pending"}
+_NEGATIVE_WORDS = {"no", "non", "not", "nok", "noncompliant", "nonconforme", "false", "incompliant"}
+_POSITIVE_WORDS = {"yes", "y", "ok", "oui", "true", "compliant", "compliance", "conforme", "conformite", "unaffected"}
+_NO_SVHC_WORDS = {"no", "non", "not", "free", "without", "sans", "aucune", "none"}
+_SVHC_WORDS = {"svhc", "affected", "contains", "contient"}
+
+
+def _status_from_words(v: str, allowed: tuple[str, ...]) -> str | None:
+    """Status read from the words of a longer value, or None if it cannot be decided."""
+    words = re.findall(r"[a-z]+|\d+", v)
+    if not words:
+        return None
+    present = set(words)
+    if present & _UNKNOWN_WORDS:
+        return "unknown"  # "Unknown", "Vendor undefined", "Not applicable", "Not available"...
+    if "svhc" in allowed and present & _SVHC_WORDS:
+        # "Contains SVHC", "SVHC: Yes", "REACH Affected" / "SVHC free", "No SVHC", "SVHC: No"
+        return "compliant" if present & _NO_SVHC_WORDS else "svhc"
+    # "Compliant by exemption", "Yes with exemption"; but "no exemption" / "without exemption" is not a negation
+    # of the compliance
+    exempt = [i for i, w in enumerate(words) if w.startswith("exempt")]
+    no_exemption = {i - 1 for i in exempt if i > 0 and words[i - 1] in ("no", "without", "sans", "aucune")}
+    if "exemption" in allowed and any(i - 1 not in no_exemption for i in exempt):
+        return "exemption"
+    if any(w in _NEGATIVE_WORDS for i, w in enumerate(words) if i not in no_exemption):
+        return "non_compliant" if "non_compliant" in allowed else None
+    if present & _POSITIVE_WORDS:
+        return "compliant"
+    return None
 
 
 def prepare(data: dict) -> dict:
@@ -430,6 +467,12 @@ def prepare(data: dict) -> dict:
     rec["manufacturer_norm"] = normalize_manufacturer(rec["manufacturer"])
     rec["updated_at"] = _now()
     return rec
+
+
+def manufacturer_links(rows) -> list[dict]:
+    """Manufacturers of these components, with the key of their page and their number of components (most first)."""
+    counts = Counter((r["manufacturer_norm"], r["manufacturer"]) for r in rows)
+    return [{"key": key, "name": name, "count": n} for (key, name), n in counts.most_common()]
 
 
 def row_to_dict(row: sqlite3.Row | None) -> dict | None:
