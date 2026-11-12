@@ -69,6 +69,10 @@ class LineResult:
     original_mpn: str = ""
     original_manufacturer: str = ""
     from_bom: list[str] = field(default_factory=list)  # regulations whose status comes from the BOM
+    internal_ref: str = ""
+    # Why each "needs review" status was given: lines with the same reason can be classified together
+    review: dict[str, str] = field(default_factory=dict)
+    manual: list[str] = field(default_factory=list)  # regulations classified by hand (see apply_classifications)
 
 
 def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
@@ -86,6 +90,25 @@ def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
         if status != "unknown":
             declared[n] = status
     return declared, notes
+
+
+def _unrecognised(line: BomLine) -> dict[str, str]:
+    """Statuses written in the BOM that cannot be understood: {regulation: raw value}."""
+    out = {}
+    for n in NORMS:
+        raw = getattr(line, n, "")
+        try:
+            clean_status(raw, REACH_STATUSES if n == "reach" else ROHS_STATUSES, n)
+        except ValidationError:
+            out[n] = raw
+    return out
+
+
+def _set_review(res: LineResult, reason) -> None:
+    """Record the reason of each "needs review" status of the line (reason: regulation -> text)."""
+    for n in NORMS:
+        if getattr(res, n) == CHECK:
+            res.review[n] = reason(n)
 
 
 def _candidates(conn: sqlite3.Connection, line: BomLine) -> tuple[str, list[dict]]:
@@ -172,6 +195,7 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         designator=line.designator,
         quantity=line.quantity,
         bom_mpn=line.mpn,
+        internal_ref=line.internal_ref,
         bom_manufacturer=line.manufacturer,
         bom_description=line.description or line.value,
         dnp=line.dnp,
@@ -192,6 +216,7 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         return res
     if not line.mpn:
         res.notes.append("No manufacturer part number in the BOM")
+        _set_review(res, lambda n: "No manufacturer part number in the BOM")
         return res
 
     match, cands = _candidates(conn, line)
@@ -200,6 +225,10 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         c.pop("_mfr_norm", None)
     declared, declared_notes = declared_statuses(line)
     res.notes.extend(declared_notes)
+    bad = _unrecognised(line)
+
+    def unrecognised(n: str) -> str:
+        return f"value in the BOM not recognised: “{bad[n]}”"
 
     def use_declared(reason: str) -> None:
         for n, status in declared.items():
@@ -212,24 +241,28 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         res.notes.append("Part number not in the database")
         res.suggestions = _suggest(conn, line.mpn, all_mpns)
         use_declared("component not in the database")
+        _set_review(res, lambda n: f"Not in the database, {unrecognised(n)}" if n in bad
+                    else "Not in the database, no status in the BOM")
         return res
     if match == MATCH_AMBIGUOUS:
         res.notes.append("Several components match: specify the manufacturer in the BOM")
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
         use_declared("several possible components in the database")
+        _set_review(res, lambda n: f"Several matching components, {unrecognised(n)}" if n in bad
+                    else "Several components of the database match")
         return res
 
     comp = cands[0]
     res.component = comp
     statuses = {n: comp[n] for n in NORMS}
-    conflicts = []
+    conflicts = {}
     for n, status in declared.items():
         if statuses[n] == "unknown":
             statuses[n] = status
             res.from_bom.append(n)
             res.notes.append(f"{NORM_LABELS[n]} taken from the BOM (unknown in the database)")
         elif statuses[n] != status:
-            conflicts.append(n)
+            conflicts[n] = (status, statuses[n])
             res.notes.append(f"{NORM_LABELS[n]}: the BOM declares “{STATUS_LABELS[status]}”, "
                              f"the database says “{STATUS_LABELS[statuses[n]]}”: needs review")
 
@@ -267,9 +300,55 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
         res.notes.append(f"RoHS exemption: {res.exemptions} (check its expiry date)")
     if eccn_is_controlled(comp.get("eccn", "")):
         res.notes.append(f"ECCN {comp['eccn']}: component subject to export control, check licences")
+
+    def reason(n: str) -> str:
+        if n in conflicts:
+            bom, base = conflicts[n]
+            return f"The BOM declares “{STATUS_LABELS[bom]}”, the database says “{STATUS_LABELS[base]}”"
+        if statuses[n] != "unknown":  # known status, but uncertain match
+            return ("Part number found for another manufacturer" if match == MATCH_MPN_OTHER_MFR
+                    else "Partial match (different suffix)")
+        return f"Unknown in the database, {unrecognised(n)}" if n in bad else "Unknown in the database"
+
+    _set_review(res, reason)
     if res.reach == SVHC:
         res.notes.append("Contains an SVHC > 0.1 %: information duty (REACH art. 33) and SCIP notification")
     return res
+
+
+# Statuses that can be given by hand to a "needs review" line
+MANUAL_STATUSES = {"rohs2": (OK, OK_EXEMPTION, KO), "rohs3": (OK, OK_EXEMPTION, KO), "reach": (OK, SVHC, KO)}
+
+
+def parse_classifications(data: object) -> dict[int, dict[str, str]]:
+    """Validate {"<line>": {"rohs3": "compliant", ...}}. Raises ValueError."""
+    if not isinstance(data, dict):
+        raise ValueError("a JSON object is expected")
+    out: dict[int, dict[str, str]] = {}
+    for line, statuses in data.items():
+        if not isinstance(statuses, dict):
+            raise ValueError(f"line {line}: an object is expected")
+        for n, status in statuses.items():
+            if n not in MANUAL_STATUSES or status not in MANUAL_STATUSES[n]:
+                raise ValueError(f"line {line}: invalid status {status!r} for {n!r}")
+        out[int(line)] = dict(statuses)
+    return out
+
+
+def apply_classifications(results: list[LineResult], classifications: dict[int, dict[str, str]]) -> None:
+    """Statuses given by hand to "needs review" lines (analysis only: the database is unchanged).
+
+    A classification only applies while the line still needs review: if the database has changed since,
+    its answer is kept.
+    """
+    for r in results:
+        for n, status in (classifications.get(r.line) or {}).items():
+            if getattr(r, n) != CHECK:
+                continue
+            setattr(r, n, status)
+            r.manual.append(n)
+            r.notes.append(f"{NORM_LABELS[n]} classified by hand: {STATUS_LABELS[status]} "
+                           f"(needed review: {r.review.get(n, 'unknown reason')})")
 
 
 def _global_verdict(values: list[str], norm: str) -> str:
@@ -287,9 +366,12 @@ def _global_verdict(values: list[str], norm: str) -> str:
     return OK
 
 
-def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMapping | None = None, filename: str = "") -> dict:
+def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMapping | None = None, filename: str = "",
+            classifications: dict[int, dict[str, str]] | None = None) -> dict:
     all_mpns = [(r["id"], r["mpn"], r["manufacturer"]) for r in conn.execute("SELECT id, mpn, manufacturer FROM components")]
     results = [analyze_line(conn, l, all_mpns) for l in lines]
+    if classifications:
+        apply_classifications(results, classifications)
 
     summary = {}
     for n in NORMS:
@@ -321,6 +403,7 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
             "uncertain": sum(1 for r in results if r.match in (MATCH_MPN_OTHER_MFR, MATCH_PREFIX, MATCH_AMBIGUOUS)),
             "not_found": matches.get(MATCH_NONE, 0),
             "substituted": sum(1 for r in results if r.original_mpn),
+            "classified": sum(1 for r in results if r.manual),
             "overall": overall,
             "export": export,
             **summary,

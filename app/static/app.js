@@ -32,7 +32,7 @@ const eccnCell = (e) => !e ? "" : e === "EAR99"
 const badge = (s) => `<span class="badge b-${esc(s)}">${esc(LABELS[s] || s)}</span>`;
 const plural = (n, word, many = word + "s") => `${n} ${n > 1 ? many : word}`;
 
-const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50 };
+const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, classifications: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50 };
 
 async function api(url, opts = {}) {
   const r = await fetch(url, opts);
@@ -45,18 +45,20 @@ async function api(url, opts = {}) {
 }
 
 /* ------------------------------------------------------------------ tabs and navigation
-   Addresses: #home (default), #analysis, #database, #manufacturers, #manufacturer/<key>…
+   Addresses: #home (default), #analysis, #database, #component/<id>, #manufacturers, #manufacturer/<key>,
+   #svhc, #svhc/<id>…
    (shareable links, Back button) */
 $$(".tab").forEach((t) => t.addEventListener("click", () => {
   const target = "#" + t.dataset.tab;
   if (location.hash === target) route(); else location.hash = target;
 }));
 
-function showTab(name) {
-  $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === name));
+// tab: the tab to highlight, when the panel has none of its own (the component page highlights Database)
+function showTab(name, tab = name) {
+  $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === tab));
   $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + name));
-  const tab = $(`.tab[data-tab="${name}"]`);
-  if (tab) revealTab(tab);
+  const btn = $(`.tab[data-tab="${tab}"]`);
+  if (btn) revealTab(btn);
 }
 
 /* Tab bar on narrow screens. On touch screens the native scrollbar is hidden (style.css): a slim bar on the
@@ -116,6 +118,17 @@ function route() {
   } else if (h.startsWith("manufacturer/")) {
     showTab("manufacturers");
     openManufacturer(h.slice("manufacturer/".length));
+  } else if (h.startsWith("component/")) {
+    showTab("component", "database");
+    openComponent(h.slice("component/".length));
+  } else if (h.startsWith("svhc/")) {
+    showTab("svhc");
+    openSvhc(h.slice("svhc/".length));
+  } else if (h === "svhc") {
+    showTab("svhc");
+    $("#svhcDetail").hidden = true;
+    $("#svhcList").hidden = false;
+    loadSvhcList();
   } else if (h.startsWith("exemption/")) {
     showTab("exemptions");
     openExemption(h.slice("exemption/".length));
@@ -154,6 +167,12 @@ const mfrLink = (name, key) => (key === undefined || key === null)
   ? esc(name)
   : `<a class="mfr-link" href="${mfrHref(key)}">${esc(name || "(not given)")}</a>`;
 
+// Link to a component's page
+const compLink = (c) => `<a class="comp-link" href="#component/${c.id}" title="Open the component page">${esc(c.mpn)}</a>`;
+// Number of equivalents found, on the Equivalents buttons like a notification counter (the list shows 20 at most)
+const eqBadge = (n) => n ? `<span class="count" title="${n > 20 ? "More than 20" : n} equivalent${n > 1 ? "s" : ""} found">${n > 20 ? "20+" : n}</span>` : "";
+const altButton = (id, n, cls = "btn small") => `<button class="${cls} btn-count" data-alt="${id}">Equivalents${eqBadge(n)}</button>`;
+
 async function loadStats() {
   try {
     const s = await (await api("/api/stats")).json();
@@ -181,7 +200,7 @@ function resetLineFilters() {
 }
 
 function startAnalysis(file) {
-  state.file = file; state.overrides = {}; state.substitutions = {}; state.historyId = null;
+  state.file = file; state.overrides = {}; state.substitutions = {}; state.classifications = {}; state.historyId = null;
   resetLineFilters();
   runAnalysis();
 }
@@ -209,6 +228,7 @@ async function runAnalysis(format = "json") {
   fd.append("file", state.file);
   fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
   fd.append("substitutions", Object.keys(state.substitutions).length ? JSON.stringify(state.substitutions) : "");
+  fd.append("classifications", Object.keys(state.classifications).length ? JSON.stringify(state.classifications) : "");
   // Signed-in user: saved in the history (the entry is updated if the BOM is already there)
   if (format === "json" && state.user) {
     if (state.historyId) fd.append("history_id", state.historyId); else fd.append("save", "1");
@@ -232,6 +252,7 @@ async function runAnalysis(format = "json") {
     if (state.report.history_id) state.historyId = state.report.history_id;
     renderReport();
     renderSwapBar();
+    renderClassifyBar();
     if (state.user) loadHistory();
   } catch (e) {
     if (format === "json" && e.kind === "columns") {
@@ -372,11 +393,11 @@ $("#lineSearch").addEventListener("input", renderLines);
 
 // Empty table although the BOM has lines: say why and offer to show everything
 function emptyLinesRow() {
-  if (!state.report.lines.length) return `<tr><td colspan="11" class="muted">The BOM has no lines.</td></tr>`;
+  if (!state.report.lines.length) return `<tr><td colspan="12" class="muted">The BOM has no lines.</td></tr>`;
   const q = $("#lineSearch").value.trim();
   const chip = $(`#filters .chip[data-filter="${state.filter}"]`);
   const why = [q ? `search “${esc(q)}”` : "", state.filter !== "all" && chip ? `filter “${esc(chip.textContent)}”` : ""].filter(Boolean).join(" and ");
-  return `<tr><td colspan="11" class="emptyrow">None of the ${state.report.lines.length} lines match ${why ? `the ${why}` : "the filters"}.
+  return `<tr><td colspan="12" class="emptyrow">None of the ${state.report.lines.length} lines match ${why ? `the ${why}` : "the filters"}.
     <button class="btn small" data-clearfilters>Show all lines</button></td></tr>`;
 }
 
@@ -389,7 +410,7 @@ function lineVisible(l) {
   if (f === "svhc" && !st.some((s) => ["svhc", "exemption"].includes(s))) return false;
   if (f === "eccn" && !(l.component && l.component.eccn && l.component.eccn !== "EAR99")) return false;
   const q = $("#lineSearch").value.trim().toLowerCase();
-  if (q && ![l.bom_mpn, l.designator, l.bom_manufacturer, l.bom_description].join(" ").toLowerCase().includes(q)) return false;
+  if (q && ![l.bom_mpn, l.internal_ref, l.designator, l.bom_manufacturer, l.bom_description].join(" ").toLowerCase().includes(q)) return false;
   return true;
 }
 
@@ -400,7 +421,16 @@ function renderLines() {
     const comp = l.component;
     const matchCell = `<span class="match ${mCls}">${mLabel}</span>` +
       (comp && l.match !== "exact" ? `<div class="mono muted">${esc(comp.mpn)}</div>` : "");
-    const status = (k) => badge(l[k]) + (l[k + "_inferred"] ? `<span class="inferred">inferred</span>` : "") +
+    const status = (k) => {
+      const manual = (l.manual || []).includes(k);
+      const reason = (l.review || {})[k] || "";
+      // "Needs review" (and a status given by hand) can be changed from here, for this analysis only
+      const main = l[k] === "needs_review" || manual
+        ? `<button type="button" class="badge-btn" data-review="${l.line}:${k}" title="${esc(manual ? "Status given by hand: click to change it"
+          : (reason ? reason + ". " : "") + "Click to give this line a status")}">${badge(l[k])}</button>` : badge(l[k]);
+      return main + (manual ? `<span class="inferred manual">by hand</span>` : "") + statusTags(k);
+    };
+    const statusTags = (k) => (l[k + "_inferred"] ? `<span class="inferred">inferred</span>` : "") +
       ((l.from_bom || []).includes(k) ? `<span class="inferred" title="Status declared in the BOM, not in the database">from the BOM</span>` : "");
     const sugg = l.suggestions.length && !comp
       ? `<div class="sugg">Similar: ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
@@ -408,17 +438,21 @@ function renderLines() {
       ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Add to database</button></div>` : "";
     const notes = l.notes.map((n) => n.startsWith("RoHS exemption") && l.exemptions
       ? `<div>RoHS exemption: ${exLinks(l.exemptions)} (check the expiry date)</div>` : `<div>${esc(n)}</div>`).join("");
-    const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small" data-altline="${l.line}">Equivalents</button></div>` : "";
-    const ref = (!l.dnp && l.bom_mpn)
-      ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="See equivalents from other manufacturers">${esc(l.bom_mpn)}</a>`
-      : esc(l.bom_mpn);
+    const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small btn-count" data-altline="${l.line}">Equivalents${eqBadge(l.equivalents)}</button></div>` : "";
+    const ref = comp
+      ? `<a class="comp-link" href="#component/${comp.id}" title="Open the component page">${esc(l.bom_mpn)}</a>`
+      : (!l.dnp && l.bom_mpn)
+        ? `<a href="#" class="mpn-link" data-altline="${l.line}" title="See equivalents from other manufacturers">${esc(l.bom_mpn)}</a>`
+        : esc(l.bom_mpn);
     return `<tr class="${l.dnp ? "dnp" : ""}${l.original_mpn ? " swapped" : ""}">
       <td>${l.line}</td><td class="mono">${esc(l.designator)}</td><td>${esc(l.quantity)}</td>
-      <td class="mono">${ref}${l.original_mpn ? `<div class="muted small">instead of ${esc(l.original_mpn)}</div>` : ""}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
+      <td class="mono">${ref}${l.original_mpn ? `<div class="muted small">instead of ${esc(l.original_mpn)}</div>` : ""}</td>
+      <td class="col-ref mono">${esc(l.internal_ref || "")}</td><td>${comp ? mfrLink(l.bom_manufacturer || comp.manufacturer, comp.manufacturer_key) : esc(l.bom_manufacturer)}</td><td>${matchCell}</td>
       <td>${status("rohs2")}</td><td>${status("rohs3")}</td><td>${status("reach")}</td>
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
   }).join("") || emptyLinesRow();
+  $("#lines").classList.toggle("no-ref", !state.report.lines.some((x) => x.internal_ref));
   const total = state.report.lines.length;
   $("#lineCount").textContent = rows.length === total ? plural(total, "line") : `${rows.length} of ${total} lines shown`;
   $("#lineCount").classList.toggle("filtered", rows.length !== total);
@@ -426,6 +460,12 @@ function renderLines() {
 
 $("#lines").addEventListener("click", (ev) => {
   if (ev.target.closest("[data-clearfilters]")) { resetLineFilters(); renderLines(); return; }
+  const rev = ev.target.closest("[data-review]");
+  if (rev) {
+    const [line, norm] = rev.dataset.review.split(":");
+    openClassify(Number(line), norm);
+    return;
+  }
   const alt = ev.target.closest("[data-altline]");
   if (alt) {
     ev.preventDefault();
@@ -462,11 +502,11 @@ async function loadComponents() {
     $("#prev").disabled = state.page === 0;
     $("#next").disabled = state.page >= pages - 1;
     $("#comps tbody").innerHTML = items.map((c) => `<tr>
-      <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+      <td class="mono">${compLink(c)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
       <td class="notes">${c.rohs_exemptions ? `<div>Exemption: ${exLinks(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC: ${esc(c.svhc_list)}</div>` : ""}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
-      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
       || `<tr><td colspan="11" class="muted">No components.</td></tr>`;
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="11">Error: ${esc(e.message)}</td></tr>`;
@@ -555,10 +595,10 @@ function renderManufacturer() {
     <dt>Components' countries of origin</dt><dd>${origins || `<span class="muted">not given</span>`}</dd>
     <dt>Notes</dt><dd>${m.notes ? esc(m.notes) : `<span class="muted">—</span>`}</dd>`;
   $("#mfrComps tbody").innerHTML = m.components.map((c) => `<tr>
-    <td class="mono">${esc(c.mpn)}</td><td>${esc(c.description)}</td>
+    <td class="mono">${compLink(c)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
     <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td>${esc(c.last_checked)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+    <td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
     || `<tr><td colspan="9" class="muted">No component from this manufacturer in the database.</td></tr>`;
 }
 
@@ -698,7 +738,7 @@ function afterDbChange() {
   loadStats();
   if (state.user) refreshUser(); // components left for the day
   if ($("#tab-database").classList.contains("active")) loadComponents();
-  if ($("#tab-manufacturers").classList.contains("active")) route();
+  if ($("#tab-manufacturers").classList.contains("active") || $("#tab-component").classList.contains("active")) route();
   if (state.report) runAnalysis(); // rerun the analysis with the updated database
 }
 
@@ -1042,7 +1082,7 @@ function renderAlternatives(data, compId) {
         : `<button type="button" class="btn small" data-confirm="${c.id}">Confirm the equivalence</button>`) : "";
       // data-label: column title shown when the table switches to cards (narrow window)
       return `<tr class="${a.compliant ? "" : "notcompliant"}">
-        <td class="mono">${esc(c.mpn)}<div class="muted small nomono">${esc(c.description)}</div></td>
+        <td class="mono">${compLink(c)}<div class="muted small nomono">${esc(c.description)}</div></td>
         <td data-label="Manufacturer">${mfrLink(c.manufacturer, c.manufacturer_key)}</td>
         <td data-label="RoHS 2">${badge(c.rohs2)}</td><td data-label="RoHS 3">${badge(c.rohs3)}</td>
         <td data-label="REACH">${badge(c.reach)}</td><td data-label="ECCN">${eccnCell(c.eccn)}</td>
@@ -1054,7 +1094,7 @@ $("#altBody").addEventListener("click", async (ev) => {
   const use = ev.target.closest("[data-use]");
   const confirmBtn = ev.target.closest("[data-confirm]");
   const unconfirm = ev.target.closest("[data-unconfirm]");
-  if (ev.target.closest("a.mfr-link, a.eccn-link, a.ex-link")) { dlgAlt.close(); return; }
+  if (ev.target.closest("a.mfr-link, a.eccn-link, a.ex-link, a.comp-link")) { dlgAlt.close(); return; }
   if (use && altCtx.line) {
     state.substitutions[altCtx.line.line] = Number(use.dataset.use);
     dlgAlt.close();
@@ -1079,6 +1119,70 @@ $("#altBody").addEventListener("click", async (ev) => {
 });
 $("#btnAltClose").addEventListener("click", () => dlgAlt.close());
 
+/* ------------------------------------------------------------------ statuses given by hand ("Needs review")
+   For this analysis only (exports and history included): the database is not changed. Lines that need review
+   for the same reason can be given the same status at once. */
+const dlgClassify = $("#dlgClassify");
+let classifyCtx = null;
+const ROHS_CHOICES = [["compliant", "Compliant"], ["exemption", "Compliant with an exemption"], ["non_compliant", "Non-compliant"]];
+const CLASSIFY_CHOICES = {
+  rohs2: ROHS_CHOICES, rohs3: ROHS_CHOICES,
+  reach: [["compliant", "Compliant (no SVHC above 0.1 %)"], ["svhc", "Contains an SVHC above 0.1 %"], ["non_compliant", "Non-compliant"]],
+};
+const NORM_NAMES = { rohs2: "RoHS 2", rohs3: "RoHS 3", reach: "REACH" };
+
+function openClassify(lineNo, norm) {
+  const l = state.report.lines.find((x) => x.line === lineNo);
+  if (!l) return;
+  const manual = (l.manual || []).includes(norm);
+  const reason = (l.review || {})[norm] || "";
+  classifyCtx = { line: l, norm };
+  $("#classifyTitle").textContent = `${NORM_NAMES[norm]} — line ${l.line}`;
+  $("#classifyLine").innerHTML = `<span class="mono">${esc(l.bom_mpn || "(no part number)")}</span>` +
+    (l.bom_manufacturer ? ` · ${esc(l.bom_manufacturer)}` : "") + (l.designator ? ` · <span class="mono">${esc(l.designator)}</span>` : "");
+  $("#classifyReason").textContent = reason ? `Needs review: ${reason}.` : "";
+  $("#classifyReason").hidden = !reason;
+  $("#classifyChoices").innerHTML = CLASSIFY_CHOICES[norm].map(([v, label]) =>
+    `<label class="choice"><input type="radio" name="classify" value="${v}" ${manual && l[norm] === v ? "checked" : ""}> ${badge(v)} <span>${label}</span></label>`).join("") +
+    (manual ? `<label class="choice"><input type="radio" name="classify" value=""> <span>Back to “Needs review”</span></label>` : "");
+  const same = reason ? state.report.lines.filter((x) => x !== l && x[norm] === "needs_review" && (x.review || {})[norm] === reason) : [];
+  $("#classifySame").hidden = !same.length;
+  $("#classifySameTitle").textContent = `Same status for the ${plural(same.length, "other line")} that need${same.length > 1 ? "" : "s"} review for the same reason`;
+  $("#classifyAll").checked = true;
+  $("#classifySameList").innerHTML = same.map((x) => `<label class="choice"><input type="checkbox" value="${x.line}" checked>
+    Line ${x.line} · <span class="mono">${esc(x.bom_mpn || "—")}</span>${x.designator ? ` <span class="muted mono">${esc(x.designator)}</span>` : ""}</label>`).join("");
+  $("#classifyError").hidden = true;
+  dlgClassify.showModal();
+}
+
+$("#classifyAll").addEventListener("change", (ev) => $$("#classifySameList input").forEach((c) => { c.checked = ev.target.checked; }));
+$("#btnClassifyCancel").addEventListener("click", () => dlgClassify.close());
+$("#btnClassifyApply").addEventListener("click", () => {
+  const choice = $("#classifyChoices input:checked");
+  if (!choice) {
+    $("#classifyError").textContent = "Choose a status.";
+    $("#classifyError").hidden = false;
+    return;
+  }
+  const { line, norm } = classifyCtx;
+  const others = choice.value ? $$("#classifySameList input:checked").map((c) => Number(c.value)) : [];
+  for (const n of [line.line, ...others]) {
+    const entry = { ...(state.classifications[n] || {}) };
+    if (choice.value) entry[norm] = choice.value; else delete entry[norm];
+    if (Object.keys(entry).length) state.classifications[n] = entry; else delete state.classifications[n];
+  }
+  dlgClassify.close();
+  runAnalysis();
+});
+
+// Banner counting the statuses given by hand
+function renderClassifyBar() {
+  const n = state.report ? state.report.lines.filter((l) => (l.manual || []).length).length : 0;
+  $("#classifyBar").hidden = n === 0;
+  $("#classifyCount").textContent = `${plural(n, "line")} with a status given by hand (this analysis only, the database is unchanged)`;
+}
+$("#btnClassifyReset").addEventListener("click", () => { state.classifications = {}; runAnalysis(); });
+
 // Banner listing the replacements in the BOM
 function renderSwapBar() {
   const n = Object.keys(state.substitutions).length;
@@ -1089,12 +1193,171 @@ $("#btnSwapReset").addEventListener("click", () => { state.substitutions = {}; r
 $("#btnSwapExport").addEventListener("click", () => runAnalysis("bom"));
 
 // "Equivalents" buttons in the Database tab and the manufacturer pages
-for (const sel of ["#comps", "#mfrComps"]) {
+for (const sel of ["#comps", "#mfrComps", "#svhcComps"]) {
   $(sel).addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-alt]");
     if (b) openAlternatives({ compId: Number(b.dataset.alt) });
   });
 }
+
+/* ------------------------------------------------------------------ SVHC: REACH Candidate List (ECHA) */
+let SVHC = null;
+const svhcIds = (s) => [...s.ec.map((x) => `EC ${x}`), ...s.cas.map((x) => `CAS ${x}`)];
+const longDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "")
+  ? new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE, { dateStyle: "medium" }) : esc(d || "");
+const svhcHref = (id) => "#svhc/" + encodeURIComponent(id);
+
+async function loadSvhcList() {
+  try {
+    SVHC = await (await api("/api/svhc")).json();
+    renderSvhcList();
+  } catch (e) {
+    $("#svhcs tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+$("#svhcSearch").addEventListener("input", () => SVHC && renderSvhcList());
+$("#svhcOnlyUsed").addEventListener("change", () => SVHC && renderSvhcList());
+
+function renderSvhcList() {
+  const S = SVHC;
+  $("#svhcEmpty").hidden = S.available;
+  $("#svhcTools").hidden = $("#svhcTableWrap").hidden = !S.available;
+  if (!S.available) return;
+  const q = $("#svhcSearch").value.trim().toLowerCase();
+  const used = $("#svhcOnlyUsed").checked;
+  const rows = S.substances.filter((s) => (!used || s.components) &&
+    (!q || [s.name, s.description, ...s.ec, ...s.cas, ...s.aliases, s.reason].join(" ").toLowerCase().includes(q)));
+  $("#svhcs tbody").innerHTML = rows.map((s) => `<tr>
+      <td><a class="svhc-link" href="${svhcHref(s.id)}">${esc(s.name)}</a></td>
+      <td class="small mono nowrap">${svhcIds(s).map(esc).join("<br>") || `<span class="muted">—</span>`}</td>
+      <td class="nowrap">${longDate(s.date)}</td>
+      <td class="small">${esc(s.reason)}</td>
+      <td>${s.components || `<span class="muted">0</span>`}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">No substance found.</td></tr>`;
+  $("#svhcCount").textContent = rows.length === S.substances.length ? plural(rows.length, "substance")
+    : `${rows.length} of ${plural(S.substances.length, "substance")}`;
+  $("#svhcSource").innerHTML = `Source: <a href="${esc(S.url)}" target="_blank" rel="noopener noreferrer">${esc(S.source)} ↗</a>,
+    latest inclusion on ${longDate(S.version)}.` + (S.unmatched_components
+    ? ` ${plural(S.unmatched_components, "database component")} list${S.unmatched_components > 1 ? "" : "s"} an SVHC that could not be linked to the list (no CAS number or English name).` : "");
+}
+
+async function openSvhc(id) {
+  $("#svhcList").hidden = true;
+  $("#svhcDetail").hidden = false;
+  $("#svhcName").textContent = "Loading…";
+  $("#svhcInfo").innerHTML = "";
+  $("#svhcComps tbody").innerHTML = "";
+  let s;
+  try {
+    s = await (await api("/api/svhc/" + encodeURIComponent(id))).json();
+  } catch (e) {
+    $("#svhcName").textContent = "Error: " + e.message;
+    return;
+  }
+  const none = `<span class="muted">—</span>`;
+  $("#svhcName").textContent = s.name;
+  $("#svhcInfo").innerHTML = `
+    ${s.description ? `<dt>Description</dt><dd>${esc(s.description)}</dd>` : ""}
+    <dt>EC number</dt><dd class="mono">${s.ec.map(esc).join(", ") || none}</dd>
+    <dt>CAS number</dt><dd class="mono">${s.cas.map(esc).join(", ") || none}</dd>
+    <dt>In the list since</dt><dd>${longDate(s.date)}</dd>
+    <dt>Reason for inclusion</dt><dd>${s.reason ? esc(s.reason) : none}</dd>
+    <dt>Duties</dt><dd>Above 0.1 % by weight in an article: information allowing its safe use (REACH article 33), to customers and to consumers on request, and notification to ECHA's SCIP database.</dd>
+    <dt>Official source</dt><dd><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">ECHA Candidate List ↗</a></dd>`;
+  $("#svhcComps tbody").innerHTML = s.components.map((c) => `<tr>
+    <td class="mono">${compLink(c)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+    <td class="small">${esc(c.svhc_list)}</td><td>${badge(c.reach)}</td><td>${altButton(c.id, c.equivalents)}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="muted">No database component lists this substance.</td></tr>`;
+}
+
+/* ------------------------------------------------------------------ component page */
+const REG_TEXT = {
+  rohs2: "Directive 2011/65/EU limits six substances in each homogeneous material of electrical and electronic " +
+    "equipment: lead, mercury, hexavalent chromium, polybrominated biphenyls (PBB) and polybrominated diphenyl " +
+    "ethers (PBDE) to 0.1 % by weight, and cadmium to 0.01 %.",
+  rohs3: "Directive (EU) 2015/863 adds four phthalates, limited to 0.1 % each: DEHP, BBP, DBP and DIBP. It applies " +
+    "to equipment placed on the market since 22 July 2019 (since 22 July 2021 for medical devices and monitoring " +
+    "and control instruments). A RoHS 3 compliant component is also RoHS 2 compliant.",
+  reach: "Regulation (EC) No 1907/2006. The supplier of an article containing more than 0.1 % by weight of a " +
+    "substance of very high concern (SVHC) from the Candidate List must give enough information to allow its safe " +
+    "use (article 33): to its customers, and to consumers on request within 45 days. The article must also be " +
+    "notified to ECHA's SCIP database.",
+};
+
+function statusText(norm, status) {
+  if (status === "compliant") return norm === "reach"
+    ? "The manufacturer declares no SVHC above 0.1 % and no substance restricted by REACH."
+    : "The manufacturer declares the component compliant: no restricted substance above the limits.";
+  if (status === "exemption") return "Compliant thanks to an exemption: a restricted substance is allowed for this " +
+    "use until the exemption expires. Check its dates below to plan a replacement.";
+  if (status === "svhc") return "Contains a substance of the Candidate List above 0.1 % by weight: the information " +
+    "duty and the SCIP notification apply.";
+  if (status === "non_compliant") return norm === "reach"
+    ? "Does not meet REACH, for example because of a substance restricted by Annex XVII."
+    : "Contains a restricted substance above the limit, without a valid exemption: not allowed in equipment " +
+      "placed on the EU market.";
+  return "No information in the database: ask the manufacturer for its declaration.";
+}
+
+async function openComponent(id) {
+  const box = $("#compSheet");
+  box.innerHTML = `<p class="muted">Loading…</p>`;
+  let s;
+  try {
+    s = await (await api(`/api/components/${encodeURIComponent(id)}/sheet`)).json();
+  } catch (e) {
+    box.innerHTML = `<div class="alert error">${e.status === 404 ? "This component is not in the database." : esc("Error: " + e.message)}</div>`;
+    return;
+  }
+  const c = s.component, none = `<span class="muted">—</span>`;
+  const exRows = s.exemptions.map((e) => `<tr>
+      <td class="nowrap"><a class="ex-link" href="${exHref(e.key)}">${esc(e.found ? e.code : e.input)}</a>
+        ${e.annex ? `<div class="muted small">Annex ${esc(e.annex)}</div>` : ""}</td>
+      <td class="small">${e.found ? esc(((e.parent ? e.parent + " " : "") + e.description).slice(0, 260)) +
+        (((e.parent || "") + e.description).length > 260 ? "…" : "") : `<span class="muted">Code not in Annexes III and IV.</span>`}</td>
+      <td>${statusBadge(e.status)}</td></tr>`).join("");
+  const exTable = exRows ? `<h4>Exemptions used</h4><div class="tablewrap"><table class="grid">
+      <thead><tr><th>Exemption</th><th>Official text</th><th>Validity</th></tr></thead><tbody>${exRows}</tbody></table></div>` : "";
+  const svhcRows = s.svhc.map((x) => `<tr>
+      <td><a class="svhc-link" href="${svhcHref(x.id)}">${esc(x.name)}</a></td>
+      <td class="small mono nowrap">${svhcIds(x).map(esc).join("<br>") || none}</td>
+      <td class="nowrap">${longDate(x.date)}</td><td class="small">${esc(x.reason)}</td></tr>`).join("");
+  const svhcPart = !c.svhc_list ? "" : `<h4>SVHC declared</h4><p>${esc(c.svhc_list)}</p>` + (svhcRows
+    ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Substance (Candidate List)</th><th>EC / CAS</th>
+        <th>In the list since</th><th>Reason for inclusion</th></tr></thead><tbody>${svhcRows}</tbody></table></div>`
+    : `<p class="muted small">${s.svhc_list.available ? "Not linked to a substance of the Candidate List: give its CAS number or its English name."
+      : "The Candidate List is not loaded on this server: the details of the substances are not available."}</p>`);
+  const card = (norm, title, extra = "") => `<div class="card regcard">
+      <div class="reghead"><h3>${title}</h3>${badge(c[norm])}</div>
+      <p>${statusText(norm, c[norm])}</p>
+      <p class="muted small">${REG_TEXT[norm]}</p>${extra}</div>`;
+  box.innerHTML = `
+    <div class="mfrhead">
+      <div><h2 class="mono">${esc(c.mpn)}</h2>
+        <div class="muted">${mfrLink(c.manufacturer, c.manufacturer_key)}${c.description ? ` · ${esc(c.description)}` : ""}</div></div>
+      <div class="headbtns"><button class="btn" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents, "btn")}</div>
+    </div>
+    <dl class="card mfrinfo">
+      <dt>ECCN (export control)</dt><dd>${c.eccn ? eccnCell(c.eccn) + (s.eccn ? `<div class="muted small">${esc(s.eccn.summary)}</div>` : "") : none}</dd>
+      <dt>Country of origin</dt><dd>${c.country_of_origin ? `${esc(COUNTRIES[c.country_of_origin] || c.country_of_origin)} (${esc(c.country_of_origin)})` : none}</dd>
+      <dt>Source of the information</dt><dd>${c.source ? esc(c.source) : none}</dd>
+      <dt>Last checked</dt><dd>${c.last_checked ? esc(c.last_checked) : none}</dd>
+    </dl>
+    <h3 class="section">Regulations</h3>
+    <div class="regcards">
+      ${card("rohs2", "RoHS 2")}
+      ${card("rohs3", "RoHS 3", exTable)}
+      ${card("reach", "REACH", svhcPart)}
+    </div>
+    <p class="muted small">Statuses come from the database. Check the manufacturer's declarations before any statement of compliance.</p>`;
+}
+
+$("#compSheet").addEventListener("click", (ev) => {
+  const e = ev.target.closest("[data-edit]");
+  const a = ev.target.closest("[data-alt]");
+  if (e) editComponent(e.dataset.edit);
+  else if (a) openAlternatives({ compId: Number(a.dataset.alt) });
+});
 
 /* ------------------------------------------------------------------ ECCN codes */
 let ECCNS = { codes: [], unknown_components: 0 };
@@ -1160,7 +1423,7 @@ function renderEccn() {
     <dt>Manufacturers</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
     <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`;
   $("#eccnComps tbody").innerHTML = e.components.map((c) => `<tr>
-    <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+    <td class="mono">${compLink(c)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td><td>${country(c.country_of_origin)}</td>
     <td><button class="btn small" data-edit="${c.id}">Edit</button></td></tr>`).join("")
     || `<tr><td colspan="8" class="muted">No database component has this code.</td></tr>`;
@@ -1268,9 +1531,9 @@ function renderExemption() {
     <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`
     : `<dt>Code entered</dt><dd>${esc(e.input)}</dd><dt>Official source</dt><dd>${links}</dd>`;
   $("#exemptComps tbody").innerHTML = e.components.map((c) => `<tr>
-    <td class="mono">${esc(c.mpn)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
+    <td class="mono">${compLink(c)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-    <td><button class="btn small" data-edit="${c.id}">Edit</button> <button class="btn small" data-alt="${c.id}">Equivalents</button></td></tr>`).join("")
+    <td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
     || `<tr><td colspan="7" class="muted">No database component uses this exemption.</td></tr>`;
 }
 
@@ -1626,6 +1889,7 @@ $("#historyList").addEventListener("click", async (ev) => {
       state.file = new File([blob], h.filename);
       state.overrides = h.mapping || {};
       state.substitutions = Object.fromEntries(Object.entries(h.substitutions || {}).map(([k, v]) => [k, Number(v)]));
+      state.classifications = h.classifications || {};
       state.historyId = h.id;
       resetLineFilters();
       await runAnalysis();

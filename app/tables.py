@@ -114,6 +114,14 @@ COLUMN_SYNONYMS: dict[str, list[str]] = {
         "manufacturer", "manufacturer name", "mfr", "mfr name", "mfg", "mfg name", "manufacturer 1", "fabricant",
         "constructeur", "marque", "vendor", "brand", "make", "nom fabricant",
     ],
+    # Company part number (ERP / PLM), shown next to the manufacturer part number
+    "internal_ref": [
+        "internal ref", "internal reference", "internal part number", "internal part no", "internal pn", "internal p n",
+        "internal code", "company part number", "company pn", "cpn", "customer part number", "customer pn",
+        "erp code", "erp reference", "sap code", "sap number", "material number", "part code", "article number",
+        "article no", "ref interne", "reference interne", "code interne", "code article", "ref article",
+        "reference article", "numero article", "numero d article",
+    ],
     "description": ["description", "designation", "desc", "libelle", "value description", "comment", "commentaire"],
     "quantity": ["qty", "quantity", "quantite", "qte", "qt", "nb", "nombre", "quantity per pcb", "qty per board"],
     "designator": [
@@ -161,6 +169,7 @@ NO_COLUMN = "__none__"
 # Fields offered in the column mapping dialog for a BOM: (key, label, required)
 BOM_FIELDS = [
     ("mpn", "Manufacturer part number", True),
+    ("internal_ref", "Internal reference", False),
     ("manufacturer", "Manufacturer", False),
     ("designator", "Designators", False),
     ("quantity", "Quantity", False),
@@ -297,7 +306,8 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
     # (otherwise "RoHS 2" could be taken by RoHS 3, which accepts "RoHS" at the start of a header).
     used: set[int] = set()
     for min_score in (2, 1):
-        for role in ("mpn", "manufacturer", "designator", "quantity", "description", "value", "dnp", "rohs3", "rohs2", "reach"):
+        for role in ("mpn", "internal_ref", "manufacturer", "designator", "quantity", "description", "value", "dnp",
+                     "rohs3", "rohs2", "reach"):
             if role in mapping.columns:
                 continue
             for score, idx in sorted(candidates.get(role, []), key=lambda t: (-t[0], t[1])):
@@ -321,6 +331,7 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
 class BomLine:
     line: int  # row number in the file (1-based)
     mpn: str
+    internal_ref: str = ""          # company part number
     original_mpn: str = ""          # set when the line was replaced by an equivalent
     original_manufacturer: str = ""
     manufacturer: str = ""
@@ -384,6 +395,7 @@ def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
             BomLine(
                 line=offset,
                 mpn=mpn,
+                internal_ref=cell(row, "internal_ref"),
                 manufacturer=cell(row, "manufacturer"),
                 description=cell(row, "description"),
                 quantity=cell(row, "quantity"),
