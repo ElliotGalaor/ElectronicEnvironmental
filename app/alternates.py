@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from . import db
@@ -293,6 +294,48 @@ def unconfirm(conn: sqlite3.Connection, a: int, b: int) -> None:
 
 # ------------------------------------------------------------------ search
 
+def _matches(pool, ref: Attributes, ref_mfr: str, component_id: int | None, confirmed: set[int]):
+    """Equivalents among the pool of (component row, attributes): (row, score, common points, differences, confirmed)."""
+    for row, cand in pool:
+        if component_id and row["id"] == component_id:
+            continue
+        is_confirmed = row["id"] in confirmed
+        if not is_confirmed and ref_mfr and row["manufacturer_norm"] == ref_mfr:
+            continue  # other manufacturers only
+        sim = similarity(ref, cand)
+        if sim is None and not is_confirmed:
+            continue
+        score, same, diff = sim if sim else (0, [], [])
+        if is_confirmed:
+            score += 100
+        if score < 20:
+            continue
+        yield row, score, same, diff, is_confirmed
+
+
+class EquivalentCounter:
+    """Number of equivalents find() would list, for many components or BOM lines at once (one database read)."""
+
+    def __init__(self, conn: sqlite3.Connection):
+        self.pool = [(row, extract(row["description"], row["mpn"])) for row in conn.execute("SELECT * FROM components")]
+        self.confirmed: dict[int, set[int]] = defaultdict(set)
+        for a, b in conn.execute("SELECT a, b FROM component_equivalents"):
+            self.confirmed[a].add(b)
+
+    def count(self, *, description: str = "", mpn: str = "", manufacturer: str = "", component_id: int | None = None) -> int:
+        ref = extract(description, mpn)
+        ref_mfr = db.normalize_manufacturer(manufacturer)
+        confirmed = self.confirmed.get(component_id, set()) if component_id else set()
+        return sum(1 for _ in _matches(self.pool, ref, ref_mfr, component_id, confirmed))
+
+    def annotate(self, components: list[dict]) -> list[dict]:
+        """Add "equivalents" (number found) to each component dictionary."""
+        for c in components:
+            c["equivalents"] = self.count(description=c.get("description", ""), mpn=c.get("mpn", ""),
+                                          manufacturer=c.get("manufacturer", ""), component_id=c.get("id"))
+        return components
+
+
 def find(conn: sqlite3.Connection, *, description: str = "", mpn: str = "", manufacturer: str = "",
          component_id: int | None = None, limit: int = 20) -> dict:
     """Equivalent components from other manufacturers, from closest to least close."""
@@ -304,21 +347,8 @@ def find(conn: sqlite3.Connection, *, description: str = "", mpn: str = "", manu
     confirmed = confirmed_ids(conn, component_id) if component_id else set()
 
     out = []
-    for row in conn.execute("SELECT * FROM components"):
-        if component_id and row["id"] == component_id:
-            continue
-        is_confirmed = row["id"] in confirmed
-        if not is_confirmed and ref_mfr and row["manufacturer_norm"] == ref_mfr:
-            continue  # other manufacturers only
-        cand = extract(row["description"], row["mpn"])
-        sim = similarity(ref, cand)
-        if sim is None and not is_confirmed:
-            continue
-        score, same, diff = sim if sim else (0, [], [])
-        if is_confirmed:
-            score += 100
-        if score < 20:
-            continue
+    pool = ((row, extract(row["description"], row["mpn"])) for row in conn.execute("SELECT * FROM components"))
+    for row, score, same, diff, is_confirmed in _matches(pool, ref, ref_mfr, component_id, confirmed):
         comp = db.row_to_dict(row)
         out.append({
             "component": comp,

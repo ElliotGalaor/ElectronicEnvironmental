@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-91%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-99%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -39,6 +39,8 @@ When a file does not look like any known format, for example an ERP export with 
 
 The RoHS / REACH statuses found in the BOM are used. If the component is in the database, the database is authoritative: a disagreement turns the line into "needs review". If it is missing, the BOM status is used and marked "from the BOM".
 
+A "needs review" status can be clicked: the dialog says why, lets you give the line a status, and offers the same status to the other lines that need review for the same reason. These statuses only apply to the analysis (exports and history included), not to the database.
+
 <img src="docs/images/column_mapping.png" alt="Column mapping dialog: manual choices, effect of the change on the first 3 lines and result of the reading" width="100%">
 
 ### 🔁 Equivalents from other manufacturers and replacement in the BOM
@@ -60,6 +62,8 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 
 ### And also
 - **Home page**: what the tool is for, the regulations checked, how it works and who it is for, with a one-click **example BOM** to try it without a file of your own.
+- **Component pages**: identification, ECCN, and for RoHS 2, RoHS 3 and REACH the status with its meaning, what the regulation requires, the exemptions used and the SVHC declared.
+- **SVHC tab**: the REACH Candidate List published by ECHA (EC and CAS numbers, date and reason for inclusion) and the database components that contain each substance.
 - **Manufacturer pages**: website, headquarters, compliance statistics and list of components in the database.
 - **PDF datasheet import**: extraction of the part number, manufacturer, RoHS/REACH statuses, ECCN and country of origin (rule-based, or with the **Claude API** if a key is configured), with the supporting excerpts.
 - **User accounts**: history of the latest analysed BOMs, reopened against the up-to-date database; sign-ups can be confirmed by e-mail and protected by a captcha.
@@ -85,7 +89,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (91 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (99 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -133,6 +137,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#26](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/26) | **Component database**: changing page goes back to the top, to read the new page from its first row |
 | | [#27](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/27) | **Build once, promote**: CI builds and smoke-tests the Docker image once and publishes it; CD deploys that exact image (pinned by digest) to staging, then to production after approval, and can redeploy or roll back any published tag |
 | | [#28](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/28) | **Fixes from testing**: `.xlsb` BOMs read, distributor statuses such as `Compliant(YES)_` or `RoHS Compliant by Exemption` understood (RoHS and REACH), long column names wrapped in the column mapping, add and edit forms opened only for accounts allowed to change the database, page behind a dialog no longer scrolls, links to the manufacturers on the exemption and ECCN pages |
+| | [#29](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/29) | **New features from testing**: "needs review" statuses given by hand, with the same status offered to the lines that need review for the same reason (analysis only); number of equivalents on the Equivalents buttons; internal reference column; SVHC tab (REACH Candidate List); component pages explaining each regulation |
 
 ## Quick start
 

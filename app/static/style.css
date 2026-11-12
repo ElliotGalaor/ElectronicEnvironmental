@@ -41,6 +41,30 @@ h2 { font-size: 17px; margin: 0 0 14px; }
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 0 24px; }
 .tab { white-space: nowrap; background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 14px; font: inherit; color: var(--muted); cursor: pointer; }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Equivalents buttons: number found, like a notification counter */
+.btn-count { position: relative; }
+.btn-count .count { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--accent); color: var(--accent-text); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+  box-shadow: 0 0 0 2px var(--surface); }
+/* Clickable statuses ("Needs review", status given by hand) */
+.badge-btn { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; border-radius: 999px; }
+.badge-btn .badge { text-decoration: underline dotted; text-underline-offset: 3px; }
+.badge-btn:hover .badge, .badge-btn:focus-visible .badge { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inferred.manual { color: var(--ex); }
+#lines.no-ref .col-ref { display: none; }
+.choices { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.choice { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.samelist { max-height: 220px; overflow: auto; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; }
+#dlgClassify h4 { margin: 14px 0 4px; font-size: 13.5px; }
+/* Component page */
+.regcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.regcard h3 { margin: 0; font-size: 16px; }
+.regcard h4 { margin: 14px 0 6px; font-size: 13.5px; }
+.reghead { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.headbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+a.comp-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.comp-link:hover { color: var(--accent); }
 .tabscroll { display: none; }
 /* Touch screens (phones, tablets): no native scrollbar under the tabs. When they do not all fit, a slim bar on
    the bottom line shows the visible part, and the side with hidden tabs fades out. */
@@ -231,7 +255,9 @@ a.ex-link:hover { color: var(--accent); }
 #exempts td:nth-child(2) { min-width: 320px; }
 #exemptComps { min-width: 860px; }
 #exemptInfo q { font-style: normal; }
-#exemptSource a, #exemptInfo a { color: var(--accent); }
+#exemptSource a, #exemptInfo a, #svhcSource a, #svhcInfo a { color: var(--accent); }
+a.svhc-link { color: var(--svhc); text-decoration: underline dotted; text-underline-offset: 3px; }
+a.svhc-link:hover { color: var(--accent); }
 
 /* ECCN codes */
 a.eccn-link { color: inherit; text-decoration: none; }
