@@ -46,20 +46,21 @@ def _load_summary(text: str) -> dict:
 
 
 def save(conn: sqlite3.Connection, user_id: int, filename: str, data: bytes, mapping: str, substitutions: str,
-         report: dict, history_id: int | None = None) -> int:
+         report: dict, history_id: int | None = None, classifications: str = "") -> int:
     """Save an analysis, or update the history_id entry (same BOM, changed settings)."""
     now = _now()
     if history_id:
         cur = conn.execute(
-            "UPDATE bom_history SET mapping = ?, substitutions = ?, summary = ?, updated_at = ? WHERE id = ? AND user_id = ?",
-            (mapping or "", substitutions or "", _summary(report), now, history_id, user_id),
+            "UPDATE bom_history SET mapping = ?, substitutions = ?, classifications = ?, summary = ?, updated_at = ? "
+            "WHERE id = ? AND user_id = ?",
+            (mapping or "", substitutions or "", classifications or "", _summary(report), now, history_id, user_id),
         )
         if cur.rowcount:
             return history_id
     cur = conn.execute(
-        "INSERT INTO bom_history (user_id, filename, file_data, mapping, substitutions, summary, created_at, updated_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (user_id, filename, data, mapping or "", substitutions or "", _summary(report), now, now),
+        "INSERT INTO bom_history (user_id, filename, file_data, mapping, substitutions, classifications, summary, "
+        "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, filename, data, mapping or "", substitutions or "", classifications or "", _summary(report), now, now),
     )
     # Keep only the most recent analyses
     conn.execute(
@@ -72,7 +73,8 @@ def save(conn: sqlite3.Connection, user_id: int, filename: str, data: bytes, map
 
 def list_for(conn: sqlite3.Connection, user_id: int) -> list[dict]:
     rows = conn.execute(
-        "SELECT id, filename, mapping, substitutions, summary, created_at, updated_at, length(file_data) AS size "
+        "SELECT id, filename, mapping, substitutions, classifications, summary, created_at, updated_at, "
+        "length(file_data) AS size "
         "FROM bom_history WHERE user_id = ? ORDER BY updated_at DESC, id DESC",
         (user_id,),
     ).fetchall()
@@ -86,6 +88,7 @@ def list_for(conn: sqlite3.Connection, user_id: int) -> list[dict]:
             "size": r["size"],
             "mapping": json.loads(r["mapping"]) if r["mapping"] else {},
             "substitutions": json.loads(r["substitutions"]) if r["substitutions"] else {},
+            "classifications": json.loads(r["classifications"]) if r["classifications"] else {},
             "summary": _load_summary(r["summary"]),
         })
     return out

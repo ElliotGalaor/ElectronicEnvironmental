@@ -18,8 +18,22 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import alternates, auth, captcha, datasheet, datasheet_ai, db, eccn, editors, exemptions, history, mailer, manufacturers
-from .analyzer import analyze
+from . import (
+    alternates,
+    auth,
+    captcha,
+    datasheet,
+    datasheet_ai,
+    db,
+    eccn,
+    editors,
+    exemptions,
+    history,
+    mailer,
+    manufacturers,
+    svhc,
+)
+from .analyzer import analyze, parse_classifications
 from .importer import IMPORT_FIELDS, detect_import_columns, import_table, plan_table
 from .reports import database_csv, report_csv, report_xlsx
 from .tables import (
@@ -231,6 +245,8 @@ async def analyze_bom(
     file: UploadFile = File(...),
     mapping: str = Form(default="", description=MAPPING_DOC),
     substitutions: str = Form(default="", description='Replacements, JSON: {"<line number>": <component id>, ...}'),
+    classifications: str = Form(default="", description='Statuses given by hand to lines that need review, JSON: '
+                                '{"<line number>": {"rohs3": "compliant", ...}}. Analysis only: the database is unchanged.'),
     format: Literal["json", "xlsx", "csv", "bom"] = Query(default="json", description="bom: the modified bill of materials (replacements applied), as CSV"),
     save: str = Form(default="", description="1: save the analysis in the signed-in user's history"),
     history_id: str = Form(default="", description="History entry to update (same BOM, changed settings)"),
@@ -243,6 +259,10 @@ async def analyze_bom(
         subs = {int(k): int(v) for k, v in (json.loads(substitutions) if substitutions else {}).items()}
     except (ValueError, TypeError, AttributeError):
         raise HTTPException(400, "substitutions parameter: invalid JSON") from None
+    try:
+        manual = parse_classifications(json.loads(classifications)) if classifications else {}
+    except ValueError as exc:
+        raise HTTPException(400, f"classifications parameter: {exc}") from None
     try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
     except TableError as exc:
@@ -258,7 +278,7 @@ async def analyze_bom(
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="{stem}_modified.csv"'},
         )
-    report = analyze(conn, lines, colmap, file.filename or "")
+    report = analyze(conn, lines, colmap, file.filename or "", manual)
     if format == "xlsx":
         return Response(
             report_xlsx(report),
@@ -271,12 +291,28 @@ async def analyze_bom(
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="compliance_{stem}.csv"'},
         )
+    _count_line_equivalents(conn, report["lines"])
     if user and (save == "1" or history_id):
         report["history_id"] = history.save(
             conn, user["id"], file.filename or "bom", data, mapping, substitutions, report,
-            history_id=int(history_id) if history_id.isdigit() else None,
+            history_id=int(history_id) if history_id.isdigit() else None, classifications=classifications,
         )
     return report
+
+
+def _count_line_equivalents(conn, lines: list[dict]) -> None:
+    """Number of equivalents the Equivalents button of each line would list."""
+    counter = alternates.EquivalentCounter(conn)
+    for line in lines:
+        comp = line["component"]
+        if line["dnp"] or not line["bom_mpn"]:
+            line["equivalents"] = None
+        elif comp:
+            line["equivalents"] = counter.count(description=comp["description"], mpn=comp["mpn"],
+                                                manufacturer=comp["manufacturer"], component_id=comp["id"])
+        else:
+            line["equivalents"] = counter.count(description=line["bom_description"], mpn=line["bom_mpn"],
+                                                manufacturer=line["bom_manufacturer"])
 
 
 # ---------------------------------------------------------------- User accounts
@@ -549,7 +585,7 @@ def list_components(
     conn=Depends(get_conn),
 ):
     items, total = db.search(conn, q, limit, offset, status)
-    return {"total": total, "items": items}
+    return {"total": total, "items": alternates.EquivalentCounter(conn).annotate(items)}
 
 
 @app.get("/api/components/export", summary="Export the whole database as CSV")
@@ -592,6 +628,36 @@ def add_equivalent(comp_id: int, body: EquivalentIn, conn=Depends(get_conn)):
 def remove_equivalent(comp_id: int, other_id: int, conn=Depends(get_conn)):
     alternates.unconfirm(conn, comp_id, other_id)
     return Response(status_code=204)
+
+
+@app.get("/api/components/{comp_id}/sheet",
+         summary="A component's page: its record and the details of its regulations (exemptions, SVHC, ECCN)")
+def component_sheet(comp_id: int, conn=Depends(get_conn)):
+    comp = db.get(conn, comp_id)
+    if not comp:
+        raise HTTPException(404, "Component not found")
+    alternates.EquivalentCounter(conn).annotate([comp])
+    return {
+        "component": comp,
+        "exemptions": [exemptions.describe(c) for c in exemptions.split_codes(comp.get("rohs_exemptions", ""))],
+        "eccn": eccn.describe(comp["eccn"]) if comp.get("eccn") else None,
+        "svhc": svhc.match_text(comp.get("svhc_list", "")),
+        "svhc_list": svhc.info(),  # whether the Candidate List is loaded, and its version
+    }
+
+
+@app.get("/api/svhc", summary="REACH Candidate List (SVHC) and the number of database components containing each substance")
+def list_svhc(conn=Depends(get_conn)):
+    return svhc.list_all(conn)
+
+
+@app.get("/api/svhc/{sid}", summary="An SVHC substance of the Candidate List and the components that contain it")
+def get_svhc(sid: str, conn=Depends(get_conn)):
+    info = svhc.get(conn, sid)
+    if info is None:
+        raise HTTPException(404, "Substance not found in the Candidate List")
+    alternates.EquivalentCounter(conn).annotate(info["components"])
+    return info
 
 
 @app.get("/api/components/{comp_id}")
@@ -727,6 +793,7 @@ def get_manufacturer(key: str, conn=Depends(get_conn)):
     info = manufacturers.get(conn, _mfr_key(key))
     if info is None:
         raise HTTPException(404, "Manufacturer not found")
+    alternates.EquivalentCounter(conn).annotate(info["components"])
     return info
 
 
@@ -751,7 +818,9 @@ def list_exemptions(conn=Depends(get_conn)):
 
 @app.get("/api/exemptions/{code}", summary="A RoHS exemption's record: official text, dates, components")
 def get_exemption(code: str, conn=Depends(get_conn)):
-    return exemptions.get(conn, code)
+    info = exemptions.get(conn, code)
+    alternates.EquivalentCounter(conn).annotate(info["components"])
+    return info
 
 
 @app.put("/api/exemptions/{code}", dependencies=[Depends(require_editor)], summary="Edit an exemption's notes")
@@ -777,9 +846,11 @@ def list_eccn(conn=Depends(get_conn)):
 @app.get("/api/eccn/{code}", summary="An ECCN code's record: scope, official definition, components")
 def get_eccn(code: str, conn=Depends(get_conn)):
     try:
-        return eccn.get(conn, code)
+        info = eccn.get(conn, code)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    alternates.EquivalentCounter(conn).annotate(info["components"])
+    return info
 
 
 @app.put("/api/eccn/{code}", dependencies=[Depends(require_editor)], summary="Edit an ECCN code's title and notes")

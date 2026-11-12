@@ -31,6 +31,7 @@ COLUMNS = [
     ("Line", lambda l: l["line"]),
     ("Designators", lambda l: l["designator"]),
     ("Qty", lambda l: l["quantity"]),
+    ("Internal reference", lambda l: l.get("internal_ref", "")),
     ("BOM part number", lambda l: l["bom_mpn"]),
     ("Replaces", lambda l: (l["original_mpn"] + (f" ({l['original_manufacturer']})" if l["original_manufacturer"] else "")) if l.get("original_mpn") else ""),
     ("BOM manufacturer", lambda l: l["bom_manufacturer"]),
@@ -51,6 +52,20 @@ COLUMNS = [
     ("Notes", lambda l: " | ".join(l["notes"])),
 ]
 
+
+# Column widths of the Excel report (16 by default)
+WIDTHS = {"Line": 7, "Designators": 18, "Qty": 6, "Internal reference": 18, "BOM part number": 22, "Replaces": 22,
+          "BOM manufacturer": 18, "BOM description": 30, "Match": 15, "Database part number": 22,
+          "Database manufacturer": 18, "RoHS 2": 20, "RoHS 3": 20, "RoHS exemptions": 16, "SVHC": 30, "ECCN": 12,
+          "Country of origin": 20, "Source": 18, "Last checked": 12, "Suggestions": 30, "Notes": 50}
+
+
+def _columns(report: dict) -> list:
+    """Report columns; the internal reference only when the BOM has one."""
+    has_ref = any(line.get("internal_ref") for line in report["lines"])
+    return [c for c in COLUMNS if has_ref or c[0] != "Internal reference"]
+
+
 def _country(code: str) -> str:
     return f"{code} ({country_name(code)})" if code and country_name(code) != code else code
 
@@ -62,6 +77,8 @@ def _status(line: dict, norm: str) -> str:
         text += " (inferred)"
     if norm in line.get("from_bom", []):
         text += " (from the BOM)"
+    if norm in line.get("manual", []):
+        text += " (classified by hand)"
     return text
 
 
@@ -78,9 +95,10 @@ FILLS = {
 def report_csv(report: dict) -> bytes:
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow([c for c, _ in COLUMNS])
+    columns = _columns(report)
+    w.writerow([c for c, _ in columns])
     for line in report["lines"]:
-        w.writerow([f(line) for _, f in COLUMNS])
+        w.writerow([f(line) for _, f in columns])
     return buf.getvalue().encode("utf-8-sig")
 
 
@@ -142,19 +160,19 @@ def report_xlsx(report: dict) -> bytes:
         ws.column_dimensions[col].width = 16
 
     wd = wb.create_sheet("Detail")
-    wd.append([c for c, _ in COLUMNS])
+    columns = _columns(report)
+    wd.append([c for c, _ in columns])
     for c in wd[1]:
         c.font = bold
         c.fill = PatternFill("solid", fgColor="D9D9D9")
     norm_by_title = {"RoHS 2": "rohs2", "RoHS 3": "rohs3", "REACH": "reach"}
-    status_cols = {i + 1: norm_by_title[name] for i, (name, _) in enumerate(COLUMNS) if name in norm_by_title}
+    status_cols = {i + 1: norm_by_title[name] for i, (name, _) in enumerate(columns) if name in norm_by_title}
     for line in report["lines"]:
-        wd.append([f(line) for _, f in COLUMNS])
+        wd.append([f(line) for _, f in columns])
         for col, key in status_cols.items():
             wd.cell(wd.max_row, col).fill = PatternFill("solid", fgColor=FILLS.get(line[key], "FFFFFF"))
-    widths = [7, 18, 6, 22, 22, 18, 30, 15, 22, 18, 20, 20, 16, 16, 30, 12, 20, 18, 12, 30, 50]
-    for i, w in enumerate(widths, start=1):
-        wd.column_dimensions[get_column_letter(i)].width = w
+    for i, (name, _) in enumerate(columns, start=1):
+        wd.column_dimensions[get_column_letter(i)].width = WIDTHS.get(name, 16)
     wd.freeze_panes = "A2"
     wd.auto_filter.ref = wd.dimensions
     for row in wd.iter_rows(min_row=2):

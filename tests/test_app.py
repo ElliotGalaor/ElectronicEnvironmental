@@ -1210,3 +1210,150 @@ def test_xlsb_bom_with_long_headers():
     csv_lines = analyze_text((ROOT / "tests" / "data" / "bom_long_headers.csv").read_text(encoding="utf-8"))["lines"]
     assert [(x["bom_mpn"], x["rohs3"], x["reach"]) for x in csv_lines] == \
         [(x["bom_mpn"], x["rohs3"], x["reach"]) for x in xlsb_lines]
+
+
+# ------------------------------------------------------------------ feedback from testing: new features
+
+REVIEW_BOM = (
+    "MPN;Internal Ref;Manufacturer;RoHS;REACH\n"
+    "NE555P;INT-001;Texas Instruments;;\n"
+    "ZZ-REVIEW-1;INT-002;Acme;maybe;\n"
+    "ZZ-REVIEW-2;INT-003;Acme;maybe;\n"
+    "ZZ-REVIEW-3;INT-004;Acme;;\n"
+)
+
+
+def test_needs_review_reasons_and_statuses_given_by_hand():
+    lines = {line["bom_mpn"]: line for line in analyze_text(REVIEW_BOM)["lines"]}
+    # Lines needing review for the same reason have the same reason text: they can be classified together
+    assert lines["ZZ-REVIEW-1"]["review"]["rohs3"] == lines["ZZ-REVIEW-2"]["review"]["rohs3"]
+    assert "“maybe”" in lines["ZZ-REVIEW-1"]["review"]["rohs3"]
+    assert lines["ZZ-REVIEW-3"]["review"]["rohs3"] == "Not in the database, no status in the BOM"
+    assert lines["NE555P"]["review"] == {}
+
+    manual = json.dumps({"3": {"rohs3": "compliant"}, "4": {"rohs3": "compliant", "reach": "svhc"}, "2": {"rohs3": "non_compliant"}})
+    rep = analyze_text(REVIEW_BOM, classifications=manual)
+    by_line = {line["line"]: line for line in rep["lines"]}
+    assert (by_line[3]["rohs3"], by_line[3]["manual"]) == ("compliant", ["rohs3"])
+    assert (by_line[4]["rohs3"], by_line[4]["reach"], by_line[4]["manual"]) == ("compliant", "svhc", ["rohs3", "reach"])
+    assert by_line[2]["rohs3"] == "compliant" and by_line[2]["manual"] == []  # only lines that need review change
+    assert any("classified by hand" in n for n in by_line[3]["notes"])
+    assert rep["summary"]["classified"] == 2
+    # The database is not changed
+    assert client.get("/api/components", params={"q": "ZZ-REVIEW-1"}).json()["total"] == 0
+
+    csv_text = client.post("/api/analyze?format=csv", files={"file": ("bom.csv", REVIEW_BOM.encode())},
+                           data={"classifications": manual}).content.decode("utf-8-sig")
+    assert "Compliant (classified by hand)" in csv_text
+    for bad in ('{"3": {"rohs3": "svhc"}}', '{"3": {"other": "compliant"}}', "[1]", "{"):
+        r = client.post("/api/analyze", files={"file": ("bom.csv", REVIEW_BOM.encode())}, data={"classifications": bad})
+        assert r.status_code == 400, bad
+
+
+def test_history_keeps_the_statuses_given_by_hand():
+    c, _ = new_client_with_account()
+    manual = json.dumps({"3": {"rohs3": "compliant"}})
+    r = c.post("/api/analyze", files={"file": ("b.csv", REVIEW_BOM.encode())}, data={"save": "1", "classifications": manual})
+    hid = r.json()["history_id"]
+    item = next(i for i in c.get("/api/history").json() if i["id"] == hid)
+    assert item["classifications"] == {"3": {"rohs3": "compliant"}}
+
+
+def test_internal_reference_column():
+    rep = analyze_text(REVIEW_BOM)
+    assert rep["mapping"]["columns"]["internal_ref"] == "Internal Ref"
+    assert [line["internal_ref"] for line in rep["lines"]] == ["INT-001", "INT-002", "INT-003", "INT-004"]
+    csv_text = client.post("/api/analyze?format=csv", files={"file": ("bom.csv", REVIEW_BOM.encode())}).content.decode("utf-8-sig")
+    assert csv_text.splitlines()[0].split(";")[3] == "Internal reference" and "INT-002" in csv_text
+    # A BOM without an internal reference keeps the usual columns
+    plain = client.post("/api/analyze?format=csv", files={"file": ("bom.csv", b"MPN\nNE555P\n")}).content.decode("utf-8-sig")
+    assert "Internal reference" not in plain
+    for header in ("Code article", "CPN", "Internal Part Number"):
+        assert parse_bom(f"MPN;{header}\nNE555P;X-1\n".encode(), "b.csv")[0][0].internal_ref == "X-1", header
+
+
+def test_number_of_equivalents_on_the_buttons():
+    items = client.get("/api/components", params={"limit": 200}).json()["items"]
+    some = [c for c in items if c["equivalents"]][:3]
+    assert some, "the demo database has components with equivalents"
+    for c in some:  # the same number as the Equivalents dialog lists
+        assert c["equivalents"] == len(client.get(f"/api/components/{c['id']}/alternatives").json()["alternatives"])
+    rep = analyze_text("MPN;Manufacturer;Description\nNE555P;Texas Instruments;\nZZ-NEW-RES;Acme;Resistor 10k 0603 1%\n")
+    by_mpn = {line["bom_mpn"]: line for line in rep["lines"]}
+    alt = client.get("/api/alternatives", params={"mpn": "ZZ-NEW-RES", "manufacturer": "Acme", "description": "Resistor 10k 0603 1%"})
+    assert by_mpn["ZZ-NEW-RES"]["equivalents"] == len(alt.json()["alternatives"]) > 0
+    exempt = client.get("/api/exemptions/7(c)-I").json()
+    assert all("equivalents" in c for c in exempt["components"])
+
+
+def test_component_page():
+    cid = client.get("/api/exemptions/7(c)-I").json()["components"][0]["id"]
+    s = client.get(f"/api/components/{cid}/sheet").json()
+    assert s["component"]["id"] == cid and "equivalents" in s["component"]
+    assert any(e["key"] == "7C-I" and e["found"] for e in s["exemptions"])
+    assert s["eccn"] is None or s["eccn"]["code"] == s["component"]["eccn"]
+    assert set(s["svhc_list"]) >= {"available", "version", "url"}
+    assert client.get("/api/components/999999/sheet").status_code == 404
+
+
+@pytest.fixture
+def sample_candidate_list(monkeypatch):
+    """The Candidate List converted from a small sample of ECHA's export."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    from extract_svhc_candidate_list import convert
+
+    from app import svhc
+    data = convert(ROOT / "tests" / "data" / "echa_candidate_list_sample.csv")
+    svhc._patterns.cache_clear()
+    monkeypatch.setattr(svhc, "_data", lambda: data)
+    yield data
+    svhc._patterns.cache_clear()
+
+
+def test_candidate_list_conversion(sample_candidate_list):
+    subs = {s["id"]: s for s in sample_candidate_list["substances"]}
+    lead = subs["lead"]
+    assert (lead["ec"], lead["cas"], lead["date"]) == (["231-100-4"], ["7439-92-1"], "2018-06-27")
+    hbcdd = subs["hexabromocyclododecane-hbcdd"]
+    assert hbcdd["cas"] == ["25637-99-4", "3194-55-6"] and hbcdd["aliases"] == ["HBCDD"]
+    assert hbcdd["date"] == "2008-10-28"  # dates written 28/10/2008 or 28-Oct-2008
+    # A group entry split into several rows by ECHA gives one substance with all its numbers
+    anhydride = subs["hexahydromethylphthalic-anhydride"]
+    assert (anhydride["ec"], anhydride["cas"]) == (["247-094-1"], ["25550-51-0"]) and len(subs) == 5
+    assert sample_candidate_list["version"] == "2018-06-27"  # latest inclusion
+
+
+def test_svhc_tab(sample_candidate_list):
+    from app import svhc
+    assert [s["id"] for s in svhc.match_text("Plomb (CAS 7439-92-1) and DEHP in the sleeve")] == \
+        ["lead", "bis-2-ethylhexyl-phthalate-dehp"]
+    assert svhc.match_text("Leaded finish") == [] and svhc.match_text("") == []
+
+    listing = client.get("/api/svhc").json()
+    assert listing["available"]
+    counts = {s["id"]: s["components"] for s in listing["substances"]}
+    assert counts["lead"] >= 2 and counts["bis-2-ethylhexyl-phthalate-dehp"] >= 1
+    lead = client.get("/api/svhc/lead").json()
+    assert lead["name"] == "Lead" and "DEMO-LEADED-DIP8" in [c["mpn"] for c in lead["components"]]
+    assert all("equivalents" in c for c in lead["components"])
+    assert client.get("/api/svhc/not-a-substance").status_code == 404
+
+    cid = next(c["id"] for c in lead["components"])
+    assert "lead" in [x["id"] for x in client.get(f"/api/components/{cid}/sheet").json()["svhc"]]
+
+
+def test_svhc_tab_without_the_list(monkeypatch):
+    from app import svhc
+    monkeypatch.setattr(svhc, "_data", lambda: {"substances": []})
+    monkeypatch.setattr(svhc, "_patterns", lambda: [])
+    listing = client.get("/api/svhc").json()
+    assert not listing["available"] and listing["substances"] == [] and listing["components_with_svhc"] >= 1
+    assert client.get("/api/svhc/lead").status_code == 404
+
+
+def test_candidate_list_data_file():
+    # data/svhc_candidate_list.json, converted from ECHA's export
+    from app import svhc
+    subs = {s["id"]: s for s in svhc.substances()}
+    assert len(subs) > 400 and subs["lead"]["cas"] == ["7439-92-1"]
+    assert all(len(s["date"]) == 10 and s["name"] for s in subs.values())
