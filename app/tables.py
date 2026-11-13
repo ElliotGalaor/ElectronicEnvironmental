@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from html.parser import HTMLParser
 
-from .db import strip_accents
+from .db import REACH_STATUSES, ROHS_STATUSES, ValidationError, clean_status, strip_accents
 
 
 class TableError(ValueError):
@@ -261,6 +261,7 @@ class ColumnMapping:
     headers: list[str]  # headers as written in the file
     columns: dict[str, int] = field(default_factory=dict)  # role -> column index
     labels: list[str] = field(default_factory=list)  # unique column names (see column_labels)
+    status_values: dict[str, dict[str, str]] = field(default_factory=dict)  # see status_choices
 
     def to_dict(self) -> dict:
         labels = self.labels or self.headers
@@ -268,6 +269,7 @@ class ColumnMapping:
             "header_row": self.header_row + 1,
             "headers": labels,
             "columns": {role: labels[idx] for role, idx in self.columns.items()},
+            "status_values": self.status_values,
         }
 
 
@@ -277,6 +279,78 @@ class ColumnMapping:
 # (row number in the file, 1 = first row; 0 = the file has no header row).
 
 HEADER_ROW_KEY = "_header_row"
+# Meaning chosen by the user for the RoHS / REACH status values written in the file:
+# {"rohs": {"Compliant(YES)": "compliant", "TBD": "unknown"}, "reach": {...}}. "rohs" applies to the RoHS 2 and
+# RoHS 3 columns. "unknown" = value not accepted (as if no status were given).
+STATUS_VALUES_KEY = "_status_values"
+STATUS_GROUPS = {"rohs": ("rohs2", "rohs3"), "reach": ("reach",)}
+STATUS_CHOICES = {"rohs": ROHS_STATUSES, "reach": REACH_STATUSES}
+
+
+def _status_group(role: str) -> str:
+    return "reach" if role == "reach" else "rohs"
+
+
+def status_choices(overrides: dict | None) -> dict[str, dict[str, str]]:
+    """Validated status values chosen by the user (see STATUS_VALUES_KEY)."""
+    raw = (overrides or {}).get(STATUS_VALUES_KEY) or {}
+    if not isinstance(raw, dict):
+        raise TableError("Status values: a JSON object is expected")
+    out: dict[str, dict[str, str]] = {}
+    for group, values in raw.items():
+        if group not in STATUS_CHOICES or not isinstance(values, dict):
+            raise TableError(f"Status values: unknown group {group!r} (expected: rohs, reach)")
+        for value, status in values.items():
+            if status not in STATUS_CHOICES[group]:
+                raise TableError(f"Status values: invalid status {status!r} for {value!r}")
+        out[group] = {str(v).strip(): s for v, s in values.items() if str(v).strip()}
+    return out
+
+
+def apply_status_choice(value: str, role: str, choices: dict[str, dict[str, str]]) -> str:
+    """Status chosen by the user for a value of the file (same value, case ignored), or the value unchanged."""
+    table = choices.get(_status_group(role))
+    v = (value or "").strip()
+    if not table or not v:
+        return value
+    if v in table:
+        return table[v]
+    folded = v.casefold()
+    return next((s for k, s in table.items() if k.casefold() == folded), value)
+
+
+def auto_status(value: str, role: str) -> str | None:
+    """Status recognised automatically for a value of the file, or None."""
+    try:
+        return clean_status(value, REACH_STATUSES if role == "reach" else ROHS_STATUSES, role)
+    except ValidationError:
+        return None
+
+
+def status_value_summary(rows: list[list[str]], header_row: int, columns: dict[str, int],
+                         choices: dict[str, dict[str, str]], limit: int = 60) -> dict:
+    """Distinct RoHS / REACH status values of the file, for the column mapping dialog:
+    {group: [{value, count, auto, chosen}]} (most frequent first)."""
+    out = {}
+    for group, roles in STATUS_GROUPS.items():
+        counts: dict[str, int] = {}
+        for role in roles:
+            i = columns.get(role)
+            if i is None:
+                continue
+            for row in rows[header_row + 1:]:
+                v = row[i].strip() if i < len(row) else ""
+                if v:
+                    counts[v] = counts.get(v, 0) + 1
+        if counts:
+            table = choices.get(group, {})
+            folded = {k.casefold(): s for k, s in table.items()}
+            out[group] = [
+                {"value": v, "count": n, "auto": auto_status(v, roles[0]),
+                 "chosen": table.get(v) or folded.get(v.casefold())}
+                for v, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0].casefold()))[:limit]
+            ]
+    return out
 NO_COLUMN = "__none__"
 
 # Fields offered in the column mapping dialog for a BOM: (key, label, required)
@@ -332,7 +406,7 @@ def apply_overrides(columns: dict[str, int], labels: list[str], overrides: dict 
     """Apply the manual mapping {field: column name} on top of the detected columns."""
     allowed = set(allowed)
     for role, name in (overrides or {}).items():
-        if role == HEADER_ROW_KEY or not name:
+        if role in (HEADER_ROW_KEY, STATUS_VALUES_KEY) or not name:
             continue
         if role not in allowed:
             raise TableError(f"Unknown field in the column mapping: {role!r}")
@@ -400,7 +474,7 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
     hr = resolve_header_row(rows, overrides, detect_header_row)
     headers, labels = table_headers(rows, hr)
     data = rows[hr + 1 : hr + 51]
-    mapping = ColumnMapping(header_row=hr, headers=headers, labels=labels)
+    mapping = ColumnMapping(header_row=hr, headers=headers, labels=labels, status_values=status_choices(overrides))
 
     # Scores per role
     candidates: dict[str, list[tuple[int, int]]] = {}
@@ -515,9 +589,10 @@ def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
                 designator=cell(row, "designator"),
                 value=cell(row, "value"),
                 dnp=dnp,
-                rohs2=cell(row, "rohs2"),
-                rohs3=cell(row, "rohs3"),
-                reach=cell(row, "reach"),
+                # Values read with the meaning chosen in the column mapping dialog, if any
+                rohs2=apply_status_choice(cell(row, "rohs2"), "rohs2", mapping.status_values),
+                rohs3=apply_status_choice(cell(row, "rohs3"), "rohs3", mapping.status_values),
+                reach=apply_status_choice(cell(row, "reach"), "reach", mapping.status_values),
             )
         )
     return lines

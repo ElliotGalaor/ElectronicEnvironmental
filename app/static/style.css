@@ -349,6 +349,15 @@ a.mpn-link:hover { color: var(--accent); }
 .maphead label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
 .maphead input { width: 90px; }
 #mapFields select { width: 100%; min-width: 0; }
+.mapstatuses { margin: 4px 0 14px; }
+.mapstatuses h3 { font-size: 14px; margin: 6px 0 2px; }
+.mapstatuses h4 { font-size: 12.5px; margin: 10px 0 4px; color: var(--muted); font-weight: 600; }
+.mapstatuses .tablewrap { box-shadow: none; max-height: 240px; overflow: auto; }
+.mapstatuses .grid { font-size: 12.5px; }
+.mapstatuses .grid td { vertical-align: middle; }
+.mapstatuses .grid td:first-child { overflow-wrap: anywhere; }
+.mapstatuses select { max-width: 100%; }
+.mapstatuses tr.manual td:first-child { color: var(--ex); font-weight: 600; }
 #mapFields select.missing { border-color: var(--ko); outline: 1px solid var(--ko); }
 .mappreview { max-height: 340px; overflow: auto; }
 #mapPreview { font-size: 12.5px; }
