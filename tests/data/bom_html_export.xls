@@ -1,0 +1,16 @@
+<html xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="utf-8"><title>BOM export</title></head>
+<body>
+<table><tr><td>Exported by the ERP — sample file for the tests</td></tr></table>
+<table border="1">
+  <thead>
+    <tr><th>Manufacturer Part Number</th><th>Manufacturer</th><th>Designator</th><th>Qty</th><th>RoHS status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>NE555P</td><td>Texas Instruments</td><td>U1</td><td>1</td><td>Compliant(YES)_</td></tr>
+    <tr><td>LM358DR</td><td>Texas&nbsp;Instruments</td><td>U2,<br>U3</td><td>2</td><td>Compliant(YES)_</td></tr>
+    <tr><td>XYZ-UNKNOWN-42</td><td>Acme Components</td><td>R1</td><td>1</td><td>Non-Compliant(NO)_</td></tr>
+  </tbody>
+</table>
+</body>
+</html>

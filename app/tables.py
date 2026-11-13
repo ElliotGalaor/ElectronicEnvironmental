@@ -1,11 +1,14 @@
-"""Reading tabular files (CSV, TSV, TXT, XLSX, XLSM, XLSB) and detecting the columns of a BOM."""
+"""Reading tabular files (CSV, TSV, TXT, XLSX, XLSM, XLSB, XLS) and detecting the columns of a BOM."""
 
 from __future__ import annotations
 
 import csv
 import io
 import re
+import zipfile
 from dataclasses import dataclass, field
+from datetime import date, datetime
+from html.parser import HTMLParser
 
 from .db import strip_accents
 
@@ -23,30 +26,44 @@ def _decode(data: bytes) -> str:
     raise TableError("Unrecognised file encoding")
 
 
+_ZIP = b"PK\x03\x04"
+_OLE2 = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"  # compound document: Excel 97-2003 (.xls)
+
+
+def _excel_format(data: bytes) -> str | None:
+    """Excel format given by the content of the file, whatever its extension: "xlsx" (also .xlsm), "xlsb", "xls",
+    or None for a text file (CSV, TSV, or an HTML table saved with the .xls extension by many web exports)."""
+    if data.startswith(_ZIP):
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as z:
+                names = set(z.namelist())
+        except zipfile.BadZipFile as exc:
+            raise TableError("Unreadable Excel file: the file is damaged") from exc
+        if "xl/workbook.bin" in names:
+            return "xlsb"
+        if "xl/workbook.xml" in names:
+            return "xlsx"
+        raise TableError("This file is a ZIP archive, not an Excel workbook")
+    if data.startswith(_OLE2):
+        return "xls"
+    return None
+
+
 def read_rows(data: bytes, filename: str) -> list[list[str]]:
-    """Return every row of the file as a list of strings."""
-    name = (filename or "").lower()
-    if name.endswith((".xlsx", ".xlsm")):
-        try:
-            import openpyxl
-        except ImportError as exc:  # pragma: no cover
-            raise TableError("openpyxl is required to read Excel files") from exc
-        try:
-            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-        except Exception as exc:
-            raise TableError(f"Unreadable Excel file: {exc}") from exc
-        # Use the first non-empty sheet.
-        for ws in wb.worksheets:
-            rows = _trim([["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)])
-            if rows:
-                return rows
-        raise TableError("The Excel workbook is empty")
-    if name.endswith(".xlsb"):
+    """Return every row of the file as a list of strings (first non-empty sheet of a workbook)."""
+    fmt = _excel_format(data)
+    if fmt == "xlsx":
+        return _read_xlsx(data)
+    if fmt == "xlsb":
         return _read_xlsb(data)
-    if name.endswith(".xls"):
-        raise TableError("The .xls format is not supported: save the file as .xlsx or .csv")
+    if fmt == "xls":
+        return _read_xls(data)
 
     text = _decode(data)
+    if re.search(r"<table[\s>]", text[:200000], re.I):
+        rows = _html_table(text)
+        if rows:
+            return rows
     sample = text[:20000]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")
@@ -70,6 +87,98 @@ def _trim(rows: list[list[str]]) -> list[list[str]]:
     return rows
 
 
+def _read_xlsx(data: bytes) -> list[list[str]]:
+    """Excel workbook (.xlsx, .xlsm)."""
+    try:
+        import openpyxl
+    except ImportError as exc:  # pragma: no cover
+        raise TableError("openpyxl is required to read Excel files") from exc
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception as exc:
+        raise TableError(f"Unreadable Excel file: {exc}") from exc
+    for ws in wb.worksheets:
+        rows = _trim([["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)])
+        if rows:
+            return rows
+    raise TableError("The Excel workbook is empty")
+
+
+def _read_xls(data: bytes) -> list[list[str]]:
+    """Excel 97-2003 workbook (.xls)."""
+    try:
+        import xlrd
+    except ImportError as exc:  # pragma: no cover
+        raise TableError("xlrd is required to read .xls files") from exc
+    try:
+        wb = xlrd.open_workbook(file_contents=data)
+    except Exception as exc:
+        hint = " (a password-protected workbook cannot be read: remove the password)" if "encrypt" in str(exc).lower() else ""
+        raise TableError(f"Unreadable Excel file: {exc}{hint}") from exc
+
+    def value(cell) -> str:
+        if cell.ctype == xlrd.XL_CELL_DATE:
+            try:
+                return _cell_str(xlrd.xldate_as_datetime(cell.value, wb.datemode))
+            except (ValueError, OverflowError):
+                return _cell_str(cell.value)
+        if cell.ctype == xlrd.XL_CELL_BOOLEAN:
+            return "TRUE" if cell.value else "FALSE"
+        if cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK, xlrd.XL_CELL_ERROR):
+            return ""
+        return _cell_str(cell.value)
+
+    for sheet in wb.sheets():
+        rows = _trim([[value(c) for c in sheet.row(i)] for i in range(sheet.nrows)])
+        if rows:
+            return rows
+    raise TableError("The Excel workbook is empty")
+
+
+class _TableParser(HTMLParser):
+    """Rows of the HTML tables of a page: [[cell, ...], ...] for each table."""
+
+    def __init__(self):
+        super().__init__()
+        self.tables: list[list[list[str]]] = []
+        self._depth = 0
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self._depth += 1
+            if self._depth == 1:
+                self.tables.append([])
+        elif self._depth == 1 and tag == "tr":
+            self._row = []
+        elif self._depth == 1 and tag in ("td", "th") and self._row is not None:
+            self._cell = []
+        elif tag == "br" and self._cell is not None:
+            self._cell.append(" ")
+
+    def handle_endtag(self, tag):
+        if tag == "table":
+            self._depth = max(0, self._depth - 1)
+        elif self._depth == 1 and tag in ("td", "th") and self._cell is not None and self._row is not None:
+            self._row.append(re.sub(r"\s+", " ", "".join(self._cell)).strip())
+            self._cell = None
+        elif self._depth == 1 and tag == "tr" and self._row is not None:
+            self.tables[-1].append(self._row)
+            self._row = None
+
+    def handle_data(self, data):
+        if self._cell is not None:
+            self._cell.append(data)
+
+
+def _html_table(text: str) -> list[list[str]]:
+    """Largest table of an HTML page: many ".xls" exports from web applications are HTML tables."""
+    parser = _TableParser()
+    parser.feed(text)
+    return _trim(max(parser.tables, key=len, default=[]))
+
+
 def _read_xlsb(data: bytes) -> list[list[str]]:
     """Excel binary workbook (.xlsb): first non-empty sheet."""
     try:
@@ -91,6 +200,10 @@ def _read_xlsb(data: bytes) -> list[list[str]]:
 def _cell_str(v) -> str:
     if isinstance(v, float) and v.is_integer():
         return str(int(v))
+    if isinstance(v, datetime):
+        return v.date().isoformat() if v.time() == datetime.min.time() else v.isoformat(sep=" ", timespec="minutes")
+    if isinstance(v, date):
+        return v.isoformat()
     return str(v).strip()
 
 
