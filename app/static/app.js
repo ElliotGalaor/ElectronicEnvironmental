@@ -253,7 +253,7 @@ async function runAnalysis(format = "json") {
   const seq = ++analysisSeq;
   const fd = new FormData();
   fd.append("file", state.file);
-  fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
+  fd.append("mapping", JSON.stringify(withStatusValues(state.overrides)));
   fd.append("substitutions", Object.keys(state.substitutions).length ? JSON.stringify(state.substitutions) : "");
   fd.append("classifications", Object.keys(state.classifications).length ? JSON.stringify(state.classifications) : "");
   // Signed-in user: saved in the history (the entry is updated if the BOM is already there)
@@ -316,12 +316,16 @@ function openBomMapping(problem = "") {
 
 $$("[data-export]").forEach((b) => b.addEventListener("click", () => runAnalysis(b.dataset.export)));
 $("#btnMapping").addEventListener("click", () => openBomMapping());
+$("#btnStatusHint").addEventListener("click", () => openBomMapping());
 
 function renderReport() {
   const R = state.report, S = R.summary;
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
   $("#fmeta").textContent = `— ${plural(S.lines, "line")}, analysed against ${plural(R.database_size, "component")} in the database`;
+  const unrecognised = R.lines.filter((l) => Object.values(l.review || {}).some((r) => r.includes("not recognised"))).length;
+  $("#statusHint").hidden = !unrecognised;
+  $("#statusHintText").textContent = `${plural(unrecognised, "line")} with a RoHS / REACH value of the file that is not recognised.`;
 
   // Verdicts
   const detail = (c) => [
@@ -794,7 +798,7 @@ $("#importFile").addEventListener("change", (ev) => {
 async function importComponents(f, mapping) {
   const fd = new FormData();
   fd.append("file", f);
-  fd.append("mapping", JSON.stringify(mapping));
+  fd.append("mapping", JSON.stringify(withStatusValues(mapping)));
   const box = $("#importMsg");
   try {
     const r = await (await api("/api/components/import", { method: "POST", body: fd })).json();
@@ -839,7 +843,7 @@ async function loadMapPreview(mapping) {
   const seq = ++mapCtx.seq; // only the latest response counts (fast successive choices)
   const fd = new FormData();
   fd.append("file", mapCtx.file);
-  fd.append("mapping", JSON.stringify(mapping || {}));
+  fd.append("mapping", JSON.stringify(withStatusValues(mapping)));
   $("#mapStatus").textContent = "Reading the file…";
   $("#btnMapOk").disabled = true;
   let preview;
@@ -860,10 +864,13 @@ async function loadMapPreview(mapping) {
   renderMapping();
 }
 
-// Mapping to send: header row + each field ("__none__" = ignored)
+// Mapping to send: header row + each field ("__none__" = ignored) + meaning of the status values shown
 function collectMapping() {
   const mapping = { _header_row: mapCtx.preview.header_row };
   $$("#mapFields select").forEach((s) => { mapping[s.name] = s.value || "__none__"; });
+  const values = {};
+  $$("#mapStatuses select").forEach((s) => { if (s.value) (values[s.dataset.group] ||= {})[s.dataset.value] = s.value; });
+  if (Object.keys(values).length) mapping._status_values = values;
   return mapping;
 }
 
@@ -881,6 +888,7 @@ function renderMapping() {
       ? ` <span class="tag" title="Automatic detection: ${esc(P.detected[f.key] || "none")}">changed</span>` : ""}</span>
       <select name="${esc(f.key)}" data-required="${f.required ? 1 : ""}">${opts(P.columns[f.key])}</select></label>`;
   }).join("");
+  renderStatusValues();
   renderManualChanges();
   renderChangeDemo();
   renderMapResult();
@@ -1051,10 +1059,76 @@ $("#mapHeaderRow").addEventListener("change", (ev) => {
 $("#mapForm").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const mapping = collectMapping();
+  rememberStatusValues($$("#mapStatuses select").map((s) =>
+    ({ group: s.dataset.group, value: s.dataset.value, status: s.value, auto: s.dataset.auto })));
   dlgMap.close();
   mapCtx.onConfirm(mapping);
 });
 $("#btnMapCancel").addEventListener("click", () => dlgMap.close());
+
+/* ------------------------------------------------------------------ status values of the file
+   What each RoHS / REACH value written in the file means ("Compliant(YES)", "Conforme", "TBD"…), chosen in the
+   column mapping dialog. The choices are remembered in this browser and sent with every analysis and import. */
+const STATUS_MEMORY = "rrc-status-values";
+const STATUS_OPTIONS = {
+  rohs: [["compliant", "Compliant"], ["exemption", "Compliant with an exemption"], ["non_compliant", "Non-compliant"],
+    ["unknown", "Not accepted (ignored)"]],
+  reach: [["compliant", "Compliant (no SVHC above 0.1 %)"], ["svhc", "Contains an SVHC above 0.1 %"],
+    ["non_compliant", "Non-compliant"], ["unknown", "Not accepted (ignored)"]],
+};
+const STATUS_GROUP_LABEL = { rohs: "RoHS (RoHS 2 and RoHS 3 columns)", reach: "REACH" };
+
+function rememberedStatusValues() {
+  try { return JSON.parse(localStorage.getItem(STATUS_MEMORY)) || {}; } catch { return {}; }
+}
+
+// Keep the choices that differ from automatic recognition; a value set back to automatic is forgotten
+function rememberStatusValues(choices) {
+  const mem = rememberedStatusValues();
+  for (const { group, value, status, auto } of choices) {
+    mem[group] = mem[group] || {};
+    if (status && status !== auto) mem[group][value] = status; else delete mem[group][value];
+    if (!Object.keys(mem[group]).length) delete mem[group];
+  }
+  try { localStorage.setItem(STATUS_MEMORY, JSON.stringify(mem)); } catch { /* private browsing: not remembered */ }
+}
+
+// Mapping sent to the server, with the remembered status values (the mapping's own choices win)
+function withStatusValues(mapping) {
+  const mem = rememberedStatusValues(), own = (mapping && mapping._status_values) || {};
+  const out = { ...(mapping || {}) }, merged = {};
+  for (const g of ["rohs", "reach"]) {
+    const values = { ...(mem[g] || {}), ...(own[g] || {}) };
+    if (Object.keys(values).length) merged[g] = values;
+  }
+  if (Object.keys(merged).length) out._status_values = merged; else delete out._status_values;
+  return out;
+}
+
+function renderStatusValues() {
+  const SV = mapCtx.preview.status_values || {}, box = $("#mapStatuses");
+  const groups = Object.keys(SV);
+  box.hidden = !groups.length;
+  if (!groups.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<h3>Status values in the file</h3>
+    <p class="muted small">Choose what each RoHS / REACH value means. Your choices are remembered in this browser and
+      applied to the next files.</p>` +
+    groups.map((g) => `<h4>${STATUS_GROUP_LABEL[g]}</h4><div class="tablewrap"><table class="grid">
+      <thead><tr><th>Value in the file</th><th>Lines</th><th>Meaning</th></tr></thead><tbody>${SV[g].map((v) => {
+        const current = v.chosen || v.auto || "";
+        return `<tr class="${v.chosen && v.chosen !== v.auto ? "manual" : ""}"><td class="mono">${esc(v.value)}</td><td>${v.count}</td>
+          <td><select data-group="${g}" data-value="${esc(v.value)}" data-auto="${v.auto || ""}" aria-label="Meaning of ${esc(v.value)}">
+          ${v.auto ? "" : `<option value="" ${current ? "" : "selected"}>Not recognised (needs review)</option>`}
+          ${STATUS_OPTIONS[g].map(([s, label]) => `<option value="${s}" ${s === current ? "selected" : ""}>${label}${s === v.auto ? " (automatic)" : ""}</option>`).join("")}
+          </select></td></tr>`;
+      }).join("")}</tbody></table></div>`).join("");
+}
+
+$("#mapStatuses").addEventListener("change", (ev) => {
+  if (!ev.target.closest("select")) return;
+  mapCtx.before = null;
+  loadMapPreview(collectMapping()); // the result below shows the new reading
+});
 
 /* ------------------------------------------------------------------ equivalents from other manufacturers
    Opened from a BOM line (replacement possible) or from a database component. */

@@ -1,7 +1,16 @@
 """Bulk import of the component database from a CSV / XLSX file."""
 
 from . import db
-from .tables import TableError, apply_overrides, norm_header, read_rows, resolve_header_row, table_headers
+from .tables import (
+    TableError,
+    apply_overrides,
+    apply_status_choice,
+    norm_header,
+    read_rows,
+    resolve_header_row,
+    status_choices,
+    table_headers,
+)
 
 # Recognised headers (normalised), in English and French
 IMPORT_HEADERS = {
@@ -66,10 +75,14 @@ def detect_import_columns(rows: list[list[str]], mapping: dict | None = None) ->
     return hr, labels, colmap
 
 
-def _records(rows: list[list[str]], header_row: int, colmap: dict[str, int]):
-    """File rows converted to records {field: value} (only the fields mapped to a column)."""
+def _records(rows: list[list[str]], header_row: int, colmap: dict[str, int], choices: dict | None = None):
+    """File rows converted to records {field: value} (only the fields mapped to a column).
+    choices: meaning chosen for the status values of the file (see tables.status_choices)."""
     for n, row in enumerate(rows[header_row + 1:], start=header_row + 2):
         rec = {f: (row[i].strip() if i < len(row) else "") for f, i in colmap.items()}
+        for f in ("rohs2", "rohs3", "reach"):
+            if f in rec and choices:
+                rec[f] = apply_status_choice(rec[f], f, choices)
         if rec.get("mpn"):
             yield n, rec
 
@@ -100,11 +113,12 @@ def plan_row(conn, rec: dict) -> dict:
             "changes": changes, "provided": sorted(provided)}
 
 
-def plan_table(conn, rows: list[list[str]], header_row: int, colmap: dict[str, int], sample: int = 10) -> dict:
+def plan_table(conn, rows: list[list[str]], header_row: int, colmap: dict[str, int], sample: int = 10,
+               choices: dict | None = None) -> dict:
     """Import summary (all rows) and detail of the first rows, for the preview."""
     counts = {"create": 0, "update": 0, "unchanged": 0, "error": 0}
     detail = []
-    for n, rec in _records(rows, header_row, colmap):
+    for n, rec in _records(rows, header_row, colmap, choices):
         plan = plan_row(conn, rec)
         counts[plan["action"]] += 1
         if len(detail) < sample:
@@ -124,7 +138,7 @@ def import_table(conn, data: bytes, filename: str, mapping: dict | None = None) 
         raise TableError("Manufacturer part number (mpn) column not found: select it in the column mapping")
     counts = {"create": 0, "update": 0, "unchanged": 0}
     errors = []
-    for n, rec in _records(rows, hr, colmap):
+    for n, rec in _records(rows, hr, colmap, status_choices(mapping)):
         plan = plan_row(conn, rec)
         try:
             if plan["action"] == "error":
