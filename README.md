@@ -27,7 +27,7 @@
 ## Features
 
 ### 📋 Bill of materials analysis
-Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation (click a slice to see the matching lines) and a downloadable **Excel** report.
+Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation (click a slice to see the matching lines) and a downloadable **Excel** report. A company **internal reference** column is shown when the BOM has one, a message says that the analysis is in progress (the free server can take a minute to wake up), and a banner says so if the server stops answering.
 
 <img src="docs/images/lines.png" alt="Table of BOM lines with the status per regulation, ECCN and notes" width="100%">
 
@@ -40,12 +40,15 @@ When a file does not look like any known format, for example an ERP export with 
 
 The RoHS / REACH statuses found in the BOM are used. If the component is in the database, the database is authoritative: a disagreement turns the line into "needs review". If it is missing, the BOM status is used and marked "from the BOM".
 
-A "needs review" status can be clicked: the dialog says why, lets you give the line a status, and offers the same status to the other lines that need review for the same reason. These statuses only apply to the analysis (exports and history included), not to the database.
+<img src="docs/images/column_mapping.png" alt="Column mapping dialog: manual choices, RoHS / REACH values of the file, effect of the change on the first 3 lines and result of the reading" width="100%">
 
-<img src="docs/images/column_mapping.png" alt="Column mapping dialog: manual choices, effect of the change on the first 3 lines and result of the reading" width="100%">
+### ✍️ "Needs review" lines classified by hand
+A "needs review" status can be clicked: the dialog says **why the line needs review** (component missing from the database, value of the BOM not recognised, disagreement between the BOM and the database, partial match…), lets you give it a status, and offers the same status to the **other lines that need review for the same reason**. These statuses only apply to the analysis: they are marked "by hand" on screen and in the exports and kept in the history, while the component database is unchanged.
+
+<img src="docs/images/classify.png" alt="Dialog to classify a needs review line, with the reason and the other lines needing review for the same reason" width="60%">
 
 ### 🔁 Equivalents from other manufacturers and replacement in the BOM
-For a non-compliant component, or one whose exemption is about to expire, the tool offers **similar components from other manufacturers** (same value, package, voltage…) with their compliance status, explains what matches and what differs, and lets you **substitute them in the BOM** in one click. The modified BOM can be downloaded with a record of the replacements. On a narrow screen (laptop, tablet, phone), each suggestion is shown as a card: the buttons always stay visible.
+For a non-compliant component, or one whose exemption is about to expire, the tool offers **similar components from other manufacturers** (same value, package, voltage…) with their compliance status, explains what matches and what differs, and lets you **substitute them in the BOM** in one click. Every Equivalents button shows how many were found, like a notification counter. The modified BOM can be downloaded with a record of the replacements. On a narrow screen (laptop, tablet, phone), each suggestion is shown as a card: the buttons always stay visible.
 
 <img src="docs/images/equivalents.png" alt="Equivalents dialog: similar components from other manufacturers with their RoHS and REACH status" width="100%">
 
@@ -56,6 +59,16 @@ Each exemption in use (e.g. `7(c)-I`, lead in the glass of resistors) has its ow
 
 <img src="docs/images/exemption.png" alt="Page of RoHS exemption 7(c)-I with official text, dates and components concerned" width="100%">
 
+### 🔎 Component pages: each regulation explained
+Every part number opens the component's page: identification, ECCN with its meaning, country of origin, source, and for **RoHS 2, RoHS 3 and REACH** the status with what it means and what the regulation requires (substances and limits, dates of application, information duty and SCIP notification), the **exemptions used** with their official text and validity, and the **SVHC declared**, linked to the Candidate List.
+
+<img src="docs/images/component.png" alt="Component page: ECCN, origin, and RoHS 2, RoHS 3 and REACH explained with the exemption used and the SVHC declared" width="100%">
+
+### ☣️ REACH: substances of very high concern (SVHC)
+The SVHC tab holds the **REACH Candidate List published by ECHA** (501 substances: EC and CAS numbers, date and reason for inclusion). Each substance has its page with the duties it brings and the **database components that contain it**.
+
+<img src="docs/images/svhc.png" alt="Page of the SVHC lead: EC and CAS numbers, reason for inclusion, duties and database components that contain it" width="100%">
+
 ### 🌐 Export control: ECCN codes
 Each ECCN code is broken down (category, product group, reason for control), linked to its **official heading** and to its definition on the US government website.
 
@@ -63,12 +76,10 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 
 ### And also
 - **Home page**: what the tool is for, the regulations checked, how it works and who it is for, with a one-click **example BOM** to try it without a file of your own.
-- **Component pages**: identification, ECCN, and for RoHS 2, RoHS 3 and REACH the status with its meaning, what the regulation requires, the exemptions used and the SVHC declared.
-- **SVHC tab**: the REACH Candidate List published by ECHA (EC and CAS numbers, date and reason for inclusion) and the database components that contain each substance.
 - **Manufacturer pages**: website, headquarters, compliance statistics and list of components in the database.
 - **PDF datasheet import**: extraction of the part number, manufacturer, RoHS/REACH statuses, ECCN and country of origin (rule-based, or with the **Claude API** if a key is configured), with the supporting excerpts.
-- **User accounts**: history of the latest analysed BOMs, reopened against the up-to-date database; sign-ups can be confirmed by e-mail and protected by a captcha.
-- **Country of origin**, editable **component database**, CSV and Excel import/export (an update only changes the columns provided), documented REST API (`/docs`).
+- **User accounts**: history of the latest analysed BOMs, reopened against the up-to-date database; sign-ups can be confirmed by e-mail and protected by a captcha. Changes to the database are reserved for the accounts the **administrator approves by e-mail**, with a daily limit on new components.
+- **Country of origin**, editable **component database**, CSV and Excel import/export (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`, format recognised from the content; an update only changes the columns provided), documented REST API (`/docs`).
 
 <details>
 <summary>See the home page</summary>
@@ -88,7 +99,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 |---|---|
 | Back end | **Python 3.12+**, **FastAPI**, Pydantic, SQLite (migrations at start-up) |
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
-| Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
+| Documents | openpyxl, pyxlsb and xlrd (Excel `.xlsx`, `.xlsb`, `.xls`), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
 | Quality | **pytest** (108 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
@@ -101,13 +112,14 @@ flowchart LR
     API --> AN["Reading and analysis<br/>tables.py · analyzer.py · importer.py"]
     API --> ALT["Equivalents<br/>alternates.py"]
     API --> DS["PDF datasheets<br/>datasheet.py"]
-    API --> REF["Reference texts<br/>exemptions.py · eccn.py"]
-    API --> ACC["Accounts and history<br/>auth.py · history.py"]
+    API --> REF["Reference texts<br/>exemptions.py · eccn.py · svhc.py"]
+    API --> ACC["Accounts, edit access and history<br/>auth.py · editors.py · history.py"]
     AN --> DB[("SQLite")]
     ALT --> DB
     ACC --> DB
-    REF --> TXT[("Official texts<br/>EUR-Lex · eCFR")]
+    REF --> TXT[("Official texts<br/>EUR-Lex · eCFR · ECHA")]
     DS -. "optional" .-> CL["Claude API"]
+    ACC -. "e-mails" .-> MAIL["Brevo"]
 ```
 
 ## Way of working
@@ -129,7 +141,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#13](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/13) | Equivalents dialog readable on every screen: cards when space runs out |
 | | [#14](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/14) | Presentation README with screenshots, separate technical guide |
 | [**v1.1.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v1.1.0) | [#16](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/16) | **Manual column mapping** for files in an unknown format: preview of the result and of each change, database import simulated before writing, RoHS / REACH statuses read from the BOM; fix: a database update no longer erases the fields missing from the file |
-| *next* (v2.0.0) | [#19](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/19) | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
+| [**v2.0.0**](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases/tag/v2.0.0) | [#19](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/19) | **Everything in English**: code, comments, interface, reports, documentation and official texts (English EUR-Lex version). Status values become `compliant`, `non_compliant`, `unknown`, `needs_review`…; databases created with v1 are converted automatically at start-up |
 | | [#21](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/21) | **Online deployment on Render** (free plan, HTTPS): `render.yaml` Blueprint and *Deploy to Render* button, admin token generated at creation, redeployment by the CD workflow after every merge to `main` |
 | | [#22](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/22) | **Sign-up protection** (optional): account created only once confirmed through a link sent by e-mail (Brevo API, works on Render's free plan), Cloudflare Turnstile captcha, limits per address and per connection |
 | | [#23](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/23) | **Home page** presenting the tool (regulations checked, steps, intended users) with a sample result, and a one-click example BOM |
@@ -147,6 +159,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#36](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/36) | **Status values chosen at import**: the column mapping dialog lists the RoHS / REACH values of the file and lets you choose what each means (or refuse it), for BOMs and database imports; choices remembered in the browser |
 | | [#37](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/37) | **Charts as filters**: clicking a slice or a legend row of a compliance chart shows only the lines with that status for that regulation |
 | | [#38](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/38) | **Server unavailable**: a banner says that the site is not working when the server, its database or the hosting does not answer, and checks every 30 seconds whether it is back; `/api/health` and clear JSON answers for server errors |
+| | [#39](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/39) | **Version 2.0.0**: README and screenshots updated (component pages, SVHC, "needs review" by hand, status values), validity labels wrapped on component pages |
 
 ## Quick start
 
@@ -156,7 +169,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 docker run -p 8000:8000 -v rohs-data:/data ghcr.io/elliotgalaor/electronicenvironmental
 ```
 
-Then open http://localhost:8000. The database is initialised with 129 demo components. For a specific version, add its number to the image (`…/electronicenvironmental:1.1.0`).
+Then open http://localhost:8000. The database is initialised with 129 demo components. For a specific version, add its number to the image (`…/electronicenvironmental:2.0.0`).
 
 To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens).
 
