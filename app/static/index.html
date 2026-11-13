@@ -135,10 +135,10 @@
   <!-- ============================== ANALYSIS ============================== -->
   <section id="tab-analysis" class="panel">
     <label id="drop" class="drop">
-      <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm,.xlsb" hidden>
+      <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm,.xlsb,.xls" hidden>
       <div class="drop-icon" aria-hidden="true">⬆</div>
       <strong>Drop your BOM here</strong> or click to choose a file
-      <span class="hint">CSV, TXT or Excel (.xlsx, .xlsm, .xlsb) — columns detected automatically (manufacturer part number, manufacturer, designators, quantity…)</span>
+      <span class="hint">CSV, TXT or Excel (.xlsx, .xlsm, .xlsb, .xls) — columns detected automatically (manufacturer part number, manufacturer, designators, quantity…)</span>
     </label>
 
     <p id="historyHint" class="muted small historyhint">
@@ -216,7 +216,7 @@
       </div>
       <div class="actions">
         <button class="btn" id="btnImport">Import CSV/XLSX</button>
-        <input type="file" id="importFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm,.xlsb" hidden>
+        <input type="file" id="importFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm,.xlsb,.xls" hidden>
         <a class="btn" href="/api/components/export">Export</a>
         <button class="btn" id="btnFromPdf">From a PDF datasheet</button>
         <button class="btn primary" id="btnAdd">+ Add</button>
