@@ -1399,3 +1399,20 @@ def test_candidate_list_data_file():
     subs = {s["id"]: s for s in svhc.substances()}
     assert len(subs) > 400 and subs["lead"]["cas"] == ["7439-92-1"]
     assert all(len(s["date"]) == 10 and s["name"] for s in subs.values())
+
+
+def test_excel_report_dates_are_sortable_dd_mm_yyyy():
+    import openpyxl
+    bom = b"MPN;Manufacturer\nNE555P;Texas Instruments\nZZ-NOT-IN-DB;Acme\n"
+    with db.session() as conn:
+        stored = conn.execute("SELECT last_checked FROM components WHERE mpn = 'NE555P'").fetchone()[0]
+    assert len(stored) == 10 and stored[4] == "-"  # stored YYYY-MM-DD
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("b.csv", bom)}).content
+    ws = openpyxl.load_workbook(io.BytesIO(xlsx))["Detail"]
+    col = [c.value for c in ws[1]].index("Last checked") + 1
+    cell = ws.cell(2, col)  # NE555P: a real Excel date (sortable), shown dd-mm-yyyy
+    assert cell.value.date().isoformat() == stored and cell.number_format == "dd-mm-yyyy"
+    assert ws.cell(3, col).value is None  # not in the database: no date
+    # The CSV report is unchanged
+    csv_text = client.post("/api/analyze?format=csv", files={"file": ("b.csv", bom)}).content.decode("utf-8-sig")
+    assert f";{stored};" in csv_text
