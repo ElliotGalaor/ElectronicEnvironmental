@@ -301,6 +301,16 @@ a.eccn-link .badge { cursor: pointer; }
 .legend .lbl { color: var(--text); }
 .legend .val { margin-left: auto; padding-left: 8px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chart .foot { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+/* Clicking a slice or a legend row filters the lines */
+#charts .pie [data-k], #charts .legend [data-k] { cursor: pointer; }
+#charts .legend [data-k]:hover { background: var(--surface-2); }
+#charts .legend [data-k]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chart.filtered { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.chart.filtered .pie [data-k]:not(.sel) { opacity: .3; }
+.chart.filtered .legend li:not(.sel) { opacity: .55; }
+.chart .legend li.sel { background: var(--surface-2); font-weight: 600; }
+.chip.chartchip { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.chip.chartchip[hidden] { display: none; }
 .charttip { position: fixed; pointer-events: none; z-index: 50; background: var(--text); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
 
 dialog.wide { width: min(1240px, calc(100vw - 32px)); }

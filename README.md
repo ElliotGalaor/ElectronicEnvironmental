@@ -27,7 +27,7 @@
 ## Features
 
 ### 📋 Bill of materials analysis
-Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation and a downloadable **Excel** report.
+Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation (click a slice to see the matching lines) and a downloadable **Excel** report.
 
 <img src="docs/images/lines.png" alt="Table of BOM lines with the status per regulation, ECCN and notes" width="100%">
 
@@ -145,6 +145,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#33](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/33) | **Docker image**: the REACH Candidate List is copied into the image (the SVHC tab was empty on Render), and the image smoke test checks the reference data |
 | | [#35](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/35) | **Excel report**: the "Last checked" dates are real Excel dates shown as dd-mm-yyyy (sortable) |
 | | [#36](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/36) | **Status values chosen at import**: the column mapping dialog lists the RoHS / REACH values of the file and lets you choose what each means (or refuse it), for BOMs and database imports; choices remembered in the browser |
+| | [#37](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/37) | **Charts as filters**: clicking a slice or a legend row of a compliance chart shows only the lines with that status for that regulation |
 
 ## Quick start
 
