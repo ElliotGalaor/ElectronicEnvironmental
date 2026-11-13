@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 import io
+import re
+from datetime import date
 
 from .db import FIELDS, country_name
 
@@ -102,6 +104,16 @@ def report_csv(report: dict) -> bytes:
     return buf.getvalue().encode("utf-8-sig")
 
 
+def _excel_date(cell) -> None:
+    """A YYYY-MM-DD text becomes a real Excel date shown as dd-mm-yyyy (sortable); other text is left as is."""
+    if isinstance(cell.value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", cell.value):
+        try:
+            cell.value = date.fromisoformat(cell.value)
+        except ValueError:
+            return
+        cell.number_format = "dd-mm-yyyy"
+
+
 def report_xlsx(report: dict) -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -167,10 +179,13 @@ def report_xlsx(report: dict) -> bytes:
         c.fill = PatternFill("solid", fgColor="D9D9D9")
     norm_by_title = {"RoHS 2": "rohs2", "RoHS 3": "rohs3", "REACH": "reach"}
     status_cols = {i + 1: norm_by_title[name] for i, (name, _) in enumerate(columns) if name in norm_by_title}
+    date_cols = [i + 1 for i, (name, _) in enumerate(columns) if name == "Last checked"]
     for line in report["lines"]:
         wd.append([f(line) for _, f in columns])
         for col, key in status_cols.items():
             wd.cell(wd.max_row, col).fill = PatternFill("solid", fgColor=FILLS.get(line[key], "FFFFFF"))
+        for col in date_cols:
+            _excel_date(wd.cell(wd.max_row, col))
     for i, (name, _) in enumerate(columns, start=1):
         wd.column_dimensions[get_column_letter(i)].width = WIDTHS.get(name, 16)
     wd.freeze_panes = "A2"
