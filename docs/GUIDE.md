@@ -272,6 +272,10 @@ before confirming a replacement.
   new value, unchanged, error), without writing anything.
   Uniqueness key: part number + manufacturer. On an existing component, only the fields mapped to a column
   and filled in are changed (a missing column or an empty cell does not replace the value in the database).
+- **Dates** are shown as `dd-mm-yyyy` everywhere (pages, history, exports; real dates in the Excel report).
+  The "Last checked" field and imports accept `dd-mm-yyyy`, `dd/mm/yyyy`, `dd.mm.yyyy` or `yyyy-mm-dd`; the
+  database stores `yyyy-mm-dd` so that dates sort and compare correctly. Quotations of official texts
+  (EUR-Lex, eCFR) keep their own wording.
   ```bash
   .venv\Scripts\python cli.py import my_database.xlsx
   ```

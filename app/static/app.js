@@ -18,7 +18,14 @@ const MATCH = {
   ambiguous: ["Ambiguous", "warn"], not_found: ["Not found", "bad"], "-": ["—", ""],
 };
 const NORMS = [["rohs2", "RoHS 2", "Directive 2011/65/EU"], ["rohs3", "RoHS 3", "Directive (EU) 2015/863"], ["reach", "REACH", "Regulation (EC) 1907/2006"]];
-const DATE_LOCALE = "en-GB";
+// Dates are shown as dd-mm-yyyy (stored as yyyy-mm-dd)
+const fmtDay = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? `${m[3]}-${m[2]}-${m[1]}` : (d || ""); };
+const pad2 = (n) => String(n).padStart(2, "0");
+const fmtDateTime = (iso) => {
+  const t = new Date(iso);
+  return isNaN(t) ? (iso || "") : `${pad2(t.getDate())}-${pad2(t.getMonth() + 1)}-${t.getFullYear()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+};
+const today = () => { const t = new Date(); return `${pad2(t.getDate())}-${pad2(t.getMonth() + 1)}-${t.getFullYear()}`; };
 
 let COUNTRIES = {};
 const country = (code) => code ? `<span title="${esc(COUNTRIES[code] || "")}">${esc(code)}</span>` : "";
@@ -540,7 +547,7 @@ async function loadComponents() {
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
       <td class="notes">${c.rohs_exemptions ? exLinks(c.rohs_exemptions) : ""}</td><td class="notes">${esc(c.svhc_list)}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
-      <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
+      <td class="nowrap">${esc(fmtDay(c.last_checked))}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
       || `<tr><td colspan="12" class="muted">No components.</td></tr>`;
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="12">Error: ${esc(e.message)}</td></tr>`;
@@ -631,7 +638,7 @@ function renderManufacturer() {
   $("#mfrComps tbody").innerHTML = m.components.map((c) => `<tr>
     <td class="mono">${compLink(c)}</td><td>${esc(c.description)}</td>
     <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-    <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td>${esc(c.last_checked)}</td>
+    <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td><td class="nowrap">${esc(fmtDay(c.last_checked))}</td>
     <td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
     || `<tr><td colspan="9" class="muted">No component from this manufacturer in the database.</td></tr>`;
 }
@@ -669,8 +676,8 @@ let editingId = null;
 function openDialog(comp, preset = {}) {
   if (!ensureEditor()) return false;
   editingId = comp ? comp.id : null;
-  const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
-  for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
+  const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: today(), ...preset };
+  for (const el of form.elements) if (el.name) el.value = el.name === "last_checked" ? fmtDay(data[el.name]) : data[el.name] ?? "";
   $("#dlgTitle").textContent = comp ? "Edit component" : "New component";
   $("#btnDelete").hidden = !comp;
   $("#dlgError").hidden = true;
@@ -722,7 +729,7 @@ function applyExtraction(r, fname) {
       if (v !== "unknown") el.closest("label").classList.add("filled");
     }
   }
-  form.elements.last_checked.value = new Date().toLocaleDateString("sv-SE");
+  form.elements.last_checked.value = today();
   $("#mpnList").innerHTML = (r.candidates.mpn || []).map((c) => `<option value="${esc(c.value)}">`).join("");
   $("#mfrList").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
 
@@ -962,7 +969,8 @@ function renderManualChanges() {
     : "";
 }
 
-const cellValue = (field, v) => v === "" || v == null ? `<span class="muted">—</span>` : STATUS_FIELDS.has(field) ? badge(v) : esc(v);
+const cellValue = (field, v) => v === "" || v == null ? `<span class="muted">—</span>` : STATUS_FIELDS.has(field) ? badge(v)
+  : esc(field === "last_checked" ? fmtDay(v) : v);
 
 function renderMapResult() {
   const P = mapCtx.preview, R = P.result, C = R.counts;
@@ -1238,7 +1246,7 @@ for (const sel of ["#comps", "#mfrComps", "#svhcComps"]) {
 let SVHC = null;
 const svhcIds = (s) => [...s.ec.map((x) => `EC ${x}`), ...s.cas.map((x) => `CAS ${x}`)];
 const longDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "")
-  ? new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE, { dateStyle: "medium" }) : esc(d || "");
+  ? fmtDay(d) : esc(d || "");
 const svhcHref = (id) => "#svhc/" + encodeURIComponent(id);
 
 async function loadSvhcList() {
@@ -1375,7 +1383,7 @@ async function openComponent(id) {
       <dt>ECCN (export control)</dt><dd>${c.eccn ? eccnCell(c.eccn) + (s.eccn ? `<div class="muted small">${esc(s.eccn.summary)}</div>` : "") : none}</dd>
       <dt>Country of origin</dt><dd>${c.country_of_origin ? `${esc(COUNTRIES[c.country_of_origin] || c.country_of_origin)} (${esc(c.country_of_origin)})` : none}</dd>
       <dt>Source of the information</dt><dd>${c.source ? esc(c.source) : none}</dd>
-      <dt>Last checked</dt><dd>${c.last_checked ? esc(c.last_checked) : none}</dd>
+      <dt>Last checked</dt><dd>${c.last_checked ? esc(fmtDay(c.last_checked)) : none}</dd>
     </dl>
     <h3 class="section">Regulations</h3>
     <div class="regcards">
@@ -1449,7 +1457,7 @@ function renderEccn() {
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
   const mfrs = e.manufacturer_links.map((m) => `${mfrLink(m.name, m.key)} (${m.count})`).join(", ");
   $("#eccnInfo").innerHTML = `
-    ${e.official_heading ? `<dt>Official heading of entry ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Commerce Control List text (eCFR${e.as_of ? `, version of ${esc(e.as_of)}` : ""}).</div></dd>` : ""}
+    ${e.official_heading ? `<dt>Official heading of entry ${esc(e.entry)}</dt><dd><q>${esc(e.official_heading)}</q><div class="muted small">Commerce Control List text (eCFR${e.as_of ? `, version of ${esc(fmtDay(e.as_of))}` : ""}).</div></dd>` : ""}
     <dt>Scope</dt><dd>${esc(e.explanation)}</dd>
     ${e.control_scope ? `<dt>Extent of control</dt><dd>${esc(e.control_scope)}</dd>` : ""}
     <dt>Official definition</dt><dd>${links}</dd>
@@ -1520,9 +1528,9 @@ function renderExemptionList() {
     || `<tr><td colspan="6" class="muted">No exemption used by the database components.</td></tr>`;
   const up = EXEMPTIONS.upcoming;
   $("#exemptSource").innerHTML = EXEMPTIONS.version
-    ? `Official text: Directive 2011/65/EU consolidated as of ${esc(EXEMPTIONS.version)}
+    ? `Official text: Directive 2011/65/EU consolidated as of ${esc(fmtDay(EXEMPTIONS.version))}
        (<a href="${esc(EXEMPTIONS.source_url)}" target="_blank" rel="noopener noreferrer">EUR-Lex ↗</a>).
-       ${up ? `Version of ${esc(up.version)} already published: ${up.changes ? `${plural(up.changes, "exemption")} changed` : "no change in Annexes III and IV"}.` : ""}`
+       ${up ? `Version of ${esc(fmtDay(up.version))} already published: ${up.changes ? `${plural(up.changes, "exemption")} changed` : "no change in Annexes III and IV"}.` : ""}`
     : "";
 }
 
@@ -1547,7 +1555,7 @@ function renderExemption() {
   $("#exemptSummary").textContent = e.found ? e.annex_label : "This code does not match any exemption in Annexes III and IV.";
   const datesList = (e.dates || []).map((d) => {
     const past = d < new Date().toISOString().slice(0, 10);
-    return `<span class="badge ${past ? "b-non_compliant" : "b-compliant"}">${new Date(d + "T00:00:00").toLocaleDateString(DATE_LOCALE, { dateStyle: "long" })}</span>`;
+    return `<span class="badge ${past ? "b-non_compliant" : "b-compliant"}">${fmtDay(d)}</span>`;
   }).join(" ");
   const links = e.links.map((l) => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} ↗</a>${l.hint ? `<div class="muted small">${esc(l.hint)}</div>` : ""}</div>`).join("");
   const up = e.upcoming;
@@ -1559,7 +1567,7 @@ function renderExemption() {
     ${datesList ? `<dt>Dates mentioned</dt><dd>${datesList}</dd>` : ""}
     <dt>Substances</dt><dd>${e.substances.length ? e.substances.map(esc).join(", ") : "—"}</dd>
     <dt>Renewal</dt><dd>${esc(e.renewal_note)}</dd>
-    ${up ? `<dt>Upcoming version</dt><dd>Consolidated version of ${esc(up.version)}: ${up.type === "none" ? "no change for this exemption." : `exemption ${esc(up.type)}${up.scope ? ` — ${esc(up.scope)}` : ""}.`} <a href="${esc(up.url)}" target="_blank" rel="noopener noreferrer">See ↗</a></dd>` : ""}
+    ${up ? `<dt>Upcoming version</dt><dd>Consolidated version of ${esc(fmtDay(up.version))}: ${up.type === "none" ? "no change for this exemption." : `exemption ${esc(up.type)}${up.scope ? ` — ${esc(up.scope)}` : ""}.`} <a href="${esc(up.url)}" target="_blank" rel="noopener noreferrer">See ↗</a></dd>` : ""}
     <dt>Official source</dt><dd>${links}</dd>
     <dt>Manufacturers</dt><dd>${mfrs || `<span class="muted">—</span>`}</dd>
     <dt>Notes</dt><dd>${e.notes ? esc(e.notes) : `<span class="muted">—</span>`}</dd>`
@@ -1608,7 +1616,7 @@ let captchaWidget = null;  // Cloudflare Turnstile widget, created on first use
 let turnstileLoading = null;
 
 function fmtDate(iso) {
-  try { return new Date(iso).toLocaleString(DATE_LOCALE, { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
+  return fmtDateTime(iso);
 }
 
 async function loadUser() {

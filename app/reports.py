@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import io
+import re
+from datetime import date
 
-from .db import FIELDS, country_name
+from .db import FIELDS, country_name, format_date, format_datetime
 
 LABELS = {
     "compliant": "Compliant",
@@ -47,7 +49,7 @@ COLUMNS = [
     ("ECCN", lambda l: (l["component"] or {}).get("eccn", "")),
     ("Country of origin", lambda l: _country((l["component"] or {}).get("country_of_origin", ""))),
     ("Source", lambda l: (l["component"] or {}).get("source", "")),
-    ("Last checked", lambda l: (l["component"] or {}).get("last_checked", "")),
+    ("Last checked", lambda l: format_date((l["component"] or {}).get("last_checked", ""))),
     ("Suggestions", lambda l: ", ".join(f"{s['mpn']} ({s['manufacturer']})" for s in l["suggestions"])),
     ("Notes", lambda l: " | ".join(l["notes"])),
 ]
@@ -115,7 +117,7 @@ def report_xlsx(report: dict) -> bytes:
     ws.append(["Environmental compliance report"])
     ws["A1"].font = Font(bold=True, size=14)
     ws.append(["BOM file", report.get("filename", "")])
-    ws.append(["Analysed on", report["analyzed_at"]])
+    ws.append(["Analysed on", format_datetime(report["analyzed_at"])])
     ws.append(["Components in database", report["database_size"]])
     ws.append([])
     ws.append(["BOM lines", s["lines"]])
@@ -167,8 +169,14 @@ def report_xlsx(report: dict) -> bytes:
         c.fill = PatternFill("solid", fgColor="D9D9D9")
     norm_by_title = {"RoHS 2": "rohs2", "RoHS 3": "rohs3", "REACH": "reach"}
     status_cols = {i + 1: norm_by_title[name] for i, (name, _) in enumerate(columns) if name in norm_by_title}
+    date_cols = [i + 1 for i, (name, _) in enumerate(columns) if name == "Last checked"]
     for line in report["lines"]:
         wd.append([f(line) for _, f in columns])
+        for col in date_cols:  # real Excel dates (sortable), shown DD-MM-YYYY
+            cell = wd.cell(wd.max_row, col)
+            if isinstance(cell.value, str) and re.fullmatch(r"\d{2}-\d{2}-\d{4}", cell.value):
+                d, m, y = (int(x) for x in cell.value.split("-"))
+                cell.value, cell.number_format = date(y, m, d), "dd-mm-yyyy"
         for col, key in status_cols.items():
             wd.cell(wd.max_row, col).fill = PatternFill("solid", fgColor=FILLS.get(line[key], "FFFFFF"))
     for i, (name, _) in enumerate(columns, start=1):
@@ -189,5 +197,5 @@ def database_csv(components: list[dict]) -> bytes:
     w = csv.writer(buf, delimiter=";")
     w.writerow(FIELDS)
     for c in components:
-        w.writerow([c.get(f, "") for f in FIELDS])
+        w.writerow([format_date(c.get(f, "")) if f == "last_checked" else c.get(f, "") for f in FIELDS])
     return buf.getvalue().encode("utf-8-sig")

@@ -453,6 +453,40 @@ def _status_from_words(v: str, allowed: tuple[str, ...]) -> str | None:
     return None
 
 
+# Dates are stored as YYYY-MM-DD (sortable, comparable) and shown as DD-MM-YYYY.
+_DATE_FORMATS = ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%d.%m.%Y", "%Y/%m/%d", "%d-%m-%y", "%d/%m/%y")
+
+
+def normalize_date(value: str | None) -> str:
+    """YYYY-MM-DD from DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY or YYYY-MM-DD (a time after it is dropped).
+    Unrecognised text is kept as written."""
+    v = (value or "").strip()
+    day = v[:10] if re.match(r"\d{4}-\d{2}-\d{2}[ T]", v) else v  # "2026-03-10 00:00:00" from a workbook
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(day, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return v
+
+
+def format_date(value: str | None) -> str:
+    """DD-MM-YYYY for display (from YYYY-MM-DD or a timestamp); other text unchanged."""
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", value or "")
+    return f"{m[3]}-{m[2]}-{m[1]}" if m else (value or "")
+
+
+def format_datetime(value: str | None) -> str:
+    """DD-MM-YYYY HH:MM UTC for a stored timestamp."""
+    try:
+        t = datetime.fromisoformat(value or "")
+    except ValueError:
+        return value or ""
+    if t.tzinfo:
+        t = t.astimezone(timezone.utc)
+    return t.strftime("%d-%m-%Y %H:%M") + (" UTC" if t.tzinfo else "")
+
+
 def prepare(data: dict) -> dict:
     """Validate and normalise a component record."""
     mpn = (data.get("mpn") or "").strip()
@@ -465,6 +499,7 @@ def prepare(data: dict) -> dict:
     rec["reach"] = clean_status(rec["reach"], REACH_STATUSES, "reach")
     rec["eccn"] = normalize_eccn(rec["eccn"])
     rec["country_of_origin"] = normalize_country(rec["country_of_origin"])
+    rec["last_checked"] = normalize_date(rec["last_checked"])
     rec["mpn_norm"] = normalize_mpn(mpn)
     rec["mpn_loose"] = loose_mpn(mpn)
     rec["manufacturer_norm"] = normalize_manufacturer(rec["manufacturer"])
