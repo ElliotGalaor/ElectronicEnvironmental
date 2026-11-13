@@ -141,6 +141,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#30](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/30) | **Component database**: RoHS exemptions and SVHC in two separate columns |
 | | [#31](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/31) | **Excel 97-2003** (`.xls`) BOMs and imports read; the format is recognised from the content of the file, so a workbook with the wrong extension, or an HTML table or text file saved as `.xls` by a web or ERP export, is read too |
 | | [#32](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/32) | **Analysis in progress** shown while a BOM is read and checked, with a note when the free server is waking up; only the latest analysis is shown when several are started |
+| | [#33](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/33) | **Docker image**: the REACH Candidate List is copied into the image (the SVHC tab was empty on Render), and the image smoke test checks the reference data |
 
 ## Quick start
 
