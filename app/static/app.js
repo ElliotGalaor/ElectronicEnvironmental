@@ -35,7 +35,21 @@ const plural = (n, word, many = word + "s") => `${n} ${n > 1 ? many : word}`;
 const state = { file: null, report: null, filter: "all", overrides: {}, substitutions: {}, classifications: {}, user: null, historyId: null, historyItems: [], page: 0, pageSize: 50 };
 
 async function api(url, opts = {}) {
-  const r = await fetch(url, opts);
+  let r;
+  try {
+    r = await fetch(url, { signal: timeoutSignal(API_TIMEOUT), ...opts });
+  } catch {
+    // No answer at all (server stopped, hosting down, network cut) or no answer in time
+    showServerDown("network");
+    throw Object.assign(new Error(SERVER_DOWN.network), { status: 0, kind: "server_down" });
+  }
+  if (r.status >= 500) {
+    // 500: error in the application; 503 + "database": database unavailable; 502/503/504: hosting (Render)
+    const kind = r.headers.get("X-Error-Kind") === "database" ? "database" : r.status === 500 ? "server" : "network";
+    showServerDown(kind);
+    throw Object.assign(new Error(SERVER_DOWN[kind]), { status: r.status, kind: "server_down" });
+  }
+  if (!$("#serverDown").hidden) hideServerDown(); // the server answers again
   if (!r.ok) {
     let msg = r.statusText;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
@@ -43,6 +57,47 @@ async function api(url, opts = {}) {
   }
   return r.status === 204 ? null : r;
 }
+
+/* ------------------------------------------------------------------ server unavailable
+   The server, its database or the hosting does not answer: a banner at the top of the page says that the site is
+   not working, then checks every 30 seconds whether it is back (and disappears as soon as it is). */
+const SERVER_DOWN = {
+  network: "The server is not responding: the site is not working at the moment.",
+  database: "The database is not available: the site is not working at the moment.",
+  server: "The server ran into an error: the site is not working properly at the moment.",
+};
+const API_TIMEOUT = 120000; // the free server can take about a minute to wake up, plus the analysis itself
+let healthTimer = null;
+
+const timeoutSignal = (ms) => { const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal; };
+
+function showServerDown(kind) {
+  $("#serverDownText").textContent = SERVER_DOWN[kind] || SERVER_DOWN.network;
+  $("#serverDown").hidden = false;
+  clearTimeout(healthTimer);
+  healthTimer = setTimeout(checkServer, 30000);
+}
+
+function hideServerDown() {
+  clearTimeout(healthTimer);
+  $("#serverDown").hidden = true;
+}
+
+async function checkServer() {
+  clearTimeout(healthTimer);
+  $("#btnServerRetry").disabled = true;
+  try {
+    const r = await fetch("/api/health", { cache: "no-store", signal: timeoutSignal(30000) });
+    if (!r.ok) throw Object.assign(new Error(r.statusText), { kind: r.headers.get("X-Error-Kind") === "database" ? "database" : "network" });
+    hideServerDown();
+    loadStats(); // the header shows the database size again
+  } catch (e) {
+    showServerDown(e.kind || "network");
+  } finally {
+    $("#btnServerRetry").disabled = false;
+  }
+}
+$("#btnServerRetry").addEventListener("click", checkServer);
 
 /* ------------------------------------------------------------------ tabs and navigation
    Addresses: #home (default), #analysis, #database, #component/<id>, #manufacturers, #manufacturer/<key>,

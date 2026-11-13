@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=34">
+<link rel="stylesheet" href="/static/style.css?v=35">
 </head>
 <body>
 <header class="top">
@@ -20,6 +20,13 @@
     <div class="account" id="account"></div>
   </div>
 </header>
+
+<div id="serverDown" class="serverdown" role="alert" hidden>
+  <span class="serverdown-icon" aria-hidden="true">⚠</span>
+  <span><strong id="serverDownText"></strong>
+    <span class="serverdown-more">Please try again in a few minutes: this page checks every 30 seconds whether the site is back.</span></span>
+  <button type="button" class="btn small" id="btnServerRetry">Try again now</button>
+</div>
 
 <div class="tabbar">
   <nav class="tabs" role="tablist">
@@ -620,6 +627,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=34"></script>
+<script src="/static/app.js?v=35"></script>
 </body>
 </html>
