@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-100%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-102%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -27,7 +27,7 @@
 ## Features
 
 ### 📋 Bill of materials analysis
-Upload a **CSV or Excel** file exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation and a downloadable **Excel** report.
+Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from any CAD tool, ERP or distributor: the header row and the columns (manufacturer part number, manufacturer, designators, quantity, do not populate, declared RoHS / REACH statuses…) are detected automatically, in English or French. Each line is matched against the database (exact, close, partial) and gets a **RoHS 2**, **RoHS 3** and **REACH** status. The result: an overall verdict, a pie chart per regulation and a downloadable **Excel** report.
 
 <img src="docs/images/lines.png" alt="Table of BOM lines with the status per regulation, ECCN and notes" width="100%">
 
@@ -89,7 +89,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (100 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (102 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -139,6 +139,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#28](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/28) | **Fixes from testing**: `.xlsb` BOMs read, distributor statuses such as `Compliant(YES)_` or `RoHS Compliant by Exemption` understood (RoHS and REACH), long column names wrapped in the column mapping, add and edit forms opened only for accounts allowed to change the database, page behind a dialog no longer scrolls, links to the manufacturers on the exemption and ECCN pages |
 | | [#29](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/29) | **New features from testing**: "needs review" statuses given by hand, with the same status offered to the lines that need review for the same reason (analysis only); number of equivalents on the Equivalents buttons; internal reference column; SVHC tab (REACH Candidate List); component pages explaining each regulation |
 | | [#30](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/30) | **Component database**: RoHS exemptions and SVHC in two separate columns |
+| | [#31](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/31) | **Excel 97-2003** (`.xls`) BOMs and imports read; the format is recognised from the content of the file, so a workbook with the wrong extension, or an HTML table or text file saved as `.xls` by a web or ERP export, is read too |
 
 ## Quick start
 
