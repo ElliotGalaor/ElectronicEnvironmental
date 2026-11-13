@@ -29,7 +29,9 @@ served at `/examples/bom_example.csv`.
 
 ## How it works
 
-1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`, `.xlsm`, `.xlsb`.
+1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`, `.xlsm`, `.xlsb`, `.xls`
+   (97-2003). The format is recognised from the content of the file, not from its extension: an `.xls` file
+   that is really an HTML table or a text file, as many web and ERP exports are, is read too.
    The header row and the columns are detected automatically (English and French names:
    *Manufacturer Part Number*, *MPN*, *Manufacturer*, *Designator*, *Qty*, *DNP*, *Référence fabricant*, *Repères*…).
    An **internal reference** (company part number: *Internal ref*, *CPN*, *Code article*…) is shown in its own

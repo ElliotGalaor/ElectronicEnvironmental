@@ -1212,6 +1212,48 @@ def test_xlsb_bom_with_long_headers():
         [(x["bom_mpn"], x["rohs3"], x["reach"]) for x in xlsb_lines]
 
 
+def test_xls_bom():
+    # Excel 97-2003 workbook (made with Excel from the CSV): same reading and same result as the CSV
+    from app.tables import read_rows
+    data_dir = ROOT / "tests" / "data"
+    csv_rows = read_rows((data_dir / "bom_long_headers.csv").read_bytes(), "bom.csv")
+    xls = (data_dir / "bom_long_headers.xls").read_bytes()
+    assert read_rows(xls, "bom.xls") == csv_rows
+    r = client.post("/api/analyze", files={"file": ("bom.xls", xls)})
+    assert r.status_code == 200, r.text
+    assert {x["bom_mpn"]: (x["rohs3"], x["reach"]) for x in r.json()["lines"]}["ABC-OLD-7"] == ("non_compliant", "svhc")
+    p = client.post("/api/table/preview", files={"file": ("bom.xls", xls)}).json()
+    assert p["columns"]["mpn"].startswith("Manufacturer Part Number")
+
+
+def test_excel_format_read_from_the_content():
+    import openpyxl
+
+    from app.tables import TableError, read_rows
+    data_dir = ROOT / "tests" / "data"
+    csv_rows = read_rows((data_dir / "bom_long_headers.csv").read_bytes(), "bom.csv")
+    wb = openpyxl.Workbook()
+    for row in csv_rows:
+        wb.active.append(row)
+    xlsx = io.BytesIO()
+    wb.save(xlsx)
+    # The extension does not matter: a workbook saved under another Excel extension, or a text file named .xls
+    assert read_rows(xlsx.getvalue(), "bom.xls") == csv_rows
+    assert read_rows((data_dir / "bom_long_headers.xlsb").read_bytes(), "bom.xlsx") == csv_rows
+    assert read_rows((data_dir / "bom_long_headers.csv").read_bytes(), "bom.xls") == csv_rows
+    # Web and ERP exports: an HTML table saved as .xls (the largest table of the page is read)
+    html = read_rows((data_dir / "bom_html_export.xls").read_bytes(), "export.xls")
+    assert html[0][0] == "Manufacturer Part Number" and html[2] == ["LM358DR", "Texas Instruments", "U2, U3", "2", "Compliant(YES)_"]
+    lines = {line["bom_mpn"]: line for line in client.post(
+        "/api/analyze", files={"file": ("export.xls", (data_dir / "bom_html_export.xls").read_bytes())}).json()["lines"]}
+    assert lines["XYZ-UNKNOWN-42"]["rohs3"] == "non_compliant" and lines["NE555P"]["match"] == "exact"
+    # Damaged workbooks: a clear message
+    for data, name in ((b"PK\x03\x04damaged", "bom.xlsx"), (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 600, "bom.xls")):
+        with pytest.raises(TableError, match="Unreadable Excel file"):
+            read_rows(data, name)
+        assert client.post("/api/analyze", files={"file": (name, data)}).status_code == 422
+
+
 # ------------------------------------------------------------------ feedback from testing: new features
 
 REVIEW_BOM = (
