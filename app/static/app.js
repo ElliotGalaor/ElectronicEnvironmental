@@ -222,8 +222,35 @@ $("#btnExample").addEventListener("click", async () => {
   }
 });
 
+// Message shown while the server reads the BOM and checks it: the calculation can take a while,
+// especially when the free server wakes up after a period without visits.
+const BUSY_TEXT = {
+  json: (name) => `Analysing ${name}: reading the file and checking each component against the database…`,
+  xlsx: () => "Preparing the Excel report…",
+  csv: () => "Preparing the CSV report…",
+  bom: () => "Preparing the modified BOM…",
+};
+let analysisSeq = 0, slowTimer = null;
+
+function showBusy(format) {
+  $("#analysingText").textContent = BUSY_TEXT[format](state.file.name);
+  $("#analysingSlow").hidden = true;
+  $("#analysing").hidden = false;
+  $("#result").classList.add("busy"); // the current result stays visible, dimmed, until the new one arrives
+  clearTimeout(slowTimer);
+  slowTimer = setTimeout(() => { $("#analysingSlow").hidden = false; }, 6000);
+}
+
+function hideBusy() {
+  clearTimeout(slowTimer);
+  $("#analysing").hidden = true;
+  $("#result").classList.remove("busy");
+}
+
 async function runAnalysis(format = "json") {
   if (!state.file) return;
+  // A new file or setting while an analysis is running: only the latest answer is shown
+  const seq = ++analysisSeq;
   const fd = new FormData();
   fd.append("file", state.file);
   fd.append("mapping", Object.keys(state.overrides).length ? JSON.stringify(state.overrides) : "");
@@ -234,8 +261,10 @@ async function runAnalysis(format = "json") {
     if (state.historyId) fd.append("history_id", state.historyId); else fd.append("save", "1");
   }
   $("#error").hidden = true;
+  showBusy(format);
   try {
     const r = await api(`/api/analyze?format=${format}`, { method: "POST", body: fd });
+    if (seq !== analysisSeq) return;
     if (format !== "json") {
       const blob = await r.blob();
       const a = Object.assign(document.createElement("a"), {
@@ -248,13 +277,16 @@ async function runAnalysis(format = "json") {
       URL.revokeObjectURL(a.href);
       return;
     }
-    state.report = await r.json();
+    const report = await r.json();
+    if (seq !== analysisSeq) return;
+    state.report = report;
     if (state.report.history_id) state.historyId = state.report.history_id;
     renderReport();
     renderSwapBar();
     renderClassifyBar();
     if (state.user) loadHistory();
   } catch (e) {
+    if (seq !== analysisSeq) return;
     if (format === "json" && e.kind === "columns") {
       // Message left under the dialog, in case the user cancels it
       $("#error").textContent = "Columns to specify: " + e.message;
@@ -266,6 +298,8 @@ async function runAnalysis(format = "json") {
     $("#error").textContent = "Error: " + e.message;
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
+  } finally {
+    if (seq === analysisSeq) hideBusy();
   }
 }
 

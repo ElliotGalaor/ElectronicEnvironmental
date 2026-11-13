@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=31">
+<link rel="stylesheet" href="/static/style.css?v=32">
 </head>
 <body>
 <header class="top">
@@ -153,6 +153,13 @@
     </div>
 
     <div id="error" class="alert error" hidden></div>
+
+    <div id="analysing" class="alert loading" role="status" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="analysingText"></span>
+      <span id="analysingSlow" class="muted small" hidden>The server may be waking up after a period without visits
+        (free hosting): the first analysis can take up to a minute.</span>
+    </div>
 
     <div id="result" hidden>
       <div class="fileline">
@@ -605,6 +612,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=31"></script>
+<script src="/static/app.js?v=32"></script>
 </body>
 </html>
