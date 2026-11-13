@@ -1416,3 +1416,42 @@ def test_excel_report_dates_are_sortable_dd_mm_yyyy():
     # The CSV report is unchanged
     csv_text = client.post("/api/analyze?format=csv", files={"file": ("b.csv", bom)}).content.decode("utf-8-sig")
     assert f";{stored};" in csv_text
+
+
+# ------------------------------------------------------------------ status values chosen in the column mapping
+
+VALUES_BOM = "MPN;Manufacturer;RoHS;REACH\nZZ-V-1;Acme;Status A;Free\nZZ-V-2;Acme;status a;Free\nZZ-V-3;Acme;Compliant(YES)_;Contains SVHC\n"
+VALUES_MAPPING = {"_status_values": {"rohs": {"Status A": "compliant", "Compliant(YES)_": "unknown"},
+                                     "reach": {"Free": "compliant"}}}
+
+
+def test_status_values_listed_in_the_preview():
+    p = client.post("/api/table/preview?kind=bom", files={"file": ("b.csv", VALUES_BOM.encode())}).json()
+    rohs = {v["value"]: v for v in p["status_values"]["rohs"]}
+    assert rohs["Status A"]["auto"] is None and rohs["Compliant(YES)_"]["auto"] == "compliant"
+    assert {v["value"]: v["count"] for v in p["status_values"]["reach"]} == {"Free": 2, "Contains SVHC": 1}
+    p = client.post("/api/table/preview?kind=bom", files={"file": ("b.csv", VALUES_BOM.encode())},
+                    data={"mapping": json.dumps(VALUES_MAPPING)}).json()
+    rohs = {v["value"]: v["chosen"] for v in p["status_values"]["rohs"]}
+    assert rohs == {"Status A": "compliant", "status a": "compliant", "Compliant(YES)_": "unknown"}  # case ignored
+    assert [line["values"]["rohs3"] for line in p["result"]["lines"]] == ["compliant", "compliant", "unknown"]
+
+
+def test_status_values_chosen_for_the_analysis_and_the_import():
+    lines = {line["bom_mpn"]: line for line in analyze_text(VALUES_BOM, mapping=json.dumps(VALUES_MAPPING))["lines"]}
+    assert (lines["ZZ-V-1"]["rohs3"], lines["ZZ-V-1"]["reach"]) == ("compliant", "compliant")
+    assert lines["ZZ-V-2"]["rohs3"] == "compliant"
+    # "Not accepted": as if the BOM gave no status
+    assert lines["ZZ-V-3"]["rohs3"] == "needs_review" and "rohs3" not in lines["ZZ-V-3"]["from_bom"]
+    assert lines["ZZ-V-3"]["reach"] == "svhc"  # automatic recognition for the values not chosen
+
+    imp = "mpn;manufacturer;rohs3;reach\nZZ-VAL-IMP;Acme;Status A;Free\n"
+    r = client.post("/api/components/import", files={"file": ("i.csv", imp.encode())}, data={"mapping": json.dumps(VALUES_MAPPING)})
+    assert r.status_code == 200 and r.json()["created"] == 1
+    comp = client.get("/api/components", params={"q": "ZZ-VAL-IMP"}).json()["items"][0]
+    assert (comp["rohs3"], comp["reach"]) == ("compliant", "compliant")
+
+    for bad in ({"rohs": {"x": "svhc"}}, {"other": {"x": "compliant"}}, ["compliant"]):
+        r = client.post("/api/analyze", files={"file": ("b.csv", VALUES_BOM.encode())},
+                        data={"mapping": json.dumps({"_status_values": bad})})
+        assert r.status_code == 422, bad

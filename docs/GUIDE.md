@@ -41,9 +41,15 @@ served at `/examples/bom_example.csv`.
    the wording of distributors and PLM tools (`Compliant(YES)`, `ROHS3 Compliant`, `RoHS Compliant by Exemption`,
    `Not RoHS Compliant`, `REACH Unaffected`, `Contains SVHC`…).
    **Column mapping**: if the manufacturer part number is not detected, a dialog opens to choose the column
-   for each field and the header row (`0` = file without a header); the "Columns…" button opens it too.
-   It shows the effect of each change on the first 3 lines and the result of the reading (part number found
-   in the database or not). The choice is kept in the history.
+   for each field and the header row (`0` = file without a header); the "Columns and statuses…" button opens
+   it too. It shows the effect of each change on the first 3 lines and the result of the reading (part number
+   found in the database or not). The choice is kept in the history.
+   **Status values**: the same dialog lists the RoHS / REACH values written in the file (`Compliant(YES)`,
+   `Conforme`, `TBD`…) with their number of lines and the meaning recognised automatically, which can be changed:
+   compliant, with exemption, non-compliant, contains an SVHC, or *not accepted* (as if no status were given).
+   The RoHS choices apply to the RoHS 2 and RoHS 3 columns; the case of the value does not matter. They are
+   remembered in the browser and applied to the next BOMs and database imports, and kept with each analysis in
+   the history. When the report has values that are not recognised, a banner offers to choose their meaning.
 2. **Matching against the database**, from most to least reliable:
    | Match | Rule | Status used |
    |---|---|---|

@@ -46,6 +46,8 @@ from .tables import (
     modified_bom_csv,
     parse_bom,
     read_rows,
+    status_choices,
+    status_value_summary,
     table_preview,
 )
 
@@ -227,15 +229,19 @@ async def preview_table(
             preview = table_preview(rows, m.header_row, m.labels, m.columns, BOM_FIELDS)
             auto = detect_columns(rows, {HEADER_ROW_KEY: m.header_row + 1}, require_mpn=False).columns
             result = _bom_result(conn, rows, m)
+            values = status_value_summary(rows, m.header_row, m.columns, m.status_values)
         else:
             hr, labels, columns = detect_import_columns(rows, overrides)
             preview = table_preview(rows, hr, labels, columns, IMPORT_FIELDS)
             auto = detect_import_columns(rows, {HEADER_ROW_KEY: hr + 1})[2]
-            result = plan_table(conn, rows, hr, columns) if "mpn" in columns else {"counts": {}, "lines": []}
+            choices = status_choices(overrides)
+            result = plan_table(conn, rows, hr, columns, choices=choices) if "mpn" in columns else {"counts": {}, "lines": []}
+            values = status_value_summary(rows, hr, columns, choices)
     except TableError as exc:
         raise HTTPException(422, str(exc)) from exc
     detected = {role: preview["headers"][idx] for role, idx in auto.items()}
-    return {"kind": kind, "filename": file.filename or "", **preview, "detected": detected, "result": result}
+    return {"kind": kind, "filename": file.filename or "", **preview, "detected": detected, "result": result,
+            "status_values": values}
 
 
 # ---------------------------------------------------------------- BOM analysis
