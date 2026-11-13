@@ -116,6 +116,9 @@ jobs:
           python3 -c "import json; d = json.load(open('stats.json')); assert d['total'] > 100, d; print('components in database:', d['total'])"
           curl -fsS http://127.0.0.1:8000/ | grep -q "RoHS / REACH Checker"
           curl -fsS -o example.csv http://127.0.0.1:8000/examples/bom_example.csv && head -1 example.csv   # home page example
+          # Reference data copied into the image: RoHS exemptions and REACH Candidate List (SVHC tab)
+          curl -fsS http://127.0.0.1:8000/api/exemptions/7c-I | python3 -c "import json, sys; d = json.load(sys.stdin); assert d['found'], d; print('exemption 7(c)-I:', d['status']['label'])"
+          curl -fsS http://127.0.0.1:8000/api/svhc | python3 -c "import json, sys; d = json.load(sys.stdin); assert d['available'] and len(d['substances']) > 400, d['available']; print('SVHC:', len(d['substances']), 'substances, version', d['version'])"
 
       - name: Container logs
         if: always()

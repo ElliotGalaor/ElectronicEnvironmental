@@ -12,7 +12,8 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app ./app
-COPY data/seed_components.csv data/ccl_headings.json data/rohs_exemptions.json ./data/
+# Reference data read by the application (the database itself lives in the /data volume)
+COPY data/seed_components.csv data/ccl_headings.json data/rohs_exemptions.json data/svhc_candidate_list.json ./data/
 COPY examples ./examples
 COPY cli.py docker-entrypoint.sh ./
 
