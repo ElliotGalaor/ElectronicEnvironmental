@@ -140,6 +140,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#29](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/29) | **New features from testing**: "needs review" statuses given by hand, with the same status offered to the lines that need review for the same reason (analysis only); number of equivalents on the Equivalents buttons; internal reference column; SVHC tab (REACH Candidate List); component pages explaining each regulation |
 | | [#30](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/30) | **Component database**: RoHS exemptions and SVHC in two separate columns |
 | | [#31](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/31) | **Excel 97-2003** (`.xls`) BOMs and imports read; the format is recognised from the content of the file, so a workbook with the wrong extension, or an HTML table or text file saved as `.xls` by a web or ERP export, is read too |
+| | [#32](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/32) | **Analysis in progress** shown while a BOM is read and checked, with a note when the free server is waking up; only the latest analysis is shown when several are started |
 
 ## Quick start
 

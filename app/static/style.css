@@ -94,6 +94,16 @@ main { padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
 .alert { margin: 14px 0; padding: 10px 14px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
 .alert.error { background: var(--ko-bg); color: var(--ko); border-color: transparent; }
 .alert.success { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+/* Analysis in progress */
+.alert.loading { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.alert.loading[hidden] { display: none; }
+.alert.loading .muted { flex-basis: 100%; padding-left: 26px; }
+.spinner { flex: none; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+#result { transition: opacity .2s; }
+#result.busy { opacity: .45; pointer-events: none; }
 
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .btn:hover { background: var(--surface-2); }
