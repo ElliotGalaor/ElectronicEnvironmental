@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=33">
+<link rel="stylesheet" href="/static/style.css?v=34">
 </head>
 <body>
 <header class="top">
@@ -203,6 +203,7 @@
           <button class="chip" data-filter="check">Needs review</button>
           <button class="chip" data-filter="svhc">SVHC / exemptions</button>
           <button class="chip" data-filter="eccn">Controlled ECCN</button>
+          <button class="chip active chartchip" id="chartFilterChip" title="Filter chosen in a chart: click to remove it" hidden></button>
         </div>
         <div class="left"><input type="search" id="lineSearch" name="filter-lineSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Filter (part number, designator…)"><span class="muted small" id="lineCount"></span></div>
       </div>
@@ -619,6 +620,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=33"></script>
+<script src="/static/app.js?v=34"></script>
 </body>
 </html>

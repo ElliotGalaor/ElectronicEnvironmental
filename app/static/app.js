@@ -196,7 +196,9 @@ $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) start
 function resetLineFilters() {
   $("#lineSearch").value = "";
   state.filter = "all";
-  $$("#filters .chip").forEach((x) => x.classList.toggle("active", x.dataset.filter === "all"));
+  state.chartFilter = null; // {norm, status}: slice of a chart clicked
+  $$("#filters .chip[data-filter]").forEach((x) => x.classList.toggle("active", x.dataset.filter === "all"));
+  markChartFilter();
 }
 
 function startAnalysis(file) {
@@ -389,7 +391,8 @@ function renderCharts(S) {
     if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">No populated line.</p></div></div>`;
     const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
-    const legend = slices.map((s) => `<li data-k="${s.key}"><span class="sw" style="background:var(${s.color})"></span>
+    const legend = slices.map((s) => `<li data-k="${s.key}" tabindex="0" role="button" aria-pressed="false"
+      title="Show only these lines"><span class="sw" style="background:var(${s.color})"></span>
       <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
     const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
     return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">
@@ -399,6 +402,7 @@ function renderCharts(S) {
         ${skipped ? `<div class="foot">${skipped} not populated, excluded</div>` : ""}</div>
     </div>`;
   }).join("");
+  markChartFilter(); // after a new analysis, the selected slice stays highlighted
 }
 
 // Hover: highlights the slice and its legend row, with a tooltip
@@ -414,7 +418,7 @@ function chartHover(ev) {
   card.querySelector(".pie").classList.add("dim");
   card.querySelectorAll(`[data-k="${key}"]`).forEach((e) => e.classList.add("on"));
   const li = card.querySelector(`.legend [data-k="${key}"]`);
-  chartTip.textContent = `${card.querySelector("h4").firstChild.textContent.trim()} · ${li.querySelector(".lbl").textContent}: ${li.querySelector(".val").textContent}`;
+  chartTip.textContent = `${card.querySelector("h4").firstChild.textContent.trim()} · ${li.querySelector(".lbl").textContent}: ${li.querySelector(".val").textContent} — click to show these lines`;
   chartTip.hidden = false;
   chartTip.style.left = Math.min(ev.clientX + 14, innerWidth - chartTip.offsetWidth - 8) + "px";
   chartTip.style.top = ev.clientY + 14 + "px";
@@ -422,9 +426,60 @@ function chartHover(ev) {
 $("#charts").addEventListener("mousemove", chartHover);
 $("#charts").addEventListener("mouseleave", chartHover);
 
-$$("#filters .chip").forEach((c) => c.addEventListener("click", () => {
+// Click on a slice or a legend row: only the lines with this status for this regulation (click again to undo)
+function chartClick(ev) {
+  const el = ev.target.closest(".pie [data-k], .legend [data-k]");
+  const card = ev.target.closest(".chart[data-norm]");
+  if (!el || !card) return;
+  const f = { norm: card.dataset.norm, status: el.dataset.k };
+  const same = state.chartFilter && state.chartFilter.norm === f.norm && state.chartFilter.status === f.status;
+  setChartFilter(same ? null : f);
+  if (!same) {
+    // The filtered table is below the charts: bring it into view if it is not
+    const bar = $("#filters").getBoundingClientRect();
+    if (bar.top > innerHeight - 120 || bar.top < 0) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+$("#charts").addEventListener("click", chartClick);
+$("#charts").addEventListener("keydown", (ev) => {
+  if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".legend [data-k]")) { ev.preventDefault(); chartClick(ev); }
+});
+
+function setChartFilter(f) {
+  state.chartFilter = f;
+  if (f) { // replaces the filter chips, which apply to all regulations at once
+    state.filter = "all";
+    $$("#filters .chip[data-filter]").forEach((x) => x.classList.toggle("active", x.dataset.filter === "all"));
+  }
+  markChartFilter();
+  renderLines();
+}
+
+// Selected slice highlighted in its chart, and shown as a chip in the filter bar
+function markChartFilter() {
+  const f = state.chartFilter;
+  $$("#charts .chart").forEach((card) => {
+    const mine = !!f && card.dataset.norm === f.norm;
+    card.classList.toggle("filtered", mine);
+    card.querySelectorAll("[data-k]").forEach((e) => {
+      const sel = mine && e.dataset.k === f.status;
+      e.classList.toggle("sel", sel);
+      if (e.tagName === "LI") e.setAttribute("aria-pressed", sel);
+    });
+  });
+  const chip = $("#chartFilterChip");
+  chip.hidden = !f;
+  if (f) chip.innerHTML = `${esc(chartFilterLabel(f))} <span aria-hidden="true">✕</span>`;
+}
+
+const chartFilterLabel = (f) => `${NORMS.find(([k]) => k === f.norm)[1]}: ${PIE_STATUSES.find(([k]) => k === f.status)[1]}`;
+$("#chartFilterChip").addEventListener("click", () => setChartFilter(null));
+
+$$("#filters .chip[data-filter]").forEach((c) => c.addEventListener("click", () => {
   state.filter = c.dataset.filter;
-  $$("#filters .chip").forEach((x) => x.classList.toggle("active", x === c));
+  state.chartFilter = null;
+  $$("#filters .chip[data-filter]").forEach((x) => x.classList.toggle("active", x === c));
+  markChartFilter();
   renderLines();
 }));
 $("#lineSearch").addEventListener("input", renderLines);
@@ -434,7 +489,8 @@ function emptyLinesRow() {
   if (!state.report.lines.length) return `<tr><td colspan="12" class="muted">The BOM has no lines.</td></tr>`;
   const q = $("#lineSearch").value.trim();
   const chip = $(`#filters .chip[data-filter="${state.filter}"]`);
-  const why = [q ? `search “${esc(q)}”` : "", state.filter !== "all" && chip ? `filter “${esc(chip.textContent)}”` : ""].filter(Boolean).join(" and ");
+  const why = [q ? `search “${esc(q)}”` : "", state.filter !== "all" && chip ? `filter “${esc(chip.textContent)}”` : "",
+    state.chartFilter ? `filter “${esc(chartFilterLabel(state.chartFilter))}”` : ""].filter(Boolean).join(" and ");
   return `<tr><td colspan="12" class="emptyrow">None of the ${state.report.lines.length} lines match ${why ? `the ${why}` : "the filters"}.
     <button class="btn small" data-clearfilters>Show all lines</button></td></tr>`;
 }
@@ -447,6 +503,7 @@ function lineVisible(l) {
   if (f === "check" && !st.includes("needs_review")) return false;
   if (f === "svhc" && !st.some((s) => ["svhc", "exemption"].includes(s))) return false;
   if (f === "eccn" && !(l.component && l.component.eccn && l.component.eccn !== "EAR99")) return false;
+  if (state.chartFilter && l[state.chartFilter.norm] !== state.chartFilter.status) return false;
   const q = $("#lineSearch").value.trim().toLowerCase();
   if (q && ![l.bom_mpn, l.internal_ref, l.designator, l.bom_manufacturer, l.bom_description].join(" ").toLowerCase().includes(q)) return false;
   return true;
