@@ -504,12 +504,12 @@ async function loadComponents() {
     $("#comps tbody").innerHTML = items.map((c) => `<tr>
       <td class="mono">${compLink(c)}</td><td>${mfrLink(c.manufacturer, c.manufacturer_key)}</td><td>${esc(c.description)}</td>
       <td>${badge(c.rohs2)}</td><td>${badge(c.rohs3)}</td><td>${badge(c.reach)}</td>
-      <td class="notes">${c.rohs_exemptions ? `<div>Exemption: ${exLinks(c.rohs_exemptions)}</div>` : ""}${c.svhc_list ? `<div>SVHC: ${esc(c.svhc_list)}</div>` : ""}</td>
+      <td class="notes">${c.rohs_exemptions ? exLinks(c.rohs_exemptions) : ""}</td><td class="notes">${esc(c.svhc_list)}</td>
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
       <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
-      || `<tr><td colspan="11" class="muted">No components.</td></tr>`;
+      || `<tr><td colspan="12" class="muted">No components.</td></tr>`;
   } catch (e) {
-    $("#comps tbody").innerHTML = `<tr><td colspan="11">Error: ${esc(e.message)}</td></tr>`;
+    $("#comps tbody").innerHTML = `<tr><td colspan="12">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 
