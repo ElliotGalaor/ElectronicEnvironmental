@@ -70,6 +70,9 @@ served at `/examples/bom_example.csv`.
    value in the BOM) are offered in the same dialog. These statuses only apply to the analysis: they are marked
    "by hand" on screen and in the exports and kept in the history, while the component database is unchanged.
    Components that are not populated (DNP) are excluded.
+   A pie chart per regulation shows the breakdown of the statuses: clicking a slice or a legend row shows only
+   the lines with that status for that regulation (for example "RoHS 3: Non-compliant"); clicking it again, or
+   the chip shown in the filter bar, shows all the lines.
    Since RoHS 3 includes RoHS 2 (+ 4 phthalates), a RoHS 3 compliant component is inferred RoHS 2 compliant
    when that status is missing.
 
