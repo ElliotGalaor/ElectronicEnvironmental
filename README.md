@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-103%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-105%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -35,7 +35,8 @@ Upload a **CSV or Excel** file (`.xlsx`, `.xlsm`, `.xlsb`, `.xls`) exported from
 When a file does not look like any known format, for example an ERP export with a title block and custom headers, a dialog lets you **choose by hand which column matches each field**. You can also choose the header row, or say that the file has none. Before confirming, you can see:
 - **the effect of each change** on the first lines (old value struck through → new value);
 - **the result**, line by line: part number found or missing in the database, or, for a database import, what will be **created, changed or rejected**, simulated without writing anything;
-- the **manual choices** compared with automatic detection.
+- the **manual choices** compared with automatic detection;
+- the **RoHS / REACH values** written in the file (`Compliant(YES)`, `Conforme`, `TBD`…), with the meaning of each: compliant, non-compliant, with exemption, SVHC or not accepted. The choices are remembered for the next files.
 
 The RoHS / REACH statuses found in the BOM are used. If the component is in the database, the database is authoritative: a disagreement turns the line into "needs review". If it is missing, the BOM status is used and marked "from the BOM".
 
@@ -89,7 +90,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (103 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (105 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -143,6 +144,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#32](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/32) | **Analysis in progress** shown while a BOM is read and checked, with a note when the free server is waking up; only the latest analysis is shown when several are started |
 | | [#33](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/33) | **Docker image**: the REACH Candidate List is copied into the image (the SVHC tab was empty on Render), and the image smoke test checks the reference data |
 | | [#35](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/35) | **Excel report**: the "Last checked" dates are real Excel dates shown as dd-mm-yyyy (sortable) |
+| | [#36](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/36) | **Status values chosen at import**: the column mapping dialog lists the RoHS / REACH values of the file and lets you choose what each means (or refuse it), for BOMs and database imports; choices remembered in the browser |
 
 ## Quick start
 

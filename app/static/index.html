@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=32">
+<link rel="stylesheet" href="/static/style.css?v=33">
 </head>
 <body>
 <header class="top">
@@ -165,10 +165,16 @@
       <div class="fileline">
         <div><strong id="fname"></strong> <span class="muted" id="fmeta"></span></div>
         <div class="actions">
-          <button class="btn" id="btnMapping" title="Choose which file column matches each field">Columns…</button>
+          <button class="btn" id="btnMapping" title="Choose which file column matches each field, and what the status values mean">Columns and statuses…</button>
           <button class="btn" data-export="csv">Export CSV</button>
           <button class="btn primary" data-export="xlsx">Export Excel</button>
         </div>
+      </div>
+
+      <div id="statusHint" class="swapbar" hidden>
+        <span id="statusHintText"></span>
+        <span class="spacer"></span>
+        <button class="btn" id="btnStatusHint">Choose what these values mean</button>
       </div>
 
       <div id="swapBar" class="swapbar" hidden>
@@ -513,6 +519,7 @@
       <span class="muted small">Number of the row that holds the column names (0 if the file has none).</span>
     </div>
     <div class="mapgrid" id="mapFields"></div>
+    <div id="mapStatuses" class="mapstatuses" hidden></div>
     <div id="mapDemo" class="mapdemo" hidden aria-live="polite"></div>
     <div class="maptabs" role="tablist">
       <button type="button" class="chip active" role="tab" data-maptab="result">Result</button>
@@ -612,6 +619,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=32"></script>
+<script src="/static/app.js?v=33"></script>
 </body>
 </html>
