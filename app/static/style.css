@@ -37,6 +37,14 @@ h2 { font-size: 17px; margin: 0 0 14px; }
 .sub { margin: 0; color: var(--muted); font-size: 13px; }
 .dbinfo { color: var(--muted); font-size: 13px; }
 
+/* Server, database or hosting unavailable: banner at the top, kept in view while scrolling */
+.serverdown { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+  padding: 10px 24px; background: var(--ko-bg); color: var(--ko); border-bottom: 1px solid var(--ko); font-size: 13.5px; }
+.serverdown[hidden] { display: none; }
+.serverdown-icon { font-size: 18px; }
+.serverdown > span:nth-child(2) { flex: 1 1 260px; }
+.serverdown-more { display: block; color: var(--text); opacity: .8; font-size: 12.5px; margin-top: 2px; }
+@media (max-width: 640px) { .serverdown { padding: 10px 16px; } }
 .tabbar { position: relative; background: var(--surface); border-bottom: 1px solid var(--border); }
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding: 0 24px; }
 .tab { white-space: nowrap; background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 14px; font: inherit; color: var(--muted); cursor: pointer; }

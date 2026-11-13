@@ -346,6 +346,7 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET/PUT | `/api/exemptions/{code}` | an exemption's page (official text, dates, components) / notes |
 | GET | `/api/svhc` | REACH Candidate List, with the number of database components per substance |
 | GET | `/api/svhc/{id}` | a substance of the Candidate List and the components that contain it |
+| GET | `/api/health` | is the site working: `{"status": "ok"}`, or 503 when the database does not answer |
 | GET | `/api/eccn` | ECCN codes in the database, with their explanation |
 | GET/PUT | `/api/eccn/{code}` | a code's page (breakdown, official heading, eCFR links, components) / title and notes |
 | GET | `/api/manufacturers` | list of manufacturers and their statistics |
@@ -356,6 +357,12 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 ## Server deployment
 
 Step-by-step guide for a free Render web service over HTTPS: [DEPLOY.md](DEPLOY.md) (configuration in [`render.yaml`](../render.yaml)).
+
+**When the site is not working**: if the server does not answer (stopped, hosting down, no answer within 2
+minutes), if its database is unavailable (HTTP 503) or if it hits an unexpected error (HTTP 500), a red banner
+at the top of the page says that the site is not working and checks `/api/health` every 30 seconds; it
+disappears as soon as the site answers again. Server errors are answered in JSON with an `X-Error-Kind` header
+(`database` or `server`) and logged. When the page itself cannot be loaded, the host's own error page is shown.
 
 - `RRC_DB_PATH`: path of the SQLite database (default `data/components.db`).
 - `RRC_ADMIN_EMAIL`: administrator's address. This account can change the database and approves the edit

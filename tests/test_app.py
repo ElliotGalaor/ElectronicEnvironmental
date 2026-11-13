@@ -1455,3 +1455,37 @@ def test_status_values_chosen_for_the_analysis_and_the_import():
         r = client.post("/api/analyze", files={"file": ("b.csv", VALUES_BOM.encode())},
                         data={"mapping": json.dumps({"_status_values": bad})})
         assert r.status_code == 422, bad
+
+
+# ------------------------------------------------------------------ server unavailable
+
+def test_health_check():
+    r = client.get("/api/health")
+    assert r.status_code == 200 and r.json() == {"status": "ok"}
+
+
+def test_database_unavailable_gives_a_clear_answer(monkeypatch):
+    import sqlite3
+
+    def broken(*args, **kwargs):
+        raise sqlite3.OperationalError("disk I/O error")
+
+    monkeypatch.setattr(db, "search", broken)
+    r = client.get("/api/components")
+    assert r.status_code == 503 and r.headers["X-Error-Kind"] == "database"
+    assert r.json()["detail"].startswith("The database is not available")
+    monkeypatch.setattr(db, "connect", broken)
+    r = client.get("/api/health")
+    assert r.status_code == 503 and r.headers["X-Error-Kind"] == "database"
+
+
+def test_unexpected_server_error_gives_a_clear_answer(monkeypatch):
+    def broken(*args, **kwargs):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(db, "stats", broken)
+    r = TestClient(app, raise_server_exceptions=False).get("/api/stats")
+    assert r.status_code == 500 and r.headers["X-Error-Kind"] == "server"
+    assert r.json()["detail"].startswith("Server error")
+    # Expected errors keep their own status and message
+    assert client.get("/api/components/999999").status_code == 404

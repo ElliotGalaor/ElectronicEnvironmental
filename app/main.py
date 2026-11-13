@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import os
+import sqlite3
 import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -61,6 +63,24 @@ app = FastAPI(
     description="RoHS 2, RoHS 3 and REACH compliance analysis of a bill of materials (BOM) against a component database.",
     version="2.0.0",
 )
+log = logging.getLogger("rohs_checker")
+
+# Errors on the server side: a JSON answer the interface understands (X-Error-Kind), so that it can tell the user
+# that the site is not working, instead of a bare "Internal Server Error".
+DATABASE_DOWN = "The database is not available: the site is not working at the moment."
+SERVER_ERROR = "Server error: the site is not working properly at the moment."
+
+
+@app.exception_handler(sqlite3.Error)
+async def database_unavailable(request: Request, exc: sqlite3.Error):
+    log.error("Database error on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse({"detail": DATABASE_DOWN}, status_code=503, headers={"X-Error-Kind": "database"})
+
+
+@app.exception_handler(Exception)
+async def server_error(request: Request, exc: Exception):
+    # Starlette also logs the traceback of these errors
+    return JSONResponse({"detail": SERVER_ERROR}, status_code=500, headers={"X-Error-Kind": "server"})
 
 
 @app.middleware("http")
@@ -870,6 +890,12 @@ def update_eccn(code: str, body: EccnIn, conn=Depends(get_conn)):
 @app.get("/api/countries", summary="Recognised ISO country codes and their names")
 def get_countries():
     return db.COUNTRIES
+
+
+@app.get("/api/health", summary="Is the site working? Checks that the database answers (503 otherwise)")
+def health(conn=Depends(get_conn)):
+    conn.execute("SELECT 1 FROM components LIMIT 1").fetchone()
+    return {"status": "ok"}
 
 
 @app.get("/api/stats")
