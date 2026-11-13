@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-102%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-104%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -89,7 +89,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl (Excel), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components |
-| Quality | **pytest** (102 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (104 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -142,6 +142,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#31](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/31) | **Excel 97-2003** (`.xls`) BOMs and imports read; the format is recognised from the content of the file, so a workbook with the wrong extension, or an HTML table or text file saved as `.xls` by a web or ERP export, is read too |
 | | [#32](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/32) | **Analysis in progress** shown while a BOM is read and checked, with a note when the free server is waking up; only the latest analysis is shown when several are started |
 | | [#33](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/33) | **Docker image**: the REACH Candidate List is copied into the image (the SVHC tab was empty on Render), and the image smoke test checks the reference data |
+| | [#34](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/34) | **Dates shown as dd-mm-yyyy** everywhere (pages, history, exports, expiry labels), entered as dd-mm-yyyy, stored as yyyy-mm-dd |
 
 ## Quick start
 

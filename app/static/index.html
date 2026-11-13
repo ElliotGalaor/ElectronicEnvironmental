@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=32">
+<link rel="stylesheet" href="/static/style.css?v=33">
 </head>
 <body>
 <header class="top">
@@ -600,7 +600,7 @@
       <label>Country of origin<input name="country_of_origin" list="countryList" placeholder="e.g. CN, MY, Germany" autocomplete="off"></label>
       <datalist id="countryList"></datalist>
       <label>Source<input name="source" placeholder="Manufacturer declaration, URL…"></label>
-      <label>Last checked<input name="last_checked" type="date"></label>
+      <label>Last checked<input name="last_checked" placeholder="dd-mm-yyyy" pattern="\d{2}-\d{2}-\d{4}" title="Date as dd-mm-yyyy, e.g. 31-01-2026" autocomplete="off"></label>
     </div>
     <div id="dlgError" class="alert error" hidden></div>
     <div class="dlgactions">
@@ -612,6 +612,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=32"></script>
+<script src="/static/app.js?v=33"></script>
 </body>
 </html>

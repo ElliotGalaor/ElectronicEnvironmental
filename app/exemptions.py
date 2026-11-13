@@ -70,19 +70,10 @@ def _status(dates: list[str]) -> dict:
         nxt = min(future)
         days = (date.fromisoformat(nxt) - date.today()).days
         return {"kind": "expiring_soon" if days <= 365 else "in_force",
-                "label": f"Expires on {_long_date(nxt)}" + (f" (in {days} days)" if days <= 365 else ""), "next": nxt}
+                "label": f"Expires on {db.format_date(nxt)}" + (f" (in {days} days)" if days <= 365 else ""), "next": nxt}
     last = max(dates)
-    return {"kind": "expired", "label": f"Expiry date passed ({_long_date(last)}): check whether a renewal is pending",
+    return {"kind": "expired", "label": f"Expiry date passed ({db.format_date(last)}): check whether a renewal is pending",
             "next": last}
-
-
-_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-           "November", "December"]
-
-
-def _long_date(iso: str) -> str:
-    y, m, d = (int(x) for x in iso.split("-"))
-    return f"{d} {_MONTHS[m - 1]} {y}"
 
 
 def describe(code: str) -> dict:
@@ -93,7 +84,7 @@ def describe(code: str) -> dict:
             "links": [], "renewal_note": ART5_NOTE}
     links = []
     if data.get("url"):
-        links.append({"label": f"Official consolidated text of Directive 2011/65/EU, version of {data.get('version', '')} (EUR-Lex)",
+        links.append({"label": f"Official consolidated text of Directive 2011/65/EU, version of {db.format_date(data.get('version', ''))} (EUR-Lex)",
                       "url": data["url"], "hint": f"Annex {e['annex'] if e else 'III'}, point {e['code'] if e else code}."})
     links.append({"label": "Directive 2011/65/EU, original text (EUR-Lex)", "url": DIRECTIVE_URL})
     base["links"] = links

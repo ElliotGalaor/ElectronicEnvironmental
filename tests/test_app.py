@@ -1399,3 +1399,41 @@ def test_candidate_list_data_file():
     subs = {s["id"]: s for s in svhc.substances()}
     assert len(subs) > 400 and subs["lead"]["cas"] == ["7439-92-1"]
     assert all(len(s["date"]) == 10 and s["name"] for s in subs.values())
+
+
+# ------------------------------------------------------------------ dates: stored YYYY-MM-DD, shown DD-MM-YYYY
+
+def test_dates_stored_iso_and_shown_dd_mm_yyyy():
+    for raw in ("2026-03-10", "10-03-2026", "10/03/2026", "10.03.2026", "2026-03-10 00:00:00"):
+        assert db.normalize_date(raw) == "2026-03-10", raw
+    assert db.normalize_date("") == "" and db.normalize_date("to check") == "to check"
+    assert db.format_date("2026-03-10") == "10-03-2026" and db.format_date("to check") == "to check"
+    assert db.format_datetime("2026-11-13T16:44:40+00:00") == "13-11-2026 16:44 UTC"
+
+    # Typed as dd-mm-yyyy in the form or an import: stored YYYY-MM-DD (sortable)
+    r = client.post("/api/components", json={"mpn": "DATE-TEST-1", "manufacturer": "Acme", "last_checked": "31-01-2026"})
+    assert r.status_code == 201, r.text
+    assert client.get(f"/api/components/{r.json()['id']}").json()["last_checked"] == "2026-01-31"
+
+    # Exports show DD-MM-YYYY, and the database export can be imported back unchanged
+    report_csv = client.post("/api/analyze?format=csv", files={"file": ("b.csv", b"MPN;Manufacturer\nDATE-TEST-1;Acme\n")})
+    assert ";31-01-2026;" in report_csv.content.decode("utf-8-sig")
+    export = client.get("/api/components/export").content
+    assert b"31-01-2026" in export and b"2026-01-31" not in export
+    with db.session() as conn:
+        assert import_table(conn, export, "export.csv")["updated"] == 0
+
+    # Excel report: a real date, formatted dd-mm-yyyy
+    import openpyxl
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("b.csv", b"MPN;Manufacturer\nDATE-TEST-1;Acme\n")}).content
+    ws = openpyxl.load_workbook(io.BytesIO(xlsx))["Detail"]
+    col = [c.value for c in ws[1]].index("Last checked") + 1
+    cell = ws.cell(2, col)
+    assert cell.value.date().isoformat() == "2026-01-31" and cell.number_format == "dd-mm-yyyy"
+
+
+def test_exemption_dates_shown_dd_mm_yyyy():
+    from app import exemptions as ex_mod
+    label = ex_mod._status(["2999-06-30"])["label"]
+    assert label == "Expires on 30-06-2999"
+    assert ex_mod._status(["2000-01-31"])["label"].startswith("Expiry date passed (31-01-2000)")

@@ -489,7 +489,7 @@ def _request_email(email: str, created_at: str, link: str) -> str:
     url = html.escape(link, quote=True)
     return (
         "<p>Hello,</p>"
-        f"<p><strong>{html.escape(email)}</strong> (account created on {html.escape(created_at[:10])}) asks for "
+        f"<p><strong>{html.escape(email)}</strong> (account created on {html.escape(db.format_date(created_at))}) asks for "
         "permission to add and edit components in the database of the RoHS / REACH Checker.</p>"
         f'<p><a href="{url}">Review the request</a> (approve or refuse)</p>'
         f"<p>Or copy this address into your browser:<br>{url}</p>"
