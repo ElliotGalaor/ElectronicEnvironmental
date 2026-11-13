@@ -143,10 +143,12 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .grid td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .grid tr:last-child td { border-bottom: 0; }
 .grid tr.dnp td { opacity: .55; }
-#comps { min-width: 1250px; }
+#comps { min-width: 1350px; }
 #comps td:nth-child(1) { white-space: nowrap; }
 #comps td:nth-child(3) { min-width: 220px; }
-#comps td:nth-child(10) { white-space: nowrap; }
+#comps td:nth-child(7) { min-width: 110px; }   /* RoHS exemptions */
+#comps td:nth-child(8) { min-width: 160px; }   /* SVHC */
+#comps td:nth-child(11) { white-space: nowrap; }  /* last checked */
 #lines { min-width: 1250px; }
 #lines td:nth-child(4) { white-space: nowrap; }
 #lines td.notes { min-width: 280px; }

@@ -138,6 +138,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#27](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/27) | **Build once, promote**: CI builds and smoke-tests the Docker image once and publishes it; CD deploys that exact image (pinned by digest) to staging, then to production after approval, and can redeploy or roll back any published tag |
 | | [#28](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/28) | **Fixes from testing**: `.xlsb` BOMs read, distributor statuses such as `Compliant(YES)_` or `RoHS Compliant by Exemption` understood (RoHS and REACH), long column names wrapped in the column mapping, add and edit forms opened only for accounts allowed to change the database, page behind a dialog no longer scrolls, links to the manufacturers on the exemption and ECCN pages |
 | | [#29](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/29) | **New features from testing**: "needs review" statuses given by hand, with the same status offered to the lines that need review for the same reason (analysis only); number of equivalents on the Equivalents buttons; internal reference column; SVHC tab (REACH Candidate List); component pages explaining each regulation |
+| | [#30](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/30) | **Component database**: RoHS exemptions and SVHC in two separate columns |
 
 ## Quick start
 
