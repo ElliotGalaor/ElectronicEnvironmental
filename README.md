@@ -160,6 +160,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#37](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/37) | **Charts as filters**: clicking a slice or a legend row of a compliance chart shows only the lines with that status for that regulation |
 | | [#38](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/38) | **Server unavailable**: a banner says that the site is not working when the server, its database or the hosting does not answer, and checks every 30 seconds whether it is back; `/api/health` and clear JSON answers for server errors |
 | | [#39](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/39) | **Version 2.0.0**: README and screenshots updated (component pages, SVHC, "needs review" by hand, status values), validity labels wrapped on component pages |
+| *next* | [#40](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/40) | **Release job**: a tag pushed again keeps its existing GitHub release instead of failing |
 
 ## Quick start
 

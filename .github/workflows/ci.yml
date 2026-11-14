@@ -153,10 +153,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Create the release with generated notes
+      - name: Create the release with generated notes (kept if it already exists)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A tag pushed again (moved tag, rewritten history): its release already exists and is kept as it is
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "::notice::Release $GITHUB_REF_NAME already exists: kept as it is"
+            exit 0
+          fi
           # The image the image job built and pushed for this tag
           release_ref="${IMAGE,,}:${GITHUB_REF_NAME#v}"
           fence="\`\`\`"
