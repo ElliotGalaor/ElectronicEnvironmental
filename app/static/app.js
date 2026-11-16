@@ -246,6 +246,17 @@ const drop = $("#drop");
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
+// Drop zones are buttons too: reached with Tab, Enter or Space opens the file chooser
+function keyboardOpens(zone, input) {
+  zone.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      input.click();
+    }
+  });
+}
+keyboardOpens(drop, $("#bomFile"));
+
 // Line table filters: reset for every new BOM (a filter left over from a previous BOM,
 // or filled in automatically by the browser, would hide every line).
 function resetLineFilters() {
@@ -817,6 +828,7 @@ const pdfDrop = $("#pdfDrop");
 ["dragenter", "dragover"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.remove("over"); }));
 pdfDrop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) extractPdf(ev.dataTransfer.files[0]); });
+keyboardOpens(pdfDrop, $("#pdfFile"));
 $("#pdfFile").addEventListener("change", (ev) => { if (ev.target.files[0]) extractPdf(ev.target.files[0]); ev.target.value = ""; });
 $("#btnFromPdf").addEventListener("click", () => { if (openDialog(null)) $("#pdfFile").click(); });
 
