@@ -256,6 +256,17 @@ function resetLineFilters() {
   markChartFilter();
 }
 
+// No BOM open any more (after signing out): its file, result and settings are forgotten
+function clearAnalysis() {
+  analysisSeq++; // an analysis still running is ignored when it answers
+  state.file = null; state.report = null; state.overrides = {}; state.substitutions = {}; state.classifications = {};
+  state.historyId = null;
+  resetLineFilters();
+  hideBusy();
+  $("#result").hidden = true;
+  $("#error").hidden = true;
+}
+
 function startAnalysis(file) {
   state.file = file; state.overrides = {}; state.substitutions = {}; state.classifications = {}; state.historyId = null;
   resetLineFilters();
@@ -1954,7 +1965,7 @@ $("#account").addEventListener("click", async (ev) => {
   } else if (ev.target.closest("#btnLogout")) {
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     state.user = null;
-    state.historyId = null;
+    clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
     renderAccount();
   }
 });
