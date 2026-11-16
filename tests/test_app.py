@@ -1549,3 +1549,39 @@ def test_downloads_with_any_file_name():
     hid = c.post("/api/analyze", files={"file": ("物料清单.csv", b"MPN\nNE555P\n")}, data={"save": "1"}).json()["history_id"]
     r = c.get(f"/api/history/{hid}/file")
     assert r.status_code == 200 and r.content == b"MPN\nNE555P\n"
+
+
+def test_excel_sheet_holding_the_bom_is_read():
+    import openpyxl
+
+    def workbook(build) -> bytes:
+        wb = openpyxl.Workbook()
+        build(wb)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    def cover_first(wb):
+        cover = wb.active
+        cover.title = "Cover"
+        for row in (["Project", "Sensor board"], ["Revision", "B"], ["Author", "QA"]):
+            cover.append(row)
+        bom = wb.create_sheet("BOM")
+        bom.append(["Designator", "Qty", "Manufacturer", "Manufacturer Part Number", "Description"])
+        bom.append(["U1", 1, "Texas Instruments", "LM358DR", "Op-amp"])
+        bom.append(["C1", 1, "Murata", "GRM188R71H104KA93D", "Cap"])
+
+    def hidden_lists_first(wb):
+        lists = wb.active
+        lists.title = "Lists"
+        for row in (["Status"], ["Compliant"], ["Non-compliant"]):
+            lists.append(row)
+        lists.sheet_state = "hidden"
+        bom = wb.create_sheet("BOM")
+        bom.append(["Designator", "Manufacturer", "Manufacturer Part Number"])
+        bom.append(["U1", "Texas Instruments", "LM358DR"])
+
+    for build, mpns in ((cover_first, ["LM358DR", "GRM188R71H104KA93D"]), (hidden_lists_first, ["LM358DR"])):
+        r = client.post("/api/analyze", files={"file": ("book.xlsx", workbook(build))})
+        assert r.status_code == 200, (build.__name__, r.text)
+        assert [line["bom_mpn"] for line in r.json()["lines"]] == mpns
