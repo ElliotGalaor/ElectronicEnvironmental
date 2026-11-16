@@ -1622,3 +1622,13 @@ def test_status_given_by_hand_follows_the_part_reviewed():
     assert analyze_text(bom, classifications=json.dumps({"2": {"rohs3": "compliant"}}))["lines"][0]["manual"] == ["rohs3"]
     r = client.post("/api/analyze", files={"file": ("b.csv", bom.encode())}, data={"classifications": json.dumps({"2": {"mpn": 3}})})
     assert r.status_code == 400
+
+
+def test_rohs2_inferred_from_the_rohs3_declared_in_the_bom():
+    rep = analyze_text("MPN;Manufacturer;RoHS\nXYZ-NOT-IN-DB-1;Acme;Compliant\nXYZ-NOT-IN-DB-2;Acme;RoHS3 Compliant\n")
+    for line in rep["lines"]:
+        assert (line["rohs3"], line["rohs2"], line["rohs2_inferred"]) == ("compliant", "compliant", True)
+        assert "rohs2" not in line["review"]
+    assert rep["summary"]["rohs2"]["verdict"] == rep["summary"]["rohs3"]["verdict"] == "compliant"
+    line = analyze_text("MPN;Manufacturer;RoHS 2\nXYZ-NOT-IN-DB-3;Acme;Not RoHS Compliant\n")["lines"][0]
+    assert (line["rohs2"], line["rohs3"], line["rohs3_inferred"]) == ("non_compliant", "non_compliant", True)

@@ -236,6 +236,15 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
             res.from_bom.append(n)
         if declared:
             res.notes.append(f"Statuses taken from the BOM ({reason}): " + ", ".join(NORM_LABELS[n] for n in declared))
+        # RoHS 3 includes RoHS 2: the same inferences as for the components of the database
+        if "rohs2" not in declared and declared.get("rohs3") in ("compliant", "exemption"):
+            res.rohs2 = _line_status(declared["rohs3"], "rohs2")
+            res.rohs2_inferred = True
+            res.notes.append("RoHS 2 inferred from the RoHS 3 compliance declared in the BOM")
+        if "rohs3" not in declared and declared.get("rohs2") == "non_compliant":
+            res.rohs3 = KO
+            res.rohs3_inferred = True
+            res.notes.append("RoHS 3 inferred from the RoHS 2 non-compliance declared in the BOM")
 
     if match == MATCH_NONE:
         res.notes.append("Part number not in the database")
