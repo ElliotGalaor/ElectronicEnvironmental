@@ -802,7 +802,7 @@ function openDialog(comp, preset = {}) {
   $("#btnDelete").hidden = !comp;
   $("#dlgError").hidden = true;
   $("#pdfStatus").hidden = true;
-  $("#mpnList").innerHTML = $("#mfrList").innerHTML = "";
+  $("#mpnList").innerHTML = $("#mfrOptions").innerHTML = "";
   $$(".formgrid .filled").forEach((l) => l.classList.remove("filled"));
   dlg.showModal();
   return true;
@@ -851,7 +851,7 @@ function applyExtraction(r, fname) {
   }
   form.elements.last_checked.value = new Date().toLocaleDateString("sv-SE");
   $("#mpnList").innerHTML = (r.candidates.mpn || []).map((c) => `<option value="${esc(c.value)}">`).join("");
-  $("#mfrList").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
+  $("#mfrOptions").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
 
   const method = r.method === "ai" ? `AI (${esc(r.model || "Claude")})` : "automatic rules";
   const others = (r.candidates.mpn || []).slice(1, 6).map((c) => esc(c.value));

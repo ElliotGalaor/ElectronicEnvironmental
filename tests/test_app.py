@@ -1641,3 +1641,13 @@ def test_exemption_list_with_unknown_codes_of_any_shape():
     assert r.status_code == 200, r.text
     keys = [e["key"] for e in r.json()["exemptions"]]
     assert {"15B", "TBD"} <= set(keys) and keys.index("15B") < keys.index("TBD")
+
+
+def test_page_has_no_duplicate_ids():
+    # Two elements with the same id: the script reaches the wrong one (the component form emptied the
+    # Manufacturers tab through a shared "mfrList" id)
+    import re
+    page = client.get("/").text
+    ids = re.findall(r'\bid="([^"]+)"', page)
+    assert sorted({i for i in ids if ids.count(i) > 1}) == []
+    assert 'list="mfrOptions"' in page and 'id="mfrOptions"' in page
