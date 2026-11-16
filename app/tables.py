@@ -629,19 +629,25 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
 
     A "Replaces" column gives the original part number of the modified lines.
     """
+    from .reports import csv_safe
+
     rows = read_rows(data, filename)
     c = mapping.columns
     out = io.StringIO()
-    w = csv.writer(out, delimiter=";")
+    writer = csv.writer(out, delimiter=";")
+
+    def write(cells: list) -> None:  # every cell is written as text, never as a spreadsheet formula
+        writer.writerow([csv_safe(v) for v in cells])
+
     if mapping.header_row < 0:  # file without a header: add one
-        w.writerow((mapping.labels or mapping.headers) + ["Replaces"])
+        write((mapping.labels or mapping.headers) + ["Replaces"])
     for idx, row in enumerate(rows, start=1):
         row = list(row) + [""] * (len(mapping.headers) - len(row))
         if idx - 1 < mapping.header_row:
-            w.writerow(row)
+            write(row)
             continue
         if idx - 1 == mapping.header_row:
-            w.writerow(row + ["Replaces"])
+            write(row + ["Replaces"])
             continue
         comp = replaced.get(idx)
         note = ""
@@ -652,5 +658,5 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
             if "manufacturer" in c:
                 row[c["manufacturer"]] = comp["manufacturer"]
             note = f"{old_mpn} ({old_mfr})" if old_mfr else old_mpn
-        w.writerow(row + [note])
+        write(row + [note])
     return out.getvalue().encode("utf-8-sig")

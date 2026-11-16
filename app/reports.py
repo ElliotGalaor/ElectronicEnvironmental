@@ -9,6 +9,34 @@ from datetime import date
 
 from .db import FIELDS, country_name
 
+# Text from a BOM or from the database is exported as text, never as a spreadsheet formula (CSV / formula
+# injection): a cell starting with = + - @ (or a tab / carriage return) gets a leading apostrophe in the CSV
+# exports, and the Excel report stores every cell that would be a formula as text.
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(value):
+    """A CSV cell that a spreadsheet will show as text."""
+    if not isinstance(value, str) or not value.startswith(_FORMULA_START):
+        return value
+    if value[0] in "+-":
+        try:
+            float(value.replace(",", "."))
+            return value  # a signed number stays a number
+        except ValueError:
+            pass
+    return "'" + value
+
+
+def _text_cells(wb) -> None:
+    """No formula in the Excel report: strings that openpyxl would store as formulas are stored as text."""
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                if cell.data_type == "f":
+                    cell.data_type = "s"
+                    cell.quotePrefix = True
+
 LABELS = {
     "compliant": "Compliant",
     "exemption": "Compliant (exemption)",
@@ -100,7 +128,7 @@ def report_csv(report: dict) -> bytes:
     columns = _columns(report)
     w.writerow([c for c, _ in columns])
     for line in report["lines"]:
-        w.writerow([f(line) for _, f in columns])
+        w.writerow([csv_safe(f(line)) for _, f in columns])
     return buf.getvalue().encode("utf-8-sig")
 
 
@@ -195,6 +223,7 @@ def report_xlsx(report: dict) -> bytes:
             c.alignment = Alignment(vertical="top", wrap_text=True)
 
     out = io.BytesIO()
+    _text_cells(wb)
     wb.save(out)
     return out.getvalue()
 
@@ -204,5 +233,5 @@ def database_csv(components: list[dict]) -> bytes:
     w = csv.writer(buf, delimiter=";")
     w.writerow(FIELDS)
     for c in components:
-        w.writerow([c.get(f, "") for f in FIELDS])
+        w.writerow([csv_safe(c.get(f, "")) for f in FIELDS])
     return buf.getvalue().encode("utf-8-sig")
