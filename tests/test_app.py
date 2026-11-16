@@ -1651,3 +1651,23 @@ def test_page_has_no_duplicate_ids():
     ids = re.findall(r'\bid="([^"]+)"', page)
     assert sorted({i for i in ids if ids.count(i) > 1}) == []
     assert 'list="mfrOptions"' in page and 'id="mfrOptions"' in page
+
+
+def test_last_checked_dates_normalised(tmp_path):
+    imp = ("Référence fabricant;Fabricant;Désignation;RoHS 2;RoHS 3;REACH;Date\n"
+           "DATE-FR-1;Date Test Ltd;Capacitor 100 nF 0402;Oui;Oui;Conforme;03/10/2026\n")
+    r = client.post("/api/components/import", files={"file": ("dates.csv", imp.encode())})
+    assert r.status_code == 200 and r.json()["created"] == 1, r.text
+    comp = client.get("/api/components", params={"q": "DATE-FR-1"}).json()["items"][0]
+    assert comp["last_checked"] == "2026-10-03"  # day first, stored YYYY-MM-DD (shown by the date field)
+    r = client.post("/api/components", json={"mpn": "DATE-BAD-1", "manufacturer": "Acme", "last_checked": "yesterday-ish"})
+    assert r.status_code == 422 and "Invalid date" in r.json()["detail"]
+    # Dates stored as written by older versions are converted at start-up
+    path = tmp_path / "old.db"
+    with db.session(path) as conn:
+        conn.execute("INSERT INTO components (mpn, mpn_norm, mpn_loose, manufacturer, manufacturer_norm, last_checked, updated_at) "
+                     "VALUES ('OLD-1', 'OLD1', 'OLD1', 'Acme', 'acme', '10.03.2026', '')")
+        conn.execute("INSERT INTO components (mpn, mpn_norm, mpn_loose, manufacturer, manufacturer_norm, last_checked, updated_at) "
+                     "VALUES ('OLD-2', 'OLD2', 'OLD2', 'Acme', 'acme', 'soon', '')")
+    with db.session(path) as conn:
+        assert dict(conn.execute("SELECT mpn, last_checked FROM components").fetchall()) == {"OLD-1": "2026-03-10", "OLD-2": "soon"}
