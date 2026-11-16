@@ -64,6 +64,10 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
         rows = _html_table(text)
         if rows:
             return rows
+    if "\x00" in text[:20000]:
+        raise TableError("This file is neither a text table (CSV, TXT) nor an Excel workbook")
+    # Line endings of every system: CRLF (Windows), LF, and CR alone (Excel for Mac "CSV (Macintosh)")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     sample = text[:20000]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")
@@ -71,7 +75,10 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
     except csv.Error:
         counts = {d: sample.count(d) for d in ";,\t|"}
         delimiter = max(counts, key=counts.get)
-    rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+    try:
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+    except csv.Error as exc:
+        raise TableError(f"Unreadable text file: {exc}") from exc
     rows = [[c.strip() for c in r] for r in rows]
     while rows and not any(rows[-1]):
         rows.pop()

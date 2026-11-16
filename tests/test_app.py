@@ -1521,3 +1521,17 @@ def test_exports_never_contain_formulas():
     client.post("/api/components", json={"mpn": "FORMULA-1", "manufacturer": "Acme", "description": "=1+2", "source": "@SUM(1)"})
     export = client.get("/api/components/export").content.decode("utf-8-sig")
     assert "'=1+2" in export and "'@SUM(1)" in export
+
+
+def test_csv_with_any_line_endings():
+    bom = "Designator;Manufacturer;MPN;Description\rU1;Texas Instruments;LM358DR;op-amp\rU2;Murata;GRM188R71H104KA93D;cap\r"
+    for text in (bom, bom.replace("\r", "\r\n"), "Designator;Manufacturer;MPN;Description\r\nU1;Texas Instruments;LM358DR;op-amp\rdual\r\n"):
+        r = client.post("/api/analyze", files={"file": ("mac.csv", text.encode())})
+        assert r.status_code == 200, (text, r.text)
+        assert r.json()["lines"][0]["bom_mpn"] == "LM358DR"
+    assert [l["bom_mpn"] for l in analyze_text(bom)["lines"]] == ["LM358DR", "GRM188R71H104KA93D"]
+    # A binary file renamed .csv: a clear message, not a server error
+    r = client.post("/api/analyze", files={"file": ("photo.csv", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x01")})
+    assert r.status_code == 422 and "neither a text table" in r.json()["detail"]
+    r = client.post("/api/components/import", files={"file": ("mac.csv", "mpn;manufacturer\rMAC-1;Acme\r".encode())})
+    assert r.status_code == 200 and r.json()["created"] == 1
