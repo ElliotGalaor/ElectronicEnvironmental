@@ -1535,3 +1535,17 @@ def test_csv_with_any_line_endings():
     assert r.status_code == 422 and "neither a text table" in r.json()["detail"]
     r = client.post("/api/components/import", files={"file": ("mac.csv", "mpn;manufacturer\rMAC-1;Acme\r".encode())})
     assert r.status_code == 200 and r.json()["created"] == 1
+
+
+def test_downloads_with_any_file_name():
+    from urllib.parse import quote
+    for name in ("物料清单.csv", "Схема_платы.csv", "bom_Ω.csv"):
+        for fmt in ("xlsx", "csv", "bom"):
+            r = client.post(f"/api/analyze?format={fmt}", files={"file": (name, b"MPN;Manufacturer\nNE555P;Texas Instruments\n")})
+            assert r.status_code == 200, (name, fmt, r.text)
+            assert quote(name.rsplit(".", 1)[0], safe="") in r.headers["content-disposition"]
+            assert "filename*=UTF-8''" in r.headers["content-disposition"]
+    c, _ = new_client_with_account()
+    hid = c.post("/api/analyze", files={"file": ("物料清单.csv", b"MPN\nNE555P\n")}, data={"save": "1"}).json()["history_id"]
+    r = c.get(f"/api/history/{hid}/file")
+    assert r.status_code == 200 and r.content == b"MPN\nNE555P\n"

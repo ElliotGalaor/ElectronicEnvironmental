@@ -9,11 +9,14 @@ import html
 import json
 import logging
 import os
+import re
 import sqlite3
 import time
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -177,6 +180,22 @@ MAPPING_DOC = ('Column mapping, JSON: {"mpn": "Part Number", "manufacturer": "__
 COLUMNS_ERROR = {"X-Error-Kind": "columns"}
 
 
+def _ascii_name(text: str) -> str:
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9._-]+", "_", text)).strip("_.")
+
+
+def attachment(filename: str) -> dict:
+    """Content-Disposition header of a download, for any file name (Chinese, Cyrillic, Greek…).
+
+    HTTP headers are Latin-1: the name is given in UTF-8 in filename* (RFC 5987, read by every current browser),
+    with an ASCII version in filename for the others.
+    """
+    stem, ext = os.path.splitext(filename)
+    fallback = (_ascii_name(stem) or "file") + ("." + _ascii_name(ext) if _ascii_name(ext) else "")
+    return {"Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename, safe='')}"}
+
+
 def _parse_mapping(mapping: str) -> dict | None:
     if not mapping:
         return None
@@ -302,20 +321,20 @@ async def analyze_bom(
         return Response(
             modified_bom_csv(data, file.filename or "", overrides, colmap, replaced),
             media_type="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{stem}_modified.csv"'},
+            headers=attachment(f"{stem}_modified.csv"),
         )
     report = analyze(conn, lines, colmap, file.filename or "", manual)
     if format == "xlsx":
         return Response(
             report_xlsx(report),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="compliance_{stem}.xlsx"'},
+            headers=attachment(f"compliance_{stem}.xlsx"),
         )
     if format == "csv":
         return Response(
             report_csv(report),
             media_type="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="compliance_{stem}.csv"'},
+            headers=attachment(f"compliance_{stem}.csv"),
         )
     _count_line_equivalents(conn, report["lines"])
     if user and (save == "1" or history_id):
@@ -588,9 +607,7 @@ def history_file(history_id: int, user=Depends(require_user), conn=Depends(get_c
     if not found:
         raise HTTPException(404, "Analysis not found")
     filename, data = found
-    safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in filename) or "bom"
-    return Response(data, media_type="application/octet-stream",
-                    headers={"Content-Disposition": f'attachment; filename="{safe}"'})
+    return Response(data, media_type="application/octet-stream", headers=attachment(filename))
 
 
 @app.delete("/api/history/{history_id}", status_code=204, summary="Delete a BOM from the history")
@@ -619,7 +636,7 @@ def export_components(conn=Depends(get_conn)):
     return Response(
         database_csv(db.all_components(conn)),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="component_database.csv"'},
+        headers=attachment("component_database.csv"),
     )
 
 
