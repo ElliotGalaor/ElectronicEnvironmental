@@ -1604,3 +1604,21 @@ def test_replacement_does_not_keep_the_statuses_declared_for_the_original_part()
     out = client.post("/api/analyze?format=bom", files={"file": ("b.csv", bom.encode())},
                       data={"substitutions": json.dumps({"2": yageo})}).content.decode("utf-8-sig").splitlines()
     assert out[1].split(";")[4] == "" and out[1].endswith("GRM188R71H104KA93D (Murata)")
+
+
+def test_status_given_by_hand_follows_the_part_reviewed():
+    bom = "Designator;Manufacturer;MPN;Alternate MPN;Description\nU1;Acme;XYZ-PRIMARY-1;XYZ-ALTERNATE-1;Sensor\n"
+    manual = json.dumps({"2": {"rohs3": "compliant", "mpn": "XYZ-PRIMARY-1"}})
+    line = analyze_text(bom, classifications=manual)["lines"][0]
+    assert (line["rohs3"], line["manual"]) == ("compliant", ["rohs3"])
+    # Another part number column: the new part is judged on its own
+    other = analyze_text(bom, classifications=manual, mapping=json.dumps({"mpn": "Alternate MPN"}))["lines"][0]
+    assert (other["bom_mpn"], other["rohs3"], other["manual"]) == ("XYZ-ALTERNATE-1", "needs_review", [])
+    # Replacement by an equivalent: same
+    lm = comp_id("LM358DR")
+    replaced = analyze_text(bom, classifications=manual, substitutions=json.dumps({"2": lm}))["lines"][0]
+    assert replaced["bom_mpn"] == "LM358DR" and replaced["manual"] == []
+    # Statuses saved without a part number (older history entries) still apply by line
+    assert analyze_text(bom, classifications=json.dumps({"2": {"rohs3": "compliant"}}))["lines"][0]["manual"] == ["rohs3"]
+    r = client.post("/api/analyze", files={"file": ("b.csv", bom.encode())}, data={"classifications": json.dumps({"2": {"mpn": 3}})})
+    assert r.status_code == 400

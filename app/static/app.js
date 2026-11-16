@@ -1398,9 +1398,13 @@ $("#btnClassifyApply").addEventListener("click", () => {
   const { line, norm } = classifyCtx;
   const others = choice.value ? $$("#classifySameList input:checked").map((c) => Number(c.value)) : [];
   for (const n of [line.line, ...others]) {
-    const entry = { ...(state.classifications[n] || {}) };
+    // A status given by hand is tied to the part reviewed: it no longer applies if another part takes the line
+    const mpn = (state.report.lines.find((x) => x.line === n) || {}).bom_mpn || "";
+    const old = state.classifications[n] || {};
+    const entry = old.mpn === undefined || old.mpn === mpn ? { ...old } : {};
     if (choice.value) entry[norm] = choice.value; else delete entry[norm];
-    if (Object.keys(entry).length) state.classifications[n] = entry; else delete state.classifications[n];
+    entry.mpn = mpn;
+    if (Object.keys(entry).some((k) => k !== "mpn")) state.classifications[n] = entry; else delete state.classifications[n];
   }
   dlgClassify.close();
   runAnalysis();
