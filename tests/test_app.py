@@ -1632,3 +1632,12 @@ def test_rohs2_inferred_from_the_rohs3_declared_in_the_bom():
     assert rep["summary"]["rohs2"]["verdict"] == rep["summary"]["rohs3"]["verdict"] == "compliant"
     line = analyze_text("MPN;Manufacturer;RoHS 2\nXYZ-NOT-IN-DB-3;Acme;Not RoHS Compliant\n")["lines"][0]
     assert (line["rohs2"], line["rohs3"], line["rohs3_inferred"]) == ("non_compliant", "non_compliant", True)
+
+
+def test_exemption_list_with_unknown_codes_of_any_shape():
+    client.post("/api/components", json={"mpn": "EXEMPT-TYPO-1", "manufacturer": "Acme", "rohs2": "exemption", "rohs_exemptions": "15(b)"})
+    client.post("/api/components", json={"mpn": "EXEMPT-TYPO-2", "manufacturer": "Acme", "rohs2": "exemption", "rohs_exemptions": "TBD"})
+    r = client.get("/api/exemptions")
+    assert r.status_code == 200, r.text
+    keys = [e["key"] for e in r.json()["exemptions"]]
+    assert {"15B", "TBD"} <= set(keys) and keys.index("15B") < keys.index("TBD")

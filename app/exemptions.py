@@ -132,6 +132,12 @@ def _components_by_key(conn: sqlite3.Connection) -> dict[str, list[sqlite3.Row]]
     return out
 
 
+def _natural_key(key: str) -> list[tuple[int, int | str]]:
+    """Sort key "7C-I" < "15" < "TBD": numbers by value, text alphabetically, of one type per position so that
+    any two codes can be compared (a code starting with a digit and one starting with a letter included)."""
+    return [(0, int(x)) if x.isdigit() else (1, x) for x in re.findall(r"\d+|\D+", key)]
+
+
 def list_all(conn: sqlite3.Connection) -> dict:
     by_key = _components_by_key(conn)
     notes = {r["key"] for r in conn.execute("SELECT key FROM exemption_notes")}
@@ -152,7 +158,7 @@ def list_all(conn: sqlite3.Connection) -> dict:
             "manufacturers": sorted({c["manufacturer"] for c in comps}),
             "manufacturer_links": sorted(db.manufacturer_links(comps), key=lambda m: m["name"].lower()),
         })
-    rows.sort(key=lambda r: (not r["found"], r["annex"], [int(x) if x.isdigit() else x for x in re.findall(r"\d+|\D+", r["key"])]))
+    rows.sort(key=lambda r: (not r["found"], r["annex"], _natural_key(r["key"])))
     data = _data()
     return {"exemptions": rows, "version": data.get("version", ""), "source_url": data.get("url", ""),
             "upcoming": {k: v for k, v in (data.get("upcoming") or {}).items() if k != "changes"} | {
