@@ -1585,3 +1585,22 @@ def test_excel_sheet_holding_the_bom_is_read():
         r = client.post("/api/analyze", files={"file": ("book.xlsx", workbook(build))})
         assert r.status_code == 200, (build.__name__, r.text)
         assert [line["bom_mpn"] for line in r.json()["lines"]] == mpns
+
+
+def test_replacement_does_not_keep_the_statuses_declared_for_the_original_part():
+    ao = comp_id("AO3400A")
+    bom = "Designator;Manufacturer;MPN;Description;RoHS;REACH\nQ1;Acme;ACME-MOSFET-1;MOSFET N-Channel 30V SOT-23;Compliant;Compliant\n"
+    line = analyze_text(bom, substitutions=json.dumps({"2": ao}))["lines"][0]
+    assert line["bom_mpn"] == "AO3400A" and line["from_bom"] == []
+    with db.session() as conn:
+        base = conn.execute("SELECT reach FROM components WHERE id = ?", (ao,)).fetchone()[0]
+    assert line["reach"] == ("needs_review" if base == "unknown" else base)
+    # Reverse case: a non-compliance declared for the replaced part does not follow the replacement
+    yageo = comp_id("CC0603KRX7R9BB104")
+    bom = "Designator;Manufacturer;MPN;Description;RoHS\nC1;Murata;GRM188R71H104KA93D;Capacitor 100 nF;no\nC2;Yageo;CC0603KRX7R9BB104;Capacitor 100 nF;\n"
+    lines = analyze_text(bom, substitutions=json.dumps({"2": yageo}))["lines"]
+    assert lines[0]["rohs3"] == lines[1]["rohs3"] == "compliant"
+    # Modified BOM: the declared statuses of a replaced row are emptied
+    out = client.post("/api/analyze?format=bom", files={"file": ("b.csv", bom.encode())},
+                      data={"substitutions": json.dumps({"2": yageo})}).content.decode("utf-8-sig").splitlines()
+    assert out[1].split(";")[4] == "" and out[1].endswith("GRM188R71H104KA93D (Murata)")

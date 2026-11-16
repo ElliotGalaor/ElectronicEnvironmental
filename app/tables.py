@@ -643,6 +643,8 @@ def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dic
         line.mpn, line.manufacturer = comp["mpn"], comp["manufacturer"]
         if comp.get("description"):
             line.description = comp["description"]
+        # The RoHS / REACH statuses written in the BOM described the replaced part, not this one
+        line.rohs2 = line.rohs3 = line.reach = ""
         replaced[line_no] = comp
     return replaced
 
@@ -680,6 +682,9 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
             row[c["mpn"]] = comp["mpn"]
             if "manufacturer" in c:
                 row[c["manufacturer"]] = comp["manufacturer"]
+            for role in ("rohs2", "rohs3", "reach"):  # they described the replaced part
+                if role in c:
+                    row[c[role]] = ""
             note = f"{old_mpn} ({old_mfr})" if old_mfr else old_mpn
         write(row + [note])
     return out.getvalue().encode("utf-8-sig")
