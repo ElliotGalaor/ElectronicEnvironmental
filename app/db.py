@@ -290,6 +290,13 @@ def _migrate(conn: sqlite3.Connection) -> None:
         for field in ("rohs2", "rohs3", "reach"):
             for old, new in LEGACY_STATUSES.items():
                 conn.execute(f"UPDATE components SET {field} = ? WHERE {field} = ?", (new, old))
+    # "Last checked" dates imported as written before they were normalised (03/10/2026...)
+    for row_id, value in conn.execute(
+            "SELECT id, last_checked FROM components WHERE last_checked != '' "
+            "AND last_checked NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'").fetchall():
+        date = parse_date(value)
+        if date is not None:
+            conn.execute("UPDATE components SET last_checked = ? WHERE id = ?", (date, row_id))
     conn.commit()
 
 
@@ -453,6 +460,33 @@ def _status_from_words(v: str, allowed: tuple[str, ...]) -> str | None:
     return None
 
 
+# "Last checked" dates are stored as YYYY-MM-DD: sortable, and shown by the date field of the form. Day first
+# for the other spellings (French and European files).
+_DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%Y/%m/%d", "%d/%m/%y", "%d.%m.%y")
+
+
+def parse_date(value: str | None) -> str | None:
+    """YYYY-MM-DD from the usual spellings ("" for no date), None if the text is not a date."""
+    v = (value or "").strip()
+    if not v:
+        return ""
+    if re.match(r"\d{4}-\d{2}-\d{2}[ T]", v):  # a time after the date (workbook cells)
+        v = v[:10]
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(v, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def normalize_date(value: str | None, field: str = "last_checked") -> str:
+    date = parse_date(value)
+    if date is None:
+        raise ValidationError(f"Invalid date for {field!r}: {value!r} (expected YYYY-MM-DD or DD/MM/YYYY)")
+    return date
+
+
 def prepare(data: dict) -> dict:
     """Validate and normalise a component record."""
     mpn = (data.get("mpn") or "").strip()
@@ -465,6 +499,7 @@ def prepare(data: dict) -> dict:
     rec["reach"] = clean_status(rec["reach"], REACH_STATUSES, "reach")
     rec["eccn"] = normalize_eccn(rec["eccn"])
     rec["country_of_origin"] = normalize_country(rec["country_of_origin"])
+    rec["last_checked"] = normalize_date(rec["last_checked"])
     rec["mpn_norm"] = normalize_mpn(mpn)
     rec["mpn_loose"] = loose_mpn(mpn)
     rec["manufacturer_norm"] = normalize_manufacturer(rec["manufacturer"])

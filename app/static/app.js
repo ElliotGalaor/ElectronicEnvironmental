@@ -246,6 +246,17 @@ const drop = $("#drop");
 drop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) startAnalysis(ev.dataTransfer.files[0]); });
 $("#bomFile").addEventListener("change", (ev) => { if (ev.target.files[0]) startAnalysis(ev.target.files[0]); ev.target.value = ""; });
 
+// Drop zones are buttons too: reached with Tab, Enter or Space opens the file chooser
+function keyboardOpens(zone, input) {
+  zone.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      input.click();
+    }
+  });
+}
+keyboardOpens(drop, $("#bomFile"));
+
 // Line table filters: reset for every new BOM (a filter left over from a previous BOM,
 // or filled in automatically by the browser, would hide every line).
 function resetLineFilters() {
@@ -254,6 +265,17 @@ function resetLineFilters() {
   state.chartFilter = null; // {norm, status}: slice of a chart clicked
   $$("#filters .chip[data-filter]").forEach((x) => x.classList.toggle("active", x.dataset.filter === "all"));
   markChartFilter();
+}
+
+// No BOM open any more (after signing out): its file, result and settings are forgotten
+function clearAnalysis() {
+  analysisSeq++; // an analysis still running is ignored when it answers
+  state.file = null; state.report = null; state.overrides = {}; state.substitutions = {}; state.classifications = {};
+  state.historyId = null;
+  resetLineFilters();
+  hideBusy();
+  $("#result").hidden = true;
+  $("#error").hidden = true;
 }
 
 function startAnalysis(file) {
@@ -791,7 +813,7 @@ function openDialog(comp, preset = {}) {
   $("#btnDelete").hidden = !comp;
   $("#dlgError").hidden = true;
   $("#pdfStatus").hidden = true;
-  $("#mpnList").innerHTML = $("#mfrList").innerHTML = "";
+  $("#mpnList").innerHTML = $("#mfrOptions").innerHTML = "";
   $$(".formgrid .filled").forEach((l) => l.classList.remove("filled"));
   dlg.showModal();
   return true;
@@ -806,6 +828,7 @@ const pdfDrop = $("#pdfDrop");
 ["dragenter", "dragover"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((e) => pdfDrop.addEventListener(e, (ev) => { ev.preventDefault(); pdfDrop.classList.remove("over"); }));
 pdfDrop.addEventListener("drop", (ev) => { if (ev.dataTransfer.files[0]) extractPdf(ev.dataTransfer.files[0]); });
+keyboardOpens(pdfDrop, $("#pdfFile"));
 $("#pdfFile").addEventListener("change", (ev) => { if (ev.target.files[0]) extractPdf(ev.target.files[0]); ev.target.value = ""; });
 $("#btnFromPdf").addEventListener("click", () => { if (openDialog(null)) $("#pdfFile").click(); });
 
@@ -840,7 +863,7 @@ function applyExtraction(r, fname) {
   }
   form.elements.last_checked.value = new Date().toLocaleDateString("sv-SE");
   $("#mpnList").innerHTML = (r.candidates.mpn || []).map((c) => `<option value="${esc(c.value)}">`).join("");
-  $("#mfrList").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
+  $("#mfrOptions").innerHTML = (r.candidates.manufacturer || []).map((c) => `<option value="${esc(c.value)}">`).join("");
 
   const method = r.method === "ai" ? `AI (${esc(r.model || "Claude")})` : "automatic rules";
   const others = (r.candidates.mpn || []).slice(1, 6).map((c) => esc(c.value));
@@ -1387,9 +1410,13 @@ $("#btnClassifyApply").addEventListener("click", () => {
   const { line, norm } = classifyCtx;
   const others = choice.value ? $$("#classifySameList input:checked").map((c) => Number(c.value)) : [];
   for (const n of [line.line, ...others]) {
-    const entry = { ...(state.classifications[n] || {}) };
+    // A status given by hand is tied to the part reviewed: it no longer applies if another part takes the line
+    const mpn = (state.report.lines.find((x) => x.line === n) || {}).bom_mpn || "";
+    const old = state.classifications[n] || {};
+    const entry = old.mpn === undefined || old.mpn === mpn ? { ...old } : {};
     if (choice.value) entry[norm] = choice.value; else delete entry[norm];
-    if (Object.keys(entry).length) state.classifications[n] = entry; else delete state.classifications[n];
+    entry.mpn = mpn;
+    if (Object.keys(entry).some((k) => k !== "mpn")) state.classifications[n] = entry; else delete state.classifications[n];
   }
   dlgClassify.close();
   runAnalysis();
@@ -1954,7 +1981,7 @@ $("#account").addEventListener("click", async (ev) => {
   } else if (ev.target.closest("#btnLogout")) {
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     state.user = null;
-    state.historyId = null;
+    clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
     renderAccount();
   }
 });

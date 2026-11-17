@@ -31,7 +31,10 @@ served at `/examples/bom_example.csv`.
 
 1. **Reading the BOM**: CSV/TXT (`;` `,` tab separator detected, UTF-8 or Windows-1252) or Excel `.xlsx`, `.xlsm`, `.xlsb`, `.xls`
    (97-2003). The format is recognised from the content of the file, not from its extension: an `.xls` file
-   that is really an HTML table or a text file, as many web and ERP exports are, is read too.
+   that is really an HTML table or a text file, as many web and ERP exports are, is read too. Line endings of
+   every system are accepted (Windows, Linux, CR alone as saved by Excel for Mac). In a workbook, hidden sheets
+   are skipped and the visible sheet with the most recognised column names is read (then the active sheet), so a
+   cover or revision sheet placed first does not get in the way.
    The header row and the columns are detected automatically (English and French names:
    *Manufacturer Part Number*, *MPN*, *Manufacturer*, *Designator*, *Qty*, *DNP*, *Référence fabricant*, *Repères*…).
    An **internal reference** (company part number: *Internal ref*, *CPN*, *Code article*…) is shown in its own
@@ -281,6 +284,8 @@ before confirming a replacement.
   new value, unchanged, error), without writing anything.
   Uniqueness key: part number + manufacturer. On an existing component, only the fields mapped to a column
   and filled in are changed (a missing column or an empty cell does not replace the value in the database).
+  "Last checked" dates are stored as `YYYY-MM-DD`; they can be written `DD/MM/YYYY`, `DD-MM-YYYY`, `DD.MM.YYYY`
+  (day first) or `YYYY-MM-DD`, and a value that is not a date is refused.
   ```bash
   .venv\Scripts\python cli.py import my_database.xlsx
   ```

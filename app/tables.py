@@ -50,7 +50,7 @@ def _excel_format(data: bytes) -> str | None:
 
 
 def read_rows(data: bytes, filename: str) -> list[list[str]]:
-    """Return every row of the file as a list of strings (first non-empty sheet of a workbook)."""
+    """Return every row of the file as a list of strings (for a workbook, the sheet holding the table)."""
     fmt = _excel_format(data)
     if fmt == "xlsx":
         return _read_xlsx(data)
@@ -64,6 +64,10 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
         rows = _html_table(text)
         if rows:
             return rows
+    if "\x00" in text[:20000]:
+        raise TableError("This file is neither a text table (CSV, TXT) nor an Excel workbook")
+    # Line endings of every system: CRLF (Windows), LF, and CR alone (Excel for Mac "CSV (Macintosh)")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     sample = text[:20000]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=";,\t|")
@@ -71,7 +75,10 @@ def read_rows(data: bytes, filename: str) -> list[list[str]]:
     except csv.Error:
         counts = {d: sample.count(d) for d in ";,\t|"}
         delimiter = max(counts, key=counts.get)
-    rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+    try:
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
+    except csv.Error as exc:
+        raise TableError(f"Unreadable text file: {exc}") from exc
     rows = [[c.strip() for c in r] for r in rows]
     while rows and not any(rows[-1]):
         rows.pop()
@@ -97,11 +104,29 @@ def _read_xlsx(data: bytes) -> list[list[str]]:
         wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception as exc:
         raise TableError(f"Unreadable Excel file: {exc}") from exc
-    for ws in wb.worksheets:
-        rows = _trim([["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)])
-        if rows:
-            return rows
-    raise TableError("The Excel workbook is empty")
+    active = wb.active.title if wb.active is not None else None
+    return _pick_sheet([
+        (_trim([["" if v is None else _cell_str(v) for v in row] for row in ws.iter_rows(values_only=True)]),
+         getattr(ws, "sheet_state", "visible") == "visible", ws.title == active)
+        for ws in wb.worksheets
+    ])
+
+
+def _sheet_score(rows: list[list[str]]) -> int:
+    """How much a sheet looks like a table of components: known column names in its first rows."""
+    names = {s for synonyms in COLUMN_SYNONYMS.values() for s in synonyms}
+    return sum(1 for row in rows[:25] for cell in row if norm_header(cell) in names)
+
+
+def _pick_sheet(sheets: list[tuple[list[list[str]], bool, bool]]) -> list[list[str]]:
+    """The sheet holding the table, among (rows, visible, active): a cover or revision sheet placed first, or a
+    hidden list of values, is skipped. Visible sheets first; the one with the most known column names wins, then
+    the active sheet, then the first one."""
+    filled = [s for s in sheets if s[0]]
+    if not filled:
+        raise TableError("The Excel workbook is empty")
+    candidates = [s for s in filled if s[1]] or filled
+    return max(candidates, key=lambda s: (_sheet_score(s[0]), s[2]))[0]
 
 
 def _read_xls(data: bytes) -> list[list[str]]:
@@ -128,11 +153,10 @@ def _read_xls(data: bytes) -> list[list[str]]:
             return ""
         return _cell_str(cell.value)
 
-    for sheet in wb.sheets():
-        rows = _trim([[value(c) for c in sheet.row(i)] for i in range(sheet.nrows)])
-        if rows:
-            return rows
-    raise TableError("The Excel workbook is empty")
+    return _pick_sheet([
+        (_trim([[value(c) for c in sheet.row(i)] for i in range(sheet.nrows)]), sheet.visibility == 0, False)
+        for sheet in wb.sheets()
+    ])
 
 
 class _TableParser(HTMLParser):
@@ -180,21 +204,20 @@ def _html_table(text: str) -> list[list[str]]:
 
 
 def _read_xlsb(data: bytes) -> list[list[str]]:
-    """Excel binary workbook (.xlsb): first non-empty sheet."""
+    """Excel binary workbook (.xlsb)."""
     try:
         from pyxlsb import open_workbook
     except ImportError as exc:  # pragma: no cover
         raise TableError("pyxlsb is required to read .xlsb files") from exc
     try:
+        sheets = []
         with open_workbook(io.BytesIO(data)) as wb:
             for sheet in wb.sheets:
                 with wb.get_sheet(sheet) as ws:
-                    rows = _trim([["" if c.v is None else _cell_str(c.v) for c in row] for row in ws.rows()])
-                if rows:
-                    return rows
+                    sheets.append((_trim([["" if c.v is None else _cell_str(c.v) for c in row] for row in ws.rows()]), True, False))
     except Exception as exc:
         raise TableError(f"Unreadable Excel file: {exc}") from exc
-    raise TableError("The Excel workbook is empty")
+    return _pick_sheet(sheets)
 
 
 def _cell_str(v) -> str:
@@ -620,6 +643,8 @@ def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dic
         line.mpn, line.manufacturer = comp["mpn"], comp["manufacturer"]
         if comp.get("description"):
             line.description = comp["description"]
+        # The RoHS / REACH statuses written in the BOM described the replaced part, not this one
+        line.rohs2 = line.rohs3 = line.reach = ""
         replaced[line_no] = comp
     return replaced
 
@@ -629,19 +654,25 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
 
     A "Replaces" column gives the original part number of the modified lines.
     """
+    from .reports import csv_safe
+
     rows = read_rows(data, filename)
     c = mapping.columns
     out = io.StringIO()
-    w = csv.writer(out, delimiter=";")
+    writer = csv.writer(out, delimiter=";")
+
+    def write(cells: list) -> None:  # every cell is written as text, never as a spreadsheet formula
+        writer.writerow([csv_safe(v) for v in cells])
+
     if mapping.header_row < 0:  # file without a header: add one
-        w.writerow((mapping.labels or mapping.headers) + ["Replaces"])
+        write((mapping.labels or mapping.headers) + ["Replaces"])
     for idx, row in enumerate(rows, start=1):
         row = list(row) + [""] * (len(mapping.headers) - len(row))
         if idx - 1 < mapping.header_row:
-            w.writerow(row)
+            write(row)
             continue
         if idx - 1 == mapping.header_row:
-            w.writerow(row + ["Replaces"])
+            write(row + ["Replaces"])
             continue
         comp = replaced.get(idx)
         note = ""
@@ -651,6 +682,9 @@ def modified_bom_csv(data: bytes, filename: str, overrides, mapping: ColumnMappi
             row[c["mpn"]] = comp["mpn"]
             if "manufacturer" in c:
                 row[c["manufacturer"]] = comp["manufacturer"]
+            for role in ("rohs2", "rohs3", "reach"):  # they described the replaced part
+                if role in c:
+                    row[c[role]] = ""
             note = f"{old_mpn} ({old_mfr})" if old_mfr else old_mpn
-        w.writerow(row + [note])
+        write(row + [note])
     return out.getvalue().encode("utf-8-sig")
