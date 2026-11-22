@@ -721,7 +721,7 @@ $("#comps").addEventListener("click", async (ev) => {
 $("#btnAdd").addEventListener("click", () => openDialog(null));
 
 async function editComponent(id) {
-  if (ensureEditor()) openDialog(await (await api("/api/components/" + id)).json());
+  if (ensureEditor(() => editComponent(id))) openDialog(await (await api("/api/components/" + id)).json());
 }
 
 /* ------------------------------------------------------------------ manufacturers */
@@ -810,7 +810,7 @@ $("#mfrComps").addEventListener("click", async (ev) => {
 
 const dlgMfr = $("#dlgMfr"), mfrForm = $("#mfrForm");
 $("#btnEditMfr").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditMfr").click())) return;
   const m = currentMfr;
   for (const f of ["name", "website", "country", "notes"]) mfrForm.elements[f].value = m[f] || "";
   $("#mfrError").hidden = true;
@@ -834,7 +834,7 @@ const dlg = $("#dlg"), form = $("#compForm");
 let editingId = null;
 
 function openDialog(comp, preset = {}) {
-  if (!ensureEditor()) return false;
+  if (!ensureEditor(() => openDialog(comp, preset))) return false;
   editingId = comp ? comp.id : null;
   const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
@@ -945,7 +945,7 @@ function afterDbChange() {
 }
 
 /* ------------------------------------------------------------------ import */
-$("#btnImport").addEventListener("click", () => { if (ensureEditor()) $("#importFile").click(); });
+$("#btnImport").addEventListener("click", () => { if (ensureEditor(() => $("#importFile").click())) $("#importFile").click(); });
 $("#importFile").addEventListener("change", (ev) => {
   const f = ev.target.files[0];
   ev.target.value = "";
@@ -1374,7 +1374,7 @@ $("#altBody").addEventListener("click", async (ev) => {
     runAnalysis();
     return;
   }
-  if ((confirmBtn || unconfirm) && !ensureEditor()) return;
+  if ((confirmBtn || unconfirm) && !ensureEditor(() => (confirmBtn || unconfirm).click())) return;
   const compId = altCtx.compId ?? altCtx.line?.component?.id;
   try {
     if (confirmBtn) {
@@ -1717,7 +1717,7 @@ $("#eccnComps").addEventListener("click", async (ev) => {
 
 const dlgEccn = $("#dlgEccn"), eccnForm = $("#eccnForm");
 $("#btnEditEccn").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditEccn").click())) return;
   eccnForm.elements.title.value = currentEccn.title || "";
   eccnForm.elements.notes.value = currentEccn.notes || "";
   $("#eccnError").hidden = true;
@@ -1827,7 +1827,7 @@ $("#exemptComps").addEventListener("click", async (ev) => {
 
 const dlgExempt = $("#dlgExempt"), exemptForm = $("#exemptForm");
 $("#btnEditExempt").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditExempt").click())) return;
   exemptForm.elements.notes.value = currentExemption.notes || "";
   $("#exemptError").hidden = true;
   dlgExempt.showModal();
@@ -1926,14 +1926,19 @@ function editAccessHtml() {
 const dlgEditAccess = $("#dlgEditAccess");
 const canEdit = () => !authConfig || authConfig.open_editing || !!state.user?.can_edit;
 
-function ensureEditor() {
+// retry: the action to run once the rights checked again turn out to allow it
+function ensureEditor(retry) {
   if (canEdit()) return true;
   if (!state.user) {
     openAuth("login", "Sign in with an account approved by the administrator to add or edit components.");
-  } else {
+    return false;
+  }
+  // The rights loaded with the page may be out of date (request approved since): checked again before refusing
+  refreshUser().then(() => {
+    if (canEdit()) { retry?.(); return; }
     $("#editAccessBody").innerHTML = editAccessHtml();
     if (!dlgEditAccess.open) dlgEditAccess.showModal();
-  }
+  });
   return false;
 }
 $("#btnEditAccessClose").addEventListener("click", () => dlgEditAccess.close());
