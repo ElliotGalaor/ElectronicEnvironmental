@@ -1767,3 +1767,16 @@ def test_country_of_origin_must_be_an_iso_code():
         r = client.post("/api/components", json={"mpn": "CTRY-BAD-1", "manufacturer": "Acme", "country_of_origin": value})
         assert r.status_code == 422 and "Unrecognised country of origin" in r.json()["detail"], value
     assert db.normalize_country("hr") == "HR"  # assigned codes are accepted even without a name in the list
+
+
+def test_datasheet_regulatory_references_are_not_part_numbers(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    pdf = make_pdf([["LM358DR Dual Operational Amplifier", "Texas Instruments",
+                     "RoHS compliant, Directive 2011/65/EU and (EU) 2015/863", "REACH: Regulation 1907/2006/EC",
+                     "ECCN: EAR99", "Ordering information: LM358DR"]])
+    mpns = [c["value"] for c in extract_pdf(pdf, "a.pdf").json()["candidates"]["mpn"]]
+    assert "LM358DR" in mpns and not {"2011/65/EU", "2015/863", "1907/2006/EC", "EAR99"} & set(mpns)
+    pdf = make_pdf([["XYZ1234 Wireless module", "Acme Corp", "ECCN: 3A991.a.2", "ECCN: 5A992.C",
+                     "Country of origin: Japan", "XYZ1234 ordering code XYZ1234-TR"]])
+    mpns = [c["value"] for c in extract_pdf(pdf, "b.pdf").json()["candidates"]["mpn"]]
+    assert "XYZ1234" in mpns and not {"3A991", "5A992.C"} & set(mpns), mpns
