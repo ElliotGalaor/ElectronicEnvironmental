@@ -1686,3 +1686,38 @@ def test_garbled_link_tokens_are_unknown_tokens():
     # A lone surrogate (sent as a JSON escape) cannot be encoded either
     r = client.post("/api/edit-access/lookup", content=b'{"token": "\\ud800"}', headers={"Content-Type": "application/json"})
     assert r.status_code == 404, r.text
+
+
+def test_empty_notes_and_unknown_codes_add_no_reference_row():
+    def exemption_keys():
+        return {e["key"] for e in client.get("/api/exemptions").json()["exemptions"]}
+
+    def eccn_codes():
+        return {e["code"] for e in client.get("/api/eccn").json()["codes"]}
+
+    # Exemption used by no component: saving empty notes stores nothing
+    r = client.put("/api/exemptions/7(b)", json={"notes": ""})
+    assert r.status_code == 200, r.text
+    key = r.json()["key"]
+    assert key not in exemption_keys()
+    # Real notes list it; emptying them removes it again
+    client.put("/api/exemptions/7(b)", json={"notes": "Watch the renewal"})
+    assert key in exemption_keys()
+    client.put("/api/exemptions/7(b)", json={"notes": "  "})
+    assert key not in exemption_keys()
+    # A code that is not in the annexes and used by no component cannot be annotated
+    r = client.put("/api/exemptions/ZZZ-99", json={"notes": "x"})
+    assert r.status_code == 422 and "not in Annexes III and IV" in r.json()["detail"]
+    assert "ZZZ-99" not in exemption_keys()
+    # Empty rows stored by older versions are not listed
+    with db.session() as conn:
+        conn.execute("INSERT OR REPLACE INTO exemption_notes (key, notes, updated_at) VALUES ('7B', '', '')")
+        conn.execute("INSERT OR REPLACE INTO eccn_codes (code, title, notes, updated_at) VALUES ('9A998', '', '', '')")
+    assert "7B" not in exemption_keys() and "9A998" not in eccn_codes()
+    # ECCN: an empty title and notes store nothing; emptying them removes the code from the tab
+    assert client.put("/api/eccn/9A999", json={"title": "", "notes": ""}).status_code == 200
+    assert "9A999" not in eccn_codes()
+    client.put("/api/eccn/9A999", json={"title": "Test entry", "notes": ""})
+    assert "9A999" in eccn_codes()
+    client.put("/api/eccn/9A999", json={"title": "", "notes": ""})
+    assert "9A999" not in eccn_codes()

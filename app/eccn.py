@@ -161,7 +161,8 @@ def list_all(conn: sqlite3.Connection) -> list[dict]:
     by_code: dict[str, list] = {}
     for r in rows:
         by_code.setdefault(r["eccn"], []).append(r)
-    stored = {r["code"]: r for r in conn.execute("SELECT * FROM eccn_codes")}
+    # Codes with a title or notes are listed even when no component uses them (not empty ones from older versions)
+    stored = {r["code"]: r for r in conn.execute("SELECT * FROM eccn_codes WHERE title != '' OR notes != ''")}
     unknown = conn.execute("SELECT COUNT(*) FROM components WHERE eccn = ''").fetchone()[0]
     out = []
     for code in set(counts) | set(stored):
@@ -205,10 +206,13 @@ def update(conn: sqlite3.Connection, code: str, data: dict) -> dict:
     code = db.normalize_eccn(code)
     if not code:
         raise db.ValidationError("Missing ECCN code")
+    title, notes = (data.get("title") or "").strip(), (data.get("notes") or "").strip()
+    if not title and not notes:  # nothing to keep: no record, so the code is no longer listed for it alone
+        conn.execute("DELETE FROM eccn_codes WHERE code = ?", (code,))
+        return get(conn, code)
     conn.execute(
         "INSERT INTO eccn_codes (code, title, notes, updated_at) VALUES (?, ?, ?, ?) "
         "ON CONFLICT(code) DO UPDATE SET title = excluded.title, notes = excluded.notes, updated_at = excluded.updated_at",
-        (code, (data.get("title") or "").strip(), (data.get("notes") or "").strip(),
-         datetime.now(timezone.utc).replace(microsecond=0).isoformat()),
+        (code, title, notes, datetime.now(timezone.utc).replace(microsecond=0).isoformat()),
     )
     return get(conn, code)
