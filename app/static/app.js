@@ -2085,8 +2085,10 @@ function showSignupSent(data) {
   $("#authFields").hidden = true;
   $("#authSubmit").hidden = true;
   $("#btnAuthCancel").textContent = "Close";
-  $("#authInfo").innerHTML = `A confirmation link was sent to <strong>${esc(data.email)}</strong>.
-    Open it within ${data.hours} hours to activate your account (check the spam folder too).`;
+  // The same answer whether or not the address has an account: the e-mail tells its owner which case it is
+  $("#authInfo").innerHTML = `An e-mail was sent to <strong>${esc(data.email)}</strong> (check the spam folder
+    too). Open its confirmation link within ${data.hours} hours to activate your account. If this address
+    already has an account, the e-mail says so: sign in with your password instead.`;
   $("#authInfo").hidden = false;
 }
 

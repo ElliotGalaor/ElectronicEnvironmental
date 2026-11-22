@@ -64,13 +64,22 @@ def _public(row: sqlite3.Row) -> dict:
             "created_at": row["created_at"], "edit_access": row["edit_access"]}
 
 
-def _check_new_account(conn: sqlite3.Connection, email: str, password: str) -> str:
+def _check_fields(email: str, password: str) -> str:
     email = normalize_email(email)
     if not _EMAIL_RE.match(email):
         raise db.ValidationError("Invalid e-mail address")
     if len(password or "") < MIN_PASSWORD:
         raise db.ValidationError(f"The password must be at least {MIN_PASSWORD} characters long")
-    if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+    return email
+
+
+def _account_exists(conn: sqlite3.Connection, email: str) -> bool:
+    return conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone() is not None
+
+
+def _check_new_account(conn: sqlite3.Connection, email: str, password: str) -> str:
+    email = _check_fields(email, password)
+    if _account_exists(conn, email):
         raise AuthError("An account already exists with this e-mail address")
     return email
 
@@ -102,9 +111,15 @@ class TooManyRequests(AuthError):
     """Too many confirmation e-mails for one address."""
 
 
-def create_signup_request(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> str:
-    """Records a sign-up attempt and returns the token for the confirmation link."""
-    email = _check_new_account(conn, email, password)
+def create_signup_request(conn: sqlite3.Connection, email: str, password: str, name: str = "") -> tuple[str, bool]:
+    """Records a sign-up attempt. Returns the token for the confirmation link, and whether the address already
+    has an account.
+
+    The visitor gets the same answer either way, so that sign-up does not reveal which addresses have an
+    account: the owner of an existing account is told by e-mail instead of receiving a link. Such an attempt is
+    recorded too (its token is never sent), so the limit per address answers the same way for both."""
+    email = _check_fields(email, password)
+    exists = _account_exists(conn, email)
     now = _now()
     conn.execute("DELETE FROM signup_requests WHERE expires_at < ?", (now.isoformat(),))  # clean-up
     pending = conn.execute("SELECT COUNT(*) FROM signup_requests WHERE email = ?", (email,)).fetchone()[0]
@@ -118,7 +133,7 @@ def create_signup_request(conn: sqlite3.Connection, email: str, password: str, n
         (_token_hash(token), email, (name or "").strip()[:80], hash_password(password), now.isoformat(),
          (now + timedelta(hours=SIGNUP_HOURS)).isoformat()),
     )
-    return token
+    return token, exists
 
 
 def confirm_signup(conn: sqlite3.Connection, token: str, password: str) -> dict:

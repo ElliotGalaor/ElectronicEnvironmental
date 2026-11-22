@@ -153,6 +153,9 @@ Safeguards:
   up first with another person's address cannot take the account over;
 - the e-mail does not contain the name typed in the form, so the form cannot be used to send text of one's
   own to someone else's mailbox;
+- sign-up does not reveal which addresses have an account: the answer is the same for an address that
+  already has one, and its owner receives an e-mail saying so instead of a link (without e-mail
+  confirmation, the account is created at once, so an address already taken has to be refused);
 - at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address
   (an address the visitor cannot choose: see `FORWARDED_ALLOW_IPS` and `RRC_CLIENT_IP_HEADER` below);
 - the link's token is in the address fragment (`#confirm/…`): it never reaches the server logs, the interface
@@ -164,7 +167,9 @@ Security:
 - passwords hashed with scrypt (random salt per account), never stored in clear text;
 - 30-day session in an `HttpOnly`, `SameSite=Lax` cookie (and `Secure` over HTTPS); only the SHA-256 hash of
   the token is stored in the database;
-- 5 failed sign-ins for the same address block attempts for 15 minutes;
+- failed sign-ins block attempts for 15 minutes after 5 for the same address (guessing one account's
+  password) or 10 from the same client address (one password tried against many accounts); signing in
+  successfully does not reset the client's count;
 - changing the database needs an account approved by the administrator (see below).
 
 ### Changing the database
@@ -342,7 +347,7 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET | `/api/components/{id}/sheet` | component page: record, exemptions, ECCN, SVHC linked to the Candidate List |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | equivalents for a part number not in the database |
 | POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
-| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when a confirmation e-mail is sent), sign in, sign out |
+| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when sign-ups are confirmed by e-mail, also for an address that already has an account), sign in (429 after too many failures), sign out |
 | POST | `/api/auth/confirm` | confirm a sign-up (token of the e-mailed link + password) and sign in |
 | GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
 | GET | `/api/auth/me` | signed-in user and their rights: `can_edit`, `is_admin`, `additions_left` (`null` otherwise) |

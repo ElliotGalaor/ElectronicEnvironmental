@@ -14,7 +14,6 @@ import re
 import sqlite3
 import time
 import unicodedata
-from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
@@ -416,17 +415,38 @@ class ConfirmIn(BaseModel):
     password: str
 
 
-# Password attempt throttling: 5 failures per address in 15 minutes
-_LOGIN_WINDOW, _LOGIN_MAX = 15 * 60, 5
-_login_failures: dict[str, list[float]] = defaultdict(list)
+class RateLimit:
+    """At most `limit` events per key within `window` seconds, kept in memory (one server process).
+
+    Only events are stored, not every key checked, and keys whose events are all older than the window are
+    dropped once there are many of them, so the memory used stays bounded by recent activity."""
+
+    PRUNE_AT = 1000
+
+    def __init__(self, limit: int, window: float):
+        self.limit, self.window = limit, window
+        self.events: dict[str, list[float]] = {}
+
+    def _recent(self, key: str, now: float) -> list[float]:
+        return [t for t in self.events.get(key, ()) if now - t < self.window]
+
+    def full(self, key: str) -> bool:
+        return len(self._recent(key, time.monotonic())) >= self.limit
+
+    def add(self, key: str) -> None:
+        now = time.monotonic()
+        if len(self.events) >= self.PRUNE_AT:
+            self.events = {k: v for k, v in self.events.items() if now - v[-1] < self.window}
+        self.events[key] = [*self._recent(key, now), now]
+
+    def clear(self, key: str) -> None:
+        self.events.pop(key, None)
 
 
-def _check_throttle(email: str) -> None:
-    now = time.monotonic()
-    recent = [t for t in _login_failures[email] if now - t < _LOGIN_WINDOW]
-    _login_failures[email] = recent
-    if len(recent) >= _LOGIN_MAX:
-        raise HTTPException(429, "Too many attempts: try again in a few minutes")
+# Failed sign-ins in 15 minutes: 5 per address (guessing one account's password), 10 per client address
+# (one password tried against many accounts)
+_failures_by_email = RateLimit(5, 15 * 60)
+_failures_by_client = RateLimit(10, 15 * 60)
 
 
 def _account(conn, user: dict | None) -> dict | None:
@@ -458,17 +478,13 @@ def _https(request: Request) -> bool:
 
 
 # Sign-ups per client address while confirmation e-mails are sent: 10 per hour
-_SIGNUP_WINDOW, _SIGNUP_MAX = 60 * 60, 10
-_signup_attempts: dict[str, list[float]] = defaultdict(list)
+_signups_by_client = RateLimit(10, 60 * 60)
 
 
 def _check_signup_throttle(ip: str) -> None:
-    now = time.monotonic()
-    recent = [t for t in _signup_attempts[ip] if now - t < _SIGNUP_WINDOW]
-    if len(recent) >= _SIGNUP_MAX:
-        _signup_attempts[ip] = recent
+    if _signups_by_client.full(ip):
         raise HTTPException(429, "Too many sign-ups from your connection: try again later")
-    _signup_attempts[ip] = [*recent, now]
+    _signups_by_client.add(ip)
 
 
 def _public_url(request: Request) -> str:
@@ -491,6 +507,19 @@ def _confirmation_email(link: str) -> str:
     )
 
 
+def _existing_account_email(site: str) -> str:
+    # Sent instead of a confirmation link when the address already has an account: the sign-up form answers
+    # the same way for every address, and only the owner of the mailbox learns that the account exists.
+    url = html.escape(site, quote=True)
+    return (
+        "<p>Hello,</p>"
+        "<p>Someone tried to create an account on the RoHS / REACH Checker with this e-mail address, which "
+        "already has an account. Nothing was changed.</p>"
+        f'<p>If it was you, sign in with your password: <a href="{url}">{url}</a></p>'
+        "<p>If it was not you, ignore this e-mail.</p>"
+    )
+
+
 @app.get("/api/auth/config", summary="Sign-up settings: e-mail confirmation, captcha key")
 def auth_config():
     return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key(),
@@ -510,17 +539,21 @@ def register(body: RegisterIn, request: Request, response: Response, conn=Depend
     try:
         if not confirm_by_email:
             return _open_session(conn, auth.create_user(conn, body.email, body.password, body.name), request, response)
-        token = auth.create_signup_request(conn, body.email, body.password, body.name)
+        token, exists = auth.create_signup_request(conn, body.email, body.password, body.name)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
     except auth.TooManyRequests as exc:
         raise HTTPException(429, str(exc)) from exc
     except auth.AuthError as exc:
+        # Only without e-mail confirmation: the account is created and signed in at once
         raise HTTPException(409, str(exc)) from exc
     email = auth.normalize_email(body.email)
     try:
-        mailer.send(email, "Confirm your account - RoHS / REACH Checker",
-                    _confirmation_email(f"{_public_url(request)}/#confirm/{token}"))
+        if exists:  # same answer as for a new address: only the owner is told, by e-mail
+            mailer.send(email, "Sign-up attempt - RoHS / REACH Checker", _existing_account_email(_public_url(request) + "/"))
+        else:
+            mailer.send(email, "Confirm your account - RoHS / REACH Checker",
+                        _confirmation_email(f"{_public_url(request)}/#confirm/{token}"))
     except mailer.MailError as exc:
         # The error cancels the transaction: the sign-up attempt is not kept
         raise HTTPException(502, "The confirmation e-mail could not be sent: try again later") from exc
@@ -539,17 +572,20 @@ def confirm(body: ConfirmIn, request: Request, response: Response, conn=Depends(
 
 @app.post("/api/auth/login", summary="Sign in")
 def login(body: LoginIn, request: Request, response: Response, conn=Depends(get_conn)):
-    email = auth.normalize_email(body.email)
-    _check_throttle(email)
+    email, ip = auth.normalize_email(body.email), client_ip(request)
+    if _failures_by_client.full(ip) or _failures_by_email.full(email):
+        raise HTTPException(429, "Too many attempts: try again in a few minutes")
     try:
         user = auth.authenticate(conn, email, body.password)
     except auth.AuthError as exc:
         if auth.signup_pending(conn, email, body.password):
             raise HTTPException(403, "Confirm your e-mail address first: open the link sent to you "
                                      "when you created the account") from exc
-        _login_failures[email].append(time.monotonic())
+        _failures_by_client.add(ip)
+        _failures_by_email.add(email)
         raise HTTPException(401, str(exc)) from exc
-    _login_failures.pop(email, None)
+    # The client's failures are kept: signing in to one's own account must not reset the count
+    _failures_by_email.clear(email)
     return _open_session(conn, user, request, response)
 
 

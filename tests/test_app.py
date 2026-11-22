@@ -553,12 +553,35 @@ def test_login_throttling():
     assert c.post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 429
 
 
+def test_failed_sign_ins_limited_per_client():
+    """One password tried against many accounts from the same client is slowed down too, and addresses that
+    were only checked are not kept in memory."""
+    c, spray = TestClient(app), [f"spray-{i}-{uuid.uuid4().hex[:6]}@example.com" for i in range(12)]
+    for email in spray[:10]:
+        assert c.post("/api/auth/login", json={"email": email, "password": "Summer2026!"}).status_code == 401
+    assert c.post("/api/auth/login", json={"email": spray[10], "password": "Summer2026!"}).status_code == 429
+    _, mine = new_client_with_account()
+    # Blocked for this client, even with a right password (signing in would otherwise reset the count)...
+    assert c.post("/api/auth/login", json={"email": mine, "password": "password123"}).status_code == 429
+    # ...but not for other clients
+    other = TestClient(app, client=("198.51.100.20", 50000))
+    assert other.post("/api/auth/login", json={"email": mine, "password": "password123"}).status_code == 200
+    assert other.post("/api/auth/login", json={"email": spray[11], "password": "Summer2026!"}).status_code == 401
+    from app import main
+    assert set(main._failures_by_email.events) == set(spray[:10]) | {spray[11]}
+
+    limit = main.RateLimit(1, 0.0)  # every event is already outside the window
+    limit.PRUNE_AT = 3
+    for key in "abcd":
+        limit.add(key)
+    assert list(limit.events) == ["d"]  # stale keys dropped once there are many
+
+
 # ---------------------------------------------------------------- sign-up confirmed by e-mail, captcha
 
 import re  # noqa: E402
 import urllib.error  # noqa: E402
 import urllib.parse  # noqa: E402
-from collections import defaultdict  # noqa: E402
 
 from app import captcha as captcha_mod  # noqa: E402
 from app import mailer as mailer_mod  # noqa: E402
@@ -570,11 +593,18 @@ SIGNUP_ENV = ("RRC_MAIL_LOG", "RRC_BREVO_API_KEY", "RRC_MAIL_FROM", "RRC_PUBLIC_
 TS_SITE, TS_SECRET, TS_TOKEN = "1x00000000000000000000AA", "1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX"
 
 
+@pytest.fixture(autouse=True)
+def fresh_limits(monkeypatch):
+    """Every test starts with empty sign-up and sign-in limits: all test clients share one address."""
+    for name in ("_signups_by_client", "_failures_by_client", "_failures_by_email"):
+        old = getattr(main_mod, name)
+        monkeypatch.setattr(main_mod, name, main_mod.RateLimit(old.limit, old.window))
+
+
 @pytest.fixture
 def clean_signup_env(monkeypatch):
     for key in SIGNUP_ENV:
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.setattr(main_mod, "_signup_attempts", defaultdict(list))
 
 
 @pytest.fixture
@@ -618,9 +648,34 @@ def test_signup_confirmed_by_email(mailbox):
     assert r.status_code == 200 and r.json()["name"] == "Ann <b>Spam</b>"
     assert c.get("/api/auth/me").json()["email"] == email
 
-    # The link works once, and the address is now taken
+    # The link works once
     assert TestClient(app).post("/api/auth/confirm", json={"token": token, "password": "password123"}).status_code == 400
-    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 409
+
+
+def test_signup_does_not_reveal_existing_accounts(mailbox):
+    """Same answer for an address that has an account and for a new one: only the owner of the mailbox learns
+    which it is, from the e-mail."""
+    existing = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, existing, "owner-password")
+    answers = [TestClient(app).post("/api/auth/register", json={"email": e, "password": "password123"})
+               for e in (existing.upper(), new_email())]
+    assert [r.status_code for r in answers] == [202, 202]
+    assert answers[0].json() == {"pending": True, "email": existing, "hours": 24}
+    told, confirm = mailbox
+    assert told["to"] == existing and "already has an account" in told["html"] and "#confirm/" not in told["html"]
+    assert "http://testserver/" in told["html"] and "#confirm/" in confirm["html"]
+    # Signing in afterwards does not tell them apart either
+    for email in (existing, confirm["to"]):
+        assert TestClient(app).post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 403
+    # The owner's account is untouched
+    assert TestClient(app).post("/api/auth/login", json={"email": existing, "password": "owner-password"}).status_code == 200
+    # Nor does the limit per address: 3 e-mails, then the same refusal
+    for email in (existing, confirm["to"]):
+        for _ in range(2):
+            assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 202
+        r = TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"})
+        assert r.status_code == 429 and "mailbox" in r.json()["detail"]
 
 
 def test_signup_cannot_be_taken_over(mailbox):

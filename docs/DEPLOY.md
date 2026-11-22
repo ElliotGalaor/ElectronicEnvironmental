@@ -197,8 +197,8 @@ A free service cannot keep files. To keep accounts, history and database edits:
 
 ## Visitor addresses
 
-The limit on sign-ups (10 per hour) is counted per visitor address, and the captcha check sends that address
-to Cloudflare. That address must be one the visitor cannot choose:
+The limits on sign-ups (10 per hour) and failed sign-ins (10 per 15 minutes) are counted per visitor address,
+and the captcha check sends that address to Cloudflare. That address must be one the visitor cannot choose:
 
 - Render's proxy **appends** to the `X-Forwarded-For` header sent by the visitor, so its leftmost entry is
   whatever the visitor wrote. `FORWARDED_ALLOW_IPS` = `*` makes uvicorn use that entry: every forged value
