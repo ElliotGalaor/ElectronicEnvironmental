@@ -384,6 +384,7 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     p.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(p, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.create_function("fold", 1, fold, deterministic=True)
     conn.executescript(SCHEMA)
     _migrate(conn)
     return conn
@@ -574,12 +575,29 @@ def get(conn: sqlite3.Connection, comp_id: int) -> dict | None:
     return row_to_dict(conn.execute("SELECT * FROM components WHERE id = ?", (comp_id,)).fetchone())
 
 
+def fold(text: str | None) -> str:
+    """Text compared by the search: no accents, lower case ("Würth" finds "Wurth", "µF" finds "μF")."""
+    return strip_accents(text or "").lower()
+
+
+# Characters of a typed part number: its permissive form (letters and digits) is also searched only then, so that
+# "µF" does not find every part number with an F, nor "-" or "%" every component
+_MPN_QUERY_RE = re.compile(r"[A-Za-z0-9\s\-/#.,+()]+")
+
+
 def search(conn: sqlite3.Connection, q: str = "", limit: int = 50, offset: int = 0, status: str = "") -> tuple[list[dict], int]:
     where, params = [], []
+    q = (q or "").strip()
     if q:
-        like = f"%{q.strip()}%"
-        where.append("(mpn LIKE ? OR manufacturer LIKE ? OR description LIKE ? OR mpn_loose LIKE ?)")
-        params += [like, like, like, f"%{loose_mpn(q)}%"]
+        # The typed text is matched literally: % and _ are not wildcards
+        like = "%" + fold(q).replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+        cond = [f"fold({col}) LIKE ? ESCAPE '!'" for col in ("mpn", "manufacturer", "description")]
+        params += [like, like, like]
+        loose = loose_mpn(q)
+        if loose and _MPN_QUERY_RE.fullmatch(q):
+            cond.append("mpn_loose LIKE ?")
+            params.append(f"%{loose}%")
+        where.append(f"({' OR '.join(cond)})")
     if status == "issues":
         where.append("(rohs2 IN ('non_compliant','unknown') OR rohs3 IN ('non_compliant','unknown') "
                      "OR reach IN ('non_compliant','unknown','svhc'))")

@@ -1737,3 +1737,24 @@ def test_manufacturer_pages_accept_any_spelling():
     assert len(listed) == 1 and listed[0]["notes"] == "any spelling"
     assert client.get("/api/manufacturers/%25%25").status_code == 404
     assert client.get("/api/manufacturers/_").status_code in (200, 404)  # components without a manufacturer
+
+
+def test_search_matches_the_typed_text_literally():
+    def found(q):
+        r = client.get("/api/components", params={"q": q, "limit": 500})
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    total = found("")["total"]
+    for q in ("%", "_", "-", "/", "Ω", "!"):
+        d = found(q)
+        assert d["total"] < total, q
+        for c in d["items"]:  # only components that contain the typed text
+            text = " ".join(c[k] or "" for k in ("mpn", "manufacturer", "description")).lower()
+            assert db.fold(q) in db.fold(text), (q, c["mpn"])
+    assert found("_")["total"] == 0  # no component contains "_": it is not a wildcard
+    micro = found("µF")["items"]
+    assert micro and all("μf" in db.fold(c["description"]) for c in micro)  # not every part number with an F
+    assert found("Würth")["total"] == found("Wurth")["total"] >= 1
+    assert found("lm 358")["total"] == found("LM358")["total"] >= 1  # part numbers still found in any spelling
+
