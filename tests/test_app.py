@@ -1819,3 +1819,11 @@ def test_unreadable_or_empty_files_are_not_column_errors():
             r = client.post(url, files={"file": (name, data)})  # (importing a header alone creates nothing)
             assert r.status_code == 422 and message in r.json()["detail"], (url, name, r.text)
             assert "X-Error-Kind" not in r.headers, (url, name)  # no column mapping dialog: nothing to map
+
+
+def test_hidden_elements_stay_hidden_and_delete_is_for_the_administrator():
+    # .btn sets display: inline-flex, which beat the hidden attribute (Delete, Edit buttons left visible)
+    css = client.get("/static/style.css").text
+    assert "[hidden] { display: none !important; }" in css
+    js = client.get("/static/app.js").text
+    assert '$("#btnDelete").hidden = !comp || !(!authConfig || authConfig.open_editing || state.user?.is_admin);' in js

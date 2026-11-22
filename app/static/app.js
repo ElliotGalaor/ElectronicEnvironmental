@@ -839,7 +839,8 @@ function openDialog(comp, preset = {}) {
   const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
   $("#dlgTitle").textContent = comp ? "Edit component" : "New component";
-  $("#btnDelete").hidden = !comp;
+  // Deleting: an existing component, by the administrator (or anyone when editing is open)
+  $("#btnDelete").hidden = !comp || !(!authConfig || authConfig.open_editing || state.user?.is_admin);
   $("#dlgError").hidden = true;
   $("#pdfStatus").hidden = true;
   $("#mpnList").innerHTML = $("#mfrOptions").innerHTML = "";
