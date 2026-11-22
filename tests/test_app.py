@@ -1671,3 +1671,18 @@ def test_last_checked_dates_normalised(tmp_path):
                      "VALUES ('OLD-2', 'OLD2', 'OLD2', 'Acme', 'acme', 'soon', '')")
     with db.session(path) as conn:
         assert dict(conn.execute("SELECT mpn, last_checked FROM components").fetchall()) == {"OLD-1": "2026-03-10", "OLD-2": "soon"}
+
+
+# ------------------------------------------------------------------ minor fixes from the end-to-end tests
+
+def test_garbled_link_tokens_are_unknown_tokens():
+    # A token with accents (hand-edited or garbled link) is an unknown token, not a server error
+    for path, body in (("/api/auth/confirm", {"token": "été", "password": "password123"}),
+                       ("/api/edit-access/lookup", {"token": "été"}),
+                       ("/api/edit-access/review", {"token": "été", "approve": True})):
+        r = client.post(path, json=body)
+        assert r.status_code in (400, 404), (path, r.status_code, r.text)
+        assert "X-Error-Kind" not in r.headers
+    # A lone surrogate (sent as a JSON escape) cannot be encoded either
+    r = client.post("/api/edit-access/lookup", content=b'{"token": "\\ud800"}', headers={"Content-Type": "application/json"})
+    assert r.status_code == 404, r.text

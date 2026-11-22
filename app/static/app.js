@@ -156,7 +156,8 @@ if (window.ResizeObserver) {
 updateTabScroll();
 
 function route() {
-  const h = decodeURIComponent(location.hash.slice(1));
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch { /* malformed % sequence in a hand-edited link: kept as typed */ }
   if (h.startsWith("confirm/")) {
     // Link from the sign-up confirmation e-mail: the token is removed from the address bar at once
     confirmToken = h.slice("confirm/".length);
@@ -1548,12 +1549,14 @@ function statusText(norm, status) {
 
 async function openComponent(id) {
   const box = $("#compSheet");
+  const notFound = `<div class="alert error">This component is not in the database.</div>`;
+  if (!/^\d+$/.test(id)) { box.innerHTML = notFound; return; } // hand-edited link: ids are numbers
   box.innerHTML = `<p class="muted">Loading…</p>`;
   let s;
   try {
     s = await (await api(`/api/components/${encodeURIComponent(id)}/sheet`)).json();
   } catch (e) {
-    box.innerHTML = `<div class="alert error">${e.status === 404 ? "This component is not in the database." : esc("Error: " + e.message)}</div>`;
+    box.innerHTML = [404, 422].includes(e.status) ? notFound : `<div class="alert error">${esc("Error: " + e.message)}</div>`;
     return;
   }
   const c = s.component, none = `<span class="muted">—</span>`;

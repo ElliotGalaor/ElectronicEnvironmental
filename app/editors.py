@@ -38,7 +38,7 @@ def _now() -> datetime:
 
 
 def _hash(token: str) -> str:
-    return hashlib.sha256(token.encode("ascii")).hexdigest()
+    return hashlib.sha256(token.encode("utf-8", "replace")).hexdigest()  # a garbled link is just an unknown token
 
 
 def open_editing() -> bool:
