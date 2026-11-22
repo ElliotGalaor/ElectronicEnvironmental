@@ -1791,3 +1791,69 @@ def test_last_checked_dates_normalised(tmp_path):
                      "VALUES ('OLD-2', 'OLD2', 'OLD2', 'Acme', 'acme', 'soon', '')")
     with db.session(path) as conn:
         assert dict(conn.execute("SELECT mpn, last_checked FROM components").fetchall()) == {"OLD-1": "2026-03-10", "OLD-2": "soon"}
+
+
+def test_security_headers():
+    for path in ("/", "/static/app.js", "/api/stats", "/api/components/999999"):
+        h = client.get(path).headers
+        csp = h["content-security-policy"]
+        assert "script-src 'self' https://challenges.cloudflare.com" in csp            # Turnstile captcha
+        assert "frame-src https://challenges.cloudflare.com" in csp and "frame-ancestors 'none'" in csp
+        assert "default-src 'self'" in csp and "unsafe" not in csp
+        assert h["x-content-type-options"] == "nosniff" and h["x-frame-options"] == "DENY"
+        assert h["referrer-policy"] == "strict-origin-when-cross-origin"
+        assert "strict-transport-security" not in h                                     # plain HTTP
+    # Nothing in the interface needs inline scripts or styles, which the policy blocks
+    page, script = client.get("/").text, (ROOT / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert not re.search(r"<script(?![^>]*\bsrc=)", page) and "<style" not in page
+    assert not re.search(r"\sstyle=|\son[a-z]+=\"", page + script)
+    # The interactive API documentation keeps its CDN scripts; it cannot be framed either
+    assert client.get("/docs").headers["content-security-policy"] == "frame-ancestors 'none'"
+    assert TestClient(app, base_url="https://testserver").get("/").headers["strict-transport-security"] == "max-age=31536000"
+    assert "--no-server-header" in (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+
+def test_upload_size_checked_before_reading(monkeypatch):
+    """An upload over the limit is refused before the form is read, or as it arrives when its size is not
+    given: it is never loaded into memory."""
+    import starlette.datastructures
+
+    endpoint_reads, read_sizes = [], []
+    real_read_upload, real_read = main_mod._read_upload, starlette.datastructures.UploadFile.read
+
+    async def spy_read_upload(file):
+        endpoint_reads.append(file.filename)
+        return await real_read_upload(file)
+
+    async def spy_read(self, size=-1):
+        read_sizes.append(size)
+        return await real_read(self, size)
+    monkeypatch.setattr(main_mod, "_read_upload", spy_read_upload)
+    monkeypatch.setattr(starlette.datastructures.UploadFile, "read", spy_read)
+
+    too_big = b"x" * (main_mod.MAX_UPLOAD + main_mod._BODY_MARGIN)
+    for path in ("/api/analyze", "/api/table/preview", "/api/components/import"):
+        r = client.post(path, files={"file": ("big.csv", too_big)})
+        assert r.status_code == 413 and r.json()["detail"] == "File too large (max 10 MB)"
+        assert r.headers["x-content-type-options"] == "nosniff"
+    pdf = b"x" * (main_mod.MAX_DATASHEET + main_mod._BODY_MARGIN)
+    r = client.post("/api/datasheet/extract", files={"file": ("big.pdf", pdf)})
+    assert r.status_code == 413 and r.json()["detail"] == "PDF too large (max 30 MB)"
+
+    boundary = "rrc-test-boundary"
+
+    def chunked_upload():  # no Content-Length: counted as the chunks arrive
+        yield (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="big.csv"\r\n'
+               "Content-Type: text/csv\r\n\r\n").encode()
+        for _ in range(12):
+            yield b"x" * 1024 * 1024
+        yield f"\r\n--{boundary}--\r\n".encode()
+    r = client.post("/api/analyze", content=chunked_upload(),
+                    headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+    assert r.status_code == 413 and r.json()["detail"] == "File too large (max 10 MB)"
+    assert endpoint_reads == [] and read_sizes == []  # the endpoints never ran
+
+    # Just over 10 MB, within the room left for the form fields: the endpoint reads no more than the limit
+    r = client.post("/api/analyze", files={"file": ("big.csv", b"x" * (main_mod.MAX_UPLOAD + 1))})
+    assert r.status_code == 413 and endpoint_reads == ["big.csv"] and read_sizes == [main_mod.MAX_UPLOAD + 1]
+    assert analyze_text("MPN,Manufacturer\nNE555P,TI\n")["summary"]["found"] == 1  # normal uploads unchanged

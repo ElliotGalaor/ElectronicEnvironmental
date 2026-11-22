@@ -60,6 +60,8 @@ STATIC = Path(__file__).resolve().parent / "static"
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"   # example BOMs, offered on the home page
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 MB
 MAX_DATASHEET = 30 * 1024 * 1024  # 30 MB
+UPLOAD_TOO_LARGE = "File too large (max 10 MB)"
+PDF_TOO_LARGE = "PDF too large (max 30 MB)"
 
 app = FastAPI(
     title="RoHS / REACH Checker",
@@ -86,6 +88,59 @@ async def server_error(request: Request, exc: Exception):
     return JSONResponse({"detail": SERVER_ERROR}, status_code=500, headers={"X-Error-Kind": "server"})
 
 
+_BODY_MARGIN = 1024 * 1024        # form fields sent with the file (column mapping, replacements…)
+_DISCARD_MAX = 200 * 1024 * 1024  # a refused body is read and discarded up to this size
+
+
+async def _discard_body(receive) -> None:
+    """Reads the rest of a refused request body without keeping it, so that the browser, still sending,
+    receives the 413 answer instead of a broken connection."""
+    left = _DISCARD_MAX
+    while left > 0:
+        message = await receive()
+        if message["type"] != "http.request" or not message.get("more_body"):
+            return
+        left -= len(message.get("body", b""))
+
+
+class UploadLimit:
+    """Refuses a request body larger than the upload limit (413) before it is stored.
+
+    Starlette otherwise reads the whole upload (into memory, then a temporary file) before the endpoint can
+    look at its size: an 80 MB file would be loaded on a 512 MB instance. A declared size over the limit is
+    refused before anything is read; a body sent without its size is counted as it arrives."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        pdf = scope["path"] == "/api/datasheet/extract"
+        limit, detail = (MAX_DATASHEET if pdf else MAX_UPLOAD) + _BODY_MARGIN, PDF_TOO_LARGE if pdf else UPLOAD_TOO_LARGE
+        declared = dict(scope["headers"]).get(b"content-length", b"")
+        if declared.isdigit() and int(declared) > limit:
+            await _discard_body(receive)
+            return await JSONResponse({"detail": detail}, status_code=413)(scope, receive, send)
+        received = 0
+
+        async def counted_receive():
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > limit:
+                    if message.get("more_body"):
+                        await _discard_body(receive)
+                    raise HTTPException(413, detail)  # raised while the form is read: answered by FastAPI
+            return message
+
+        await self.app(scope, counted_receive, send)
+
+
+app.add_middleware(UploadLimit)  # added first: the headers below are also set on its answers
+
+
 @app.middleware("http")
 async def no_stale_frontend(request, call_next):
     """Force the browser to revalidate the page and its scripts on every load.
@@ -96,6 +151,36 @@ async def no_stale_frontend(request, call_next):
     response = await call_next(request)
     if request.url.path == "/" or request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+# Content-Security-Policy: scripts, styles, images and requests from the site itself only, plus the Turnstile
+# captcha (script and iframe from challenges.cloudflare.com); no inline script or style; no framing by other
+# sites (the administrator's Approve button included).
+CSP = "; ".join((
+    "default-src 'self'",
+    "script-src 'self' https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+))
+# The interactive API documentation loads its scripts and styles from a CDN, with inline code: framing only
+DOCS_CSP = "frame-ancestors 'none'"
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    docs = request.url.path in (app.docs_url, app.redoc_url, app.swagger_ui_oauth2_redirect_url)
+    response.headers["Content-Security-Policy"] = DOCS_CSP if docs else CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"  # frame-ancestors for older browsers
+    # Full addresses never sent to other sites (the captcha still sees the site's origin)
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if _https(request):
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
     return response
 
 
@@ -202,9 +287,9 @@ class ComponentIn(BaseModel):
 
 
 async def _read_upload(file: UploadFile) -> bytes:
-    data = await file.read()
+    data = await file.read(MAX_UPLOAD + 1)  # never more than the limit in memory
     if len(data) > MAX_UPLOAD:
-        raise HTTPException(413, "File too large (max 10 MB)")
+        raise HTTPException(413, UPLOAD_TOO_LARGE)
     if not data:
         raise HTTPException(400, "Empty file")
     return data
@@ -855,7 +940,7 @@ def extract_datasheet(
 ):
     data = file.file.read(MAX_DATASHEET + 1)
     if len(data) > MAX_DATASHEET:
-        raise HTTPException(413, "PDF too large (max 30 MB)")
+        raise HTTPException(413, PDF_TOO_LARGE)
     if not data:
         raise HTTPException(400, "Empty file")
     name = file.filename or "datasheet.pdf"

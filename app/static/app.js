@@ -469,7 +469,7 @@ function renderCharts(S) {
     const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
     const legend = slices.map((s) => `<li data-k="${s.key}" tabindex="0" role="button" aria-pressed="false"
-      title="Show only these lines"><span class="sw" style="background:var(${s.color})"></span>
+      title="Show only these lines"><span class="sw"></span>
       <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
     const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
     return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">

@@ -170,7 +170,13 @@ Security:
 - failed sign-ins block attempts for 15 minutes after 5 for the same address (guessing one account's
   password) or 10 from the same client address (one password tried against many accounts); signing in
   successfully does not reset the client's count;
-- changing the database needs an account approved by the administrator (see below).
+- changing the database needs an account approved by the administrator (see below);
+- every answer carries a `Content-Security-Policy` (scripts, styles and requests from the site itself only,
+  plus the Turnstile captcha from `challenges.cloudflare.com`; no inline code; the pages cannot be framed by
+  another site), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and,
+  over HTTPS, `Strict-Transport-Security`. The Docker image does not send the `server` header;
+- an upload over the limit (10 MB, 30 MB for a PDF datasheet) is refused before it is read: from its declared
+  size, or as it arrives when the size is not given. It is never loaded into memory.
 
 ### Changing the database
 
