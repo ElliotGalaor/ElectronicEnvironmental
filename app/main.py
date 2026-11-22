@@ -946,5 +946,11 @@ def index():
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # Asked for by browsers and tools that do not read the page's <link rel="icon">
+    return FileResponse(STATIC / "favicon.svg", media_type="image/svg+xml")
+
+
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 app.mount("/examples", StaticFiles(directory=EXAMPLES, check_dir=False), name="examples")

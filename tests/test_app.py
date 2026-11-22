@@ -1827,3 +1827,11 @@ def test_hidden_elements_stay_hidden_and_delete_is_for_the_administrator():
     assert "[hidden] { display: none !important; }" in css
     js = client.get("/static/app.js").text
     assert '$("#btnDelete").hidden = !comp || !(!authConfig || authConfig.open_editing || state.user?.is_admin);' in js
+
+
+def test_page_has_an_icon():
+    # No icon declared: browsers asked for /favicon.ico and logged a 404 on every page load
+    assert '<link rel="icon" href="/static/favicon.svg"' in client.get("/").text
+    for url in ("/static/favicon.svg", "/favicon.ico"):
+        r = client.get(url)
+        assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml") and "<svg" in r.text
