@@ -271,6 +271,7 @@ function resetLineFilters() {
 // No BOM open any more (after signing out): its file, result and settings are forgotten
 function clearAnalysis() {
   analysisSeq++; // an analysis still running is ignored when it answers
+  analysisPending = false;
   state.file = null; state.report = null; state.overrides = {}; state.substitutions = {}; state.classifications = {};
   state.historyId = null;
   resetLineFilters();
@@ -310,13 +311,15 @@ const BUSY_TEXT = {
   csv: () => "Preparing the CSV report…",
   bom: () => "Preparing the modified BOM…",
 };
-let analysisSeq = 0, slowTimer = null;
+let analysisSeq = 0, analysisPending = false, slowTimer = null;
 
 function showBusy(format) {
   $("#analysingText").textContent = BUSY_TEXT[format](state.file.name);
   $("#analysingSlow").hidden = true;
   $("#analysing").hidden = false;
   $("#result").classList.add("busy"); // the current result stays visible, dimmed, until the new one arrives
+  // ... and out of reach of the keyboard too: an export or a setting would apply to the BOM being analysed
+  $("#result").inert = format === "json";
   clearTimeout(slowTimer);
   slowTimer = setTimeout(() => { $("#analysingSlow").hidden = false; }, 6000);
 }
@@ -325,12 +328,17 @@ function hideBusy() {
   clearTimeout(slowTimer);
   $("#analysing").hidden = true;
   $("#result").classList.remove("busy");
+  $("#result").inert = false;
 }
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
-  // A new file or setting while an analysis is running: only the latest answer is shown
-  const seq = ++analysisSeq;
+  // No export while a new BOM is being analysed: it would not match the result on screen
+  if (format !== "json" && analysisPending) return;
+  // A new file or setting while an analysis is running: only the latest answer is shown. An export does not
+  // count as one, so it never discards an analysis.
+  const seq = format === "json" ? ++analysisSeq : analysisSeq;
+  if (format === "json") analysisPending = true;
   const fd = new FormData();
   fd.append("file", state.file);
   fd.append("mapping", JSON.stringify(withStatusValues(state.overrides)));
@@ -385,7 +393,10 @@ async function runAnalysis(format = "json") {
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
   } finally {
-    if (seq === analysisSeq) hideBusy();
+    if (seq === analysisSeq) {
+      if (format === "json") analysisPending = false;
+      hideBusy();
+    }
   }
 }
 
