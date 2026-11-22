@@ -1923,20 +1923,31 @@ async function onEditAccessClick(ev) {
   }
 }
 
-// Administrator: approve or refuse a request, from the link received by e-mail
+// Administrator: approve or refuse a request, from the link received by e-mail. The server also wants the
+// administrator's session: a visitor who is signed out, or signed in with another account, is asked to sign in.
 const dlgReview = $("#dlgReview");
 let reviewToken = "";
+let reviewAfterSignIn = "";  // review link to open again once the administrator has signed in
 
 function showReviewError(msg) {
   $("#reviewError").textContent = msg;
   $("#reviewError").hidden = !msg;
 }
 
+// 401 (signed out) or 403 (another account): the message of the server and a button to sign in
+function askReviewSignIn(e) {
+  $("#reviewInfo").textContent = e.message;
+  $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+  $("#btnReviewSignIn").textContent = state.user ? "Sign in with another account" : "Sign in";
+  $("#btnReviewSignIn").hidden = false;
+}
+const needsAdminSession = (e) => e.status === 401 || e.status === 403;
+
 async function openReview(link) {
   reviewToken = link;
   $("#reviewInfo").textContent = "Loading the request…";
   showReviewError("");
-  $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+  $("#btnApprove").hidden = $("#btnRefuse").hidden = $("#btnReviewSignIn").hidden = true;
   if (!dlgReview.open) dlgReview.showModal();
   try {
     const r = await (await api("/api/edit-access/lookup", {
@@ -1948,9 +1959,16 @@ async function openReview(link) {
     $("#btnApprove").hidden = $("#btnRefuse").hidden = false;
   } catch (e) {
     $("#reviewInfo").textContent = "";
-    showReviewError(e.message);
+    if (needsAdminSession(e)) askReviewSignIn(e); else showReviewError(e.message);
   }
 }
+
+$("#btnReviewSignIn").addEventListener("click", async () => {
+  if (state.user) await signOut(); // signed in with an account that is not the administrator's
+  reviewAfterSignIn = reviewToken;
+  dlgReview.close();
+  openAuth("login", "Sign in with the administrator's account to review the edit access request.");
+});
 
 async function decide(approve) {
   $("#btnApprove").disabled = $("#btnRefuse").disabled = true;
@@ -1964,7 +1982,7 @@ async function decide(approve) {
     $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
     if (state.user) refreshUser();
   } catch (e) {
-    showReviewError(e.message);
+    if (needsAdminSession(e)) askReviewSignIn(e); else showReviewError(e.message); // session expired meanwhile
   } finally {
     $("#btnApprove").disabled = $("#btnRefuse").disabled = false;
   }
@@ -1979,12 +1997,16 @@ $("#account").addEventListener("click", async (ev) => {
     location.hash = "#analysis";
     $("#historyBox").scrollIntoView({ behavior: "smooth", block: "start" });
   } else if (ev.target.closest("#btnLogout")) {
-    await api("/api/auth/logout", { method: "POST" }).catch(() => {});
-    state.user = null;
-    clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
-    renderAccount();
+    await signOut();
   }
 });
+
+async function signOut() {
+  await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+  state.user = null;
+  clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
+  renderAccount();
+}
 $("#historyHint").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-auth]");
   if (b) openAuth(b.dataset.auth);
@@ -2027,6 +2049,13 @@ function setAuthMode(mode) {
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
 $("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
+// Sign-in asked by an edit access review: back to the review once signed in, or when the sign-in is given up
+// (the review then offers to sign in again)
+dlgAuth.addEventListener("close", () => {
+  const link = reviewAfterSignIn;
+  reviewAfterSignIn = "";
+  if (link) openReview(link);
+});
 
 // Turnstile captcha on the sign-up form, when the server has one configured (script loaded on demand)
 function loadTurnstile() {
@@ -2084,7 +2113,7 @@ authForm.addEventListener("submit", async (ev) => {
     if (data && data.pending) { showSignupSent(data); return; }
     state.user = data;
     confirmToken = "";
-    dlgAuth.close();
+    dlgAuth.close(); // reopens the edit access review that asked for this sign-in, if any
     renderAccount();
     // A BOM that is already open is saved in the history as soon as the user signs in
     if (state.report && state.file) runAnalysis(); else loadHistory();

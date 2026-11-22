@@ -141,6 +141,17 @@ def require_admin(user=Depends(current_user)) -> dict | None:
     return user
 
 
+def require_reviewer(user=Depends(current_user)) -> dict:
+    """Edit access requests: decided by the signed-in administrator. The e-mailed link alone is not enough,
+    since anyone who gets hold of it (forwarded e-mail, shared screen) could otherwise grant write access."""
+    if not user:
+        raise HTTPException(401, "Sign in with the administrator's account to review this request")
+    if not editors.is_admin(user):
+        raise HTTPException(403, "Only the administrator can review edit access requests: "
+                                 "sign in with the administrator's account")
+    return user
+
+
 def check_additions(conn, user: dict | None, count: int) -> None:
     try:
         editors.check_additions(conn, user, count)
@@ -536,7 +547,7 @@ def _request_email(email: str, created_at: str, link: str) -> str:
         "<p>Hello,</p>"
         f"<p><strong>{html.escape(email)}</strong> (account created on {html.escape(created_at[:10])}) asks for "
         "permission to add and edit components in the database of the RoHS / REACH Checker.</p>"
-        f'<p><a href="{url}">Review the request</a> (approve or refuse)</p>'
+        f'<p><a href="{url}">Review the request</a> (sign in with your administrator account, then approve or refuse)</p>'
         f"<p>Or copy this address into your browser:<br>{url}</p>"
         f"<p>The link is valid for {editors.REVIEW_DAYS} days. An approved account can add up to "
         f"{editors.daily_limit()} new components per day; only you can delete components.</p>"
@@ -571,7 +582,8 @@ def request_edit_access(request: Request, user=Depends(require_user), conn=Depen
     return _account(conn, user | {"edit_access": "pending"})
 
 
-@app.post("/api/edit-access/lookup", summary="Request matching an administrator's review link")
+@app.post("/api/edit-access/lookup", dependencies=[Depends(require_reviewer)],
+          summary="Request matching an administrator's review link (signed-in administrator)")
 def lookup_edit_access(body: TokenIn, conn=Depends(get_conn)):
     row = editors.find_request(conn, body.token)
     if not row:
@@ -580,7 +592,8 @@ def lookup_edit_access(body: TokenIn, conn=Depends(get_conn)):
             "requested_at": row["edit_requested_at"]}
 
 
-@app.post("/api/edit-access/review", summary="Approve or refuse a request (token of the administrator's link)")
+@app.post("/api/edit-access/review", dependencies=[Depends(require_reviewer)],
+          summary="Approve or refuse a request (token of the administrator's link, signed-in administrator)")
 def review_edit_access(body: ReviewIn, request: Request, conn=Depends(get_conn)):
     try:
         row = editors.review(conn, body.token, body.approve)

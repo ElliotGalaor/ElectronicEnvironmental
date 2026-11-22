@@ -174,7 +174,9 @@ pages, exemption and ECCN notes, confirming equivalences and extracting datashee
   only one that can delete components;
 - the accounts the administrator **approved**. A signed-in user clicks "Request edit access" in the Database
   tab; the administrator receives an e-mail with a link (valid 7 days) to approve or refuse, and the user is
-  told the answer by e-mail. One request per day at most.
+  told the answer by e-mail. One request per day at most. The link only works together with the
+  administrator's session: whoever opens it signed out, or signed in with another account, is asked to sign
+  in with the administrator's account first, so a forwarded e-mail does not let anyone else decide.
 
 An approved account can add `RRC_DAILY_ADDITIONS` new components per 24 hours (default 20), through the form,
 a PDF datasheet or an import. An import that would go over the limit is refused as a whole. Edits of existing
@@ -344,7 +346,7 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
 | GET | `/api/auth/me` | signed-in user and their rights: `can_edit`, `is_admin`, `additions_left` (`null` otherwise) |
 | POST | `/api/edit-access/request` | ask the administrator for the right to change the database (e-mail sent) |
-| POST | `/api/edit-access/lookup`, `/api/edit-access/review` | administrator: request of a review link / approve or refuse it |
+| POST | `/api/edit-access/lookup`, `/api/edit-access/review` | signed-in administrator only (401 / 403 otherwise): request of a review link / approve or refuse it |
 | GET | `/api/history` | latest BOMs analysed by the signed-in user |
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
 | GET | `/api/exemptions` | RoHS exemptions used by the database components |

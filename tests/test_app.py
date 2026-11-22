@@ -746,7 +746,7 @@ def protected(mailbox, monkeypatch):
 def signed_in(email=None, password="password123"):
     email = email or new_email()
     with db.session() as conn:
-        if not conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+        if not conn.execute("SELECT 1 FROM users WHERE email = ?", (auth_mod.normalize_email(email),)).fetchone():
             auth_mod.create_user(conn, email, password)
     c = TestClient(app)
     assert c.post("/api/auth/login", json={"email": email, "password": password}).status_code == 200
@@ -781,7 +781,7 @@ def test_edit_access_request_and_approval(protected):
     assert mail["to"] == ADMIN and email in mail["html"] and f"http://testserver/#review/{token}" in mail["html"]
     assert c.post("/api/edit-access/request").status_code == 409                # one pending request at a time
 
-    reviewer = TestClient(app)  # the link is enough: the administrator does not need to be signed in
+    reviewer, _ = signed_in(ADMIN)  # the link together with the administrator's session
     assert reviewer.post("/api/edit-access/lookup", json={"token": "forged"}).status_code == 404
     assert reviewer.post("/api/edit-access/lookup", json={"token": token}).json()["email"] == email
     r = reviewer.post("/api/edit-access/review", json={"token": token, "approve": True})
@@ -802,7 +802,8 @@ def test_edit_access_request_and_approval(protected):
 def test_edit_access_refused(protected):
     c, email = signed_in()
     c.post("/api/edit-access/request")
-    TestClient(app).post("/api/edit-access/review", json={"token": review_token(protected[0]), "approve": False})
+    admin, _ = signed_in(ADMIN)
+    assert admin.post("/api/edit-access/review", json={"token": review_token(protected[0]), "approve": False}).status_code == 200
     assert "not approved" in protected[-1]["html"]
     assert c.get("/api/auth/me").json()["edit_access"] == "refused"
     assert c.post("/api/components", json={"mpn": "EDIT-REFUSED"}).status_code == 403
@@ -811,6 +812,29 @@ def test_edit_access_refused(protected):
     with db.session() as conn:  # one request per day
         conn.execute("UPDATE users SET edit_requested_at = '2000-01-01T00:00:00+00:00' WHERE email = ?", (email,))
     assert c.post("/api/edit-access/request").status_code == 200
+
+
+def test_edit_access_review_needs_the_administrator(protected):
+    """The e-mailed link alone does not let anyone decide (forwarded e-mail, shared screen): the token only
+    works together with the administrator's session, and nothing about the request is shown to anyone else."""
+    c, email = signed_in()
+    c.post("/api/edit-access/request")
+    [mail] = protected
+    token = review_token(mail)
+    assert "sign in with your administrator account" in mail["html"]
+    anonymous, other = TestClient(app), signed_in()[0]
+    for who, status in ((anonymous, 401), (other, 403), (c, 403)):  # nor can the requester approve themself
+        r = who.post("/api/edit-access/lookup", json={"token": token})
+        assert r.status_code == status and email not in r.text
+        r = who.post("/api/edit-access/review", json={"token": token, "approve": True})
+        assert r.status_code == status and "administrator" in r.json()["detail"]
+    me = c.get("/api/auth/me").json()
+    assert me["can_edit"] is False and me["edit_access"] == "pending" and len(protected) == 1
+
+    admin, _ = signed_in(ADMIN.upper())
+    assert admin.post("/api/edit-access/lookup", json={"token": token}).json()["email"] == email
+    assert admin.post("/api/edit-access/review", json={"token": token, "approve": True}).json()["edit_access"] == "approved"
+    assert c.get("/api/auth/me").json()["can_edit"] is True
 
 
 def test_administrator(protected):
