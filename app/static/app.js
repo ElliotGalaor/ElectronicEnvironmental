@@ -409,7 +409,9 @@ function renderReport() {
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
   $("#fmeta").textContent = `— ${plural(S.lines, "line")}, analysed against ${plural(R.database_size, "component")} in the database`;
-  const unrecognised = R.lines.filter((l) => Object.values(l.review || {}).some((r) => r.includes("not recognised"))).length;
+  // Lines with a value of the file that is not understood, for a regulation not given a status by hand since
+  const unrecognised = R.lines.filter((l) => Object.entries(l.review || {})
+    .some(([norm, r]) => r.includes("not recognised") && !(l.manual || []).includes(norm))).length;
   $("#statusHint").hidden = !unrecognised;
   $("#statusHintText").textContent = `${plural(unrecognised, "line")} with a RoHS / REACH value of the file that is not recognised.`;
 
@@ -1396,7 +1398,9 @@ function openClassify(lineNo, norm) {
   $("#classifyChoices").innerHTML = CLASSIFY_CHOICES[norm].map(([v, label]) =>
     `<label class="choice"><input type="radio" name="classify" value="${v}" ${manual && l[norm] === v ? "checked" : ""}> ${badge(v)} <span>${label}</span></label>`).join("") +
     (manual ? `<label class="choice"><input type="radio" name="classify" value=""> <span>Back to “Needs review”</span></label>` : "");
-  const same = reason ? state.report.lines.filter((x) => x !== l && x[norm] === "needs_review" && (x.review || {})[norm] === reason) : [];
+  // Same reason, case ignored: the reason quotes the value of the file, whose case does not matter
+  const sameReason = (r) => !!r && r.toLowerCase() === reason.toLowerCase();
+  const same = reason ? state.report.lines.filter((x) => x !== l && x[norm] === "needs_review" && sameReason((x.review || {})[norm])) : [];
   $("#classifySame").hidden = !same.length;
   $("#classifySameTitle").textContent = `Same status for the ${plural(same.length, "other line")} that need${same.length > 1 ? "" : "s"} review for the same reason`;
   $("#classifyAll").checked = true;
