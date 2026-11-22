@@ -49,7 +49,7 @@ async function api(url, opts = {}) {
     showServerDown(kind);
     throw Object.assign(new Error(SERVER_DOWN[kind]), { status: r.status, kind: "server_down" });
   }
-  if (!$("#serverDown").hidden) hideServerDown(); // the server answers again
+  if (!$("#serverDown").hidden) serverBack(); // the server answers again
   if (!r.ok) {
     let msg = r.statusText;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
@@ -83,14 +83,23 @@ function hideServerDown() {
   $("#serverDown").hidden = true;
 }
 
+// The server answers again: what could not be loaded during the outage is loaded again (the session first: a
+// page opened during the outage took the user as signed out, and would no longer save the analyses)
+function serverBack(reroute = false) {
+  hideServerDown();
+  loadStats(); // the header shows the database size again
+  loadUser();
+  loadAuthConfig();
+  if (reroute) route(); // the current view still shows the error
+}
+
 async function checkServer() {
   clearTimeout(healthTimer);
   $("#btnServerRetry").disabled = true;
   try {
     const r = await fetch("/api/health", { cache: "no-store", signal: timeoutSignal(30000) });
     if (!r.ok) throw Object.assign(new Error(r.statusText), { kind: r.headers.get("X-Error-Kind") === "database" ? "database" : "network" });
-    hideServerDown();
-    loadStats(); // the header shows the database size again
+    serverBack(true);
   } catch (e) {
     showServerDown(e.kind || "network");
   } finally {
