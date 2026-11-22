@@ -1041,6 +1041,7 @@ function renderMapping() {
   $("#mapStatus").classList.toggle("warn", missing.length > 0);
   $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
   $("#btnMapOk").disabled = missing.length > 0;
+  if (!missing.length) $("#mapAlert").hidden = true; // the problem the dialog was opened for is solved
 }
 
 const DEMO_ROWS = 3;
