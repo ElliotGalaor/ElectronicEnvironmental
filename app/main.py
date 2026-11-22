@@ -316,6 +316,10 @@ async def analyze_bom(
         replaced = apply_substitutions(conn, lines, subs)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    # Replacements whose component was deleted since (saved BOM reopened): dropped, also from the history entry
+    dropped = [{"line": k, "component_id": v} for k, v in sorted(subs.items()) if k not in replaced]
+    if dropped:
+        substitutions = json.dumps({str(k): v for k, v in subs.items() if k in replaced}) if replaced else ""
     stem = Path(file.filename or "bom").stem
     if format == "bom":
         return Response(
@@ -337,6 +341,7 @@ async def analyze_bom(
             headers=attachment(f"compliance_{stem}.csv"),
         )
     _count_line_equivalents(conn, report["lines"])
+    report["dropped_substitutions"] = dropped
     if user and (save == "1" or history_id):
         report["history_id"] = history.save(
             conn, user["id"], file.filename or "bom", data, mapping, substitutions, report,

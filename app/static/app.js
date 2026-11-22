@@ -361,6 +361,12 @@ async function runAnalysis(format = "json") {
     if (seq !== analysisSeq) return;
     state.report = report;
     if (state.report.history_id) state.historyId = state.report.history_id;
+    // Replacements whose component was deleted from the database since (saved BOM reopened): dropped
+    const dropped = report.dropped_substitutions || [];
+    dropped.forEach((d) => delete state.substitutions[d.line]);
+    $("#swapDropped").hidden = !dropped.length;
+    $("#swapDropped").textContent = dropped.length ? `The replacement of ${dropped.length > 1 ? "lines" : "line"} ` +
+      `${dropped.map((d) => d.line).join(", ")} was dropped: the component chosen no longer exists in the database.` : "";
     renderReport();
     renderSwapBar();
     renderClassifyBar();

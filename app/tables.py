@@ -626,7 +626,8 @@ def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
 def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dict[int, dict]:
     """Replace the part number and manufacturer of the given lines with those of a database component.
 
-    subs: {line number: component id}. Returns {line number: component} for the export.
+    subs: {line number: component id}. Returns {line number: component} for the export. A component deleted from
+    the database since the replacement was chosen (saved BOM reopened) is left out: its line keeps the BOM's part.
     """
     from .db import ValidationError, get
 
@@ -638,7 +639,7 @@ def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dic
         if line is None:
             raise ValidationError(f"Replacement: line {line_no} does not exist in the BOM")
         if comp is None:
-            raise ValidationError(f"Replacement: component {comp_id} no longer exists in the database")
+            continue
         line.original_mpn, line.original_manufacturer = line.mpn, line.manufacturer
         line.mpn, line.manufacturer = comp["mpn"], comp["manufacturer"]
         if comp.get("description"):

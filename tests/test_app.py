@@ -1780,3 +1780,28 @@ def test_datasheet_regulatory_references_are_not_part_numbers(monkeypatch):
                      "Country of origin: Japan", "XYZ1234 ordering code XYZ1234-TR"]])
     mpns = [c["value"] for c in extract_pdf(pdf, "b.pdf").json()["candidates"]["mpn"]]
     assert "XYZ1234" in mpns and not {"3A991", "5A992.C"} & set(mpns), mpns
+
+
+def test_saved_bom_reopens_after_its_replacement_component_is_deleted():
+    c, _ = new_client_with_account()
+    new = client.post("/api/components", json={"mpn": "SWAP-GONE-1", "manufacturer": "Acme", "rohs3": "compliant"})
+    gone, lm = new.json()["id"], comp_id("LM358DR")
+    subs = json.dumps({"2": gone, "3": lm})
+    r = c.post("/api/analyze", files={"file": ("swap.csv", BOM_SWAP.encode())}, data={"save": "1", "substitutions": subs})
+    assert r.status_code == 200 and r.json()["dropped_substitutions"] == []
+    hid = r.json()["history_id"]
+    assert client.delete(f"/api/components/{gone}").status_code == 204
+    # Reopened: the obsolete replacement is dropped with a note, the other one is kept
+    r = c.post("/api/analyze", files={"file": ("swap.csv", BOM_SWAP.encode())},
+               data={"history_id": str(hid), "substitutions": subs})
+    assert r.status_code == 200, r.text
+    rep = r.json()
+    assert rep["dropped_substitutions"] == [{"line": 2, "component_id": gone}]
+    lines = {l["line"]: l for l in rep["lines"]}
+    assert lines[2]["bom_mpn"] == "DEMO-LEADED-DIP8" and not lines[2]["original_mpn"]
+    assert lines[3]["bom_mpn"] == "LM358DR" and rep["summary"]["substituted"] == 1
+    # The history entry no longer holds it, so the next reopening is clean
+    assert c.get("/api/history").json()[0]["substitutions"] == {"3": lm}
+    # The exports and the modified BOM leave it out too
+    r = client.post("/api/analyze?format=bom", files={"file": ("swap.csv", BOM_SWAP.encode())}, data={"substitutions": subs})
+    assert r.status_code == 200 and "DEMO-LEADED-DIP8" in r.text
