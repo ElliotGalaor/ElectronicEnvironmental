@@ -44,6 +44,7 @@ from .reports import database_csv, report_csv, report_xlsx
 from .tables import (
     BOM_FIELDS,
     HEADER_ROW_KEY,
+    FileReadError,
     TableError,
     apply_substitutions,
     bom_lines,
@@ -180,6 +181,12 @@ MAPPING_DOC = ('Column mapping, JSON: {"mpn": "Part Number", "manufacturer": "__
 COLUMNS_ERROR = {"X-Error-Kind": "columns"}
 
 
+def _table_error(exc: TableError) -> HTTPException:
+    """422 for a table that cannot be used; flagged as a column error only when choosing the columns can help
+    (not for a file that cannot be read, is empty or has nothing below its header)."""
+    return HTTPException(422, str(exc), headers=None if isinstance(exc, FileReadError) else COLUMNS_ERROR)
+
+
 def _ascii_name(text: str) -> str:
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
     return re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9._-]+", "_", text)).strip("_.")
@@ -311,7 +318,7 @@ async def analyze_bom(
     try:
         lines, colmap = parse_bom(data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
+        raise _table_error(exc) from exc
     try:
         replaced = apply_substitutions(conn, lines, subs)
     except db.ValidationError as exc:
@@ -756,7 +763,7 @@ async def import_components(
     try:
         result = import_table(conn, data, file.filename or "", overrides)
     except TableError as exc:
-        raise HTTPException(422, str(exc), headers=COLUMNS_ERROR) from exc
+        raise _table_error(exc) from exc
     check_additions(conn, user, result["created"])
     return result
 

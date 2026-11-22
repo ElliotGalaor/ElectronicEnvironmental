@@ -1805,3 +1805,17 @@ def test_saved_bom_reopens_after_its_replacement_component_is_deleted():
     # The exports and the modified BOM leave it out too
     r = client.post("/api/analyze?format=bom", files={"file": ("swap.csv", BOM_SWAP.encode())}, data={"substitutions": subs})
     assert r.status_code == 200 and "DEMO-LEADED-DIP8" in r.text
+
+
+def test_unreadable_or_empty_files_are_not_column_errors():
+    zip_buf = io.BytesIO()
+    import zipfile
+    with zipfile.ZipFile(zip_buf, "w") as z:
+        z.writestr("readme.txt", "not a workbook")
+    for name, data, message in (("not_excel.xlsx", zip_buf.getvalue(), "ZIP archive"),
+                                ("blank.csv", b"\n\n\n", "empty"),
+                                ("header_only.csv", b"Designator;Manufacturer;MPN\n", "No component line")):
+        for url in ("/api/analyze", "/api/components/import")[: 1 if name == "header_only.csv" else 2]:
+            r = client.post(url, files={"file": (name, data)})  # (importing a header alone creates nothing)
+            assert r.status_code == 422 and message in r.json()["detail"], (url, name, r.text)
+            assert "X-Error-Kind" not in r.headers, (url, name)  # no column mapping dialog: nothing to map
