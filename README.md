@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-118%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-128%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -162,6 +162,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#39](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/39) | **Version 2.0.0**: README and screenshots updated (component pages, SVHC, "needs review" by hand, status values), validity labels wrapped on component pages |
 | *next* | [#40](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/40) | **Release job**: a tag pushed again keeps its existing GitHub release instead of failing |
 | | [#77](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/77) | **Fixes from the end-to-end tests** (12 major issues, #41 to #52): no formulas in the exports, sign-out clears the open BOM, statuses given by hand tied to the part reviewed, replacements judged on their own, Mac line endings, any file name, Excel sheet holding the BOM, RoHS 2 / RoHS 3 inferences for declared statuses, exemption list with unknown codes, Manufacturers tab kept, normalised dates, drop zones usable with the keyboard |
+| | [#78](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/78) | **Minor fixes from the end-to-end tests** (15 bugs, #57 to #70 and #76): session reloaded when the server is back, hidden buttons and Delete for the administrator only, malformed links, empty notes, manufacturer addresses in any spelling, literal and accent-insensitive search, ISO country codes, no directive or ECCN as part number, saved BOMs with a deleted replacement, plain error for unreadable files, mapping alert, unrecognised-values banner, exports during an analysis, edit rights checked again, page icon |
 
 ## Quick start
 
