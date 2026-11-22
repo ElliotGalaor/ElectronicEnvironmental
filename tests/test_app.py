@@ -1721,3 +1721,19 @@ def test_empty_notes_and_unknown_codes_add_no_reference_row():
     assert "9A999" in eccn_codes()
     client.put("/api/eccn/9A999", json={"title": "", "notes": ""})
     assert "9A999" not in eccn_codes()
+
+
+def test_manufacturer_pages_accept_any_spelling():
+    # The key of the address is normalised like the components' manufacturers
+    expected = client.get("/api/manufacturers/texas instruments").json()
+    for spelling in ("TI", "Texas Instruments", "Texas Instruments Inc.", "TEXAS-INSTRUMENTS"):
+        r = client.get(f"/api/manufacturers/{spelling}")
+        assert r.status_code == 200, spelling
+        assert r.json()["key"] == "texas instruments" and len(r.json()["components"]) == len(expected["components"])
+    # A write with a spelling variant updates the same record instead of creating a duplicate
+    r = client.put("/api/manufacturers/Texas Instruments", json={"name": "Texas Instruments", "notes": "any spelling"})
+    assert r.status_code == 200 and r.json()["key"] == "texas instruments", r.text
+    listed = [m for m in client.get("/api/manufacturers").json() if m["name"] == "Texas Instruments"]
+    assert len(listed) == 1 and listed[0]["notes"] == "any spelling"
+    assert client.get("/api/manufacturers/%25%25").status_code == 404
+    assert client.get("/api/manufacturers/_").status_code in (200, 404)  # components without a manufacturer

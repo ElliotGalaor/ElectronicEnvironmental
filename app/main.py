@@ -823,7 +823,14 @@ class ManufacturerIn(BaseModel):
 
 
 def _mfr_key(key: str) -> str:
-    return "" if key == "_" else key
+    """Key of the URL, normalised like the components' manufacturers: "TI", "Texas Instruments" and
+    "Texas Instruments Inc." lead to the same record."""
+    if key == "_":
+        return ""
+    norm = db.normalize_manufacturer(key)
+    if not norm:  # only symbols: not the "no manufacturer" group
+        raise HTTPException(404, "Manufacturer not found")
+    return norm
 
 
 @app.get("/api/manufacturers", summary="List of manufacturers with their statistics")
