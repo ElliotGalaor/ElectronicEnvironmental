@@ -53,7 +53,8 @@ Browsing and BOM analysis stay open to everyone.
 Until `RRC_ADMIN_EMAIL` is set, nobody can change the database.
 
 Other users ask for edit access from the **Database** tab. You receive an e-mail with a link to approve or
-refuse the request, and they are told the answer by e-mail. This needs the e-mail service (Brevo, see
+refuse the request (it asks you to sign in with the administrator account first), and they are told the
+answer by e-mail. This needs the e-mail service (Brevo, see
 [Optional: protect sign-ups](#optional-protect-sign-ups)). An approved account can add 20 new components per
 24 hours (`RRC_DAILY_ADDITIONS` to change it); edits of existing components are not limited.
 
@@ -88,10 +89,12 @@ Once, preferably before the first merge that uses this pipeline:
 1. **Staging service on Render**: **New → Web Service → Existing Image**, image URL
    `ghcr.io/elliotgalaor/electronicenvironmental:latest` (the same repository as production: Render only
    deploys an `imgURL` from the service's own image repository). Name `rohs-checker-staging`, region
-   Frankfurt, instance type **Free**. Under **Environment Variables**, add `PORT` = `8000` and
-   `FORWARDED_ALLOW_IPS` = `*`; under **Advanced**, set the health check path to `/api/stats`. The two free
-   services share the workspace's 750 instance hours a month, but hours only count while a service is awake:
-   a staging service that sleeps between checks uses few of them.
+   Frankfurt, instance type **Free**. Under **Environment Variables**, add the three variables of
+   `render.yaml`: `PORT` = `8000`, `FORWARDED_ALLOW_IPS` = `10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7`
+   and `RRC_CLIENT_IP_HEADER` = `CF-Connecting-IP` (see [Visitor addresses](#visitor-addresses)); under
+   **Advanced**, set the health check path to `/api/stats`. The two free services share the workspace's 750
+   instance hours a month, but hours only count while a service is awake: a staging service that sleeps
+   between checks uses few of them.
 2. **Deploy hooks**: for each service, Render → service page → **Settings** → **Deploy Hook** → copy the URL.
    Keep them private: anyone who has one can trigger a deploy.
 3. **`staging` environment**: GitHub repository → **Settings** → **Environments** → **New environment**, name
@@ -192,6 +195,24 @@ A free service cannot keep files. To keep accounts, history and database edits:
 - Render may restart a free service at any time, which resets the data.
 - The region (Frankfurt, the closest to Europe) cannot be changed after creation.
 
+## Visitor addresses
+
+The limit on sign-ups (10 per hour) is counted per visitor address, and the captcha check sends that address
+to Cloudflare. That address must be one the visitor cannot choose:
+
+- Render's proxy **appends** to the `X-Forwarded-For` header sent by the visitor, so its leftmost entry is
+  whatever the visitor wrote. `FORWARDED_ALLOW_IPS` = `*` makes uvicorn use that entry: every forged value
+  would get fresh limits. `render.yaml` lists Render's internal (private) addresses instead; uvicorn then
+  takes the rightmost entry that is not one of them.
+- Cloudflare is in front of every Render service: it sets `CF-Connecting-IP` to the visitor's address and
+  refuses a request that already carries one. `RRC_CLIENT_IP_HEADER` = `CF-Connecting-IP` makes the
+  application use it (the rightmost `X-Forwarded-For` entry is Cloudflare's own address, shared by many
+  visitors).
+
+A service created before these settings: service page → **Environment**, replace `FORWARDED_ALLOW_IPS` = `*`
+and add `RRC_CLIENT_IP_HEADER`, for staging and production. The service log warns at start-up while
+`FORWARDED_ALLOW_IPS` is `*` without `RRC_CLIENT_IP_HEADER`.
+
 ## Troubleshooting
 
 - **The first page takes about a minute**: the service was asleep. Normal on the free plan.
@@ -200,8 +221,11 @@ A free service cannot keep files. To keep accounts, history and database edits:
 - **"Your account cannot change the database yet"**: request edit access in the Database tab, or sign in with
   the address set in `RRC_ADMIN_EMAIL`.
 - **"Edit access requests are not set up on this server"**: set `RRC_ADMIN_EMAIL` and the Brevo variables.
-- **Sign-in does not persist**: `FORWARDED_ALLOW_IPS` must be `*` (set by `render.yaml`); without it, the
-  application does not see that the visit is over HTTPS.
+- **Sign-in does not persist**: the application must know that the visit is over HTTPS: `FORWARDED_ALLOW_IPS`
+  as in `render.yaml`, or `RRC_PUBLIC_URL` / `RENDER_EXTERNAL_URL` starting with `https://` (Render sets the
+  latter).
+- **"Too many sign-ups from your connection" for everyone**: the limits are counted per visitor address;
+  check `RRC_CLIENT_IP_HEADER` = `CF-Connecting-IP` (see [Visitor addresses](#visitor-addresses)).
 - **"The confirmation e-mail could not be sent"**: check `RRC_BREVO_API_KEY`, and that `RRC_MAIL_FROM` is
   a verified sender in Brevo. The service logs (**Logs**) show Brevo's answer.
 - **"Captcha check failed" for everyone**: the site's hostname must be listed in the Turnstile widget, and

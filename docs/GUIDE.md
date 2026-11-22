@@ -153,7 +153,8 @@ Safeguards:
   up first with another person's address cannot take the account over;
 - the e-mail does not contain the name typed in the form, so the form cannot be used to send text of one's
   own to someone else's mailbox;
-- at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address;
+- at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address
+  (an address the visitor cannot choose: see `FORWARDED_ALLOW_IPS` and `RRC_CLIENT_IP_HEADER` below);
 - the link's token is in the address fragment (`#confirm/…`): it never reaches the server logs, the interface
   removes it from the address bar at once, and only its SHA-256 hash is stored.
 
@@ -376,15 +377,20 @@ disappears as soon as the site answers again. Server errors are answered in JSON
   access requests of the other accounts, received by e-mail (see "Changing the database").
 - `RRC_DAILY_ADDITIONS`: new components an approved account can add per 24 hours (default 20).
 - `RRC_OPEN_EDITING=1`: anyone can change the database, without an account (development, private server).
-- `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the addresses whose `X-Forwarded-*` headers are trusted
-  (uvicorn setting). Needed for the session cookie to be marked `Secure` over HTTPS; `render.yaml` sets it
-  to `*` because only Render's proxy can reach the application.
+- `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the proxy's addresses or networks, whose `X-Forwarded-*`
+  headers are trusted (uvicorn setting): the visit is then seen over HTTPS, and the visitor's address is the
+  rightmost `X-Forwarded-For` entry that is not one of them. Avoid `*`: uvicorn then takes the leftmost
+  entry, which the visitor writes, and the per-address limits no longer hold (a warning is logged at
+  start-up). `render.yaml` lists the private networks of Render's internal proxies.
+- `RRC_CLIENT_IP_HEADER`: header that holds the visitor's address, set by an edge proxy that refuses or
+  overwrites a value sent by the visitor (`CF-Connecting-IP` behind Cloudflare, set by `render.yaml`). Only
+  set it when every request goes through that proxy: otherwise visitors could write it themselves.
 - `RRC_BREVO_API_KEY`, `RRC_MAIL_FROM`: Brevo API key and sender address verified in Brevo; turn on the
   e-mail confirmation of sign-ups.
 - `RRC_MAIL_LOG=1`: for development, confirmation e-mails are written to the server log instead of being
   sent (this also turns on the e-mail confirmation).
 - `RRC_PUBLIC_URL`: address used in the e-mailed links (default: `RENDER_EXTERNAL_URL` on Render, otherwise
-  the address of the request).
+  the address of the request). When it starts with `https://`, the session cookie is always marked `Secure`.
 - `RRC_TURNSTILE_SITE_KEY`, `RRC_TURNSTILE_SECRET_KEY`: Cloudflare Turnstile keys; turn on the captcha.
   Cloudflare's test keys (`1x00000000000000000000AA` and `1x0000000000000000000000000000000AA`) always pass,
   for local use.

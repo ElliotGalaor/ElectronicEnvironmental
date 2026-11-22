@@ -661,6 +661,47 @@ def test_signup_limit_per_connection(mailbox):
     assert c.post("/api/auth/register", json={"email": new_email(), "password": "password123"}).status_code == 429
 
 
+def test_signup_limit_ignores_forged_forwarded_for(mailbox, monkeypatch):
+    """Render's proxy appends to the X-Forwarded-For sent by the visitor: its leftmost entry is forged at will.
+    The limit is keyed on the address Cloudflare gives (RRC_CLIENT_IP_HEADER) or, without it, on the rightmost
+    hop that is not one of Render's internal proxies, with the uvicorn settings of render.yaml."""
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+    config = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    trusted = re.search(r'key: FORWARDED_ALLOW_IPS\s+value: "([^"]+)"', config).group(1)
+    assert trusted != "*" and re.search(r"key: RRC_CLIENT_IP_HEADER\s+value: CF-Connecting-IP$", config, re.MULTILINE)
+    # The application behind uvicorn as on Render, reached through an internal proxy (private address)
+    behind_render = TestClient(ProxyHeadersMiddleware(app, trusted_hosts=trusted), client=("10.17.0.4", 41000))
+
+    def sign_up(forged, visitor="198.51.100.7", cloudflare=None):
+        headers = {"X-Forwarded-For": f"{forged}, {visitor}, 172.71.0.9, 10.17.3.2", "X-Forwarded-Proto": "https"}
+        if cloudflare:
+            headers["CF-Connecting-IP"] = cloudflare
+        return behind_render.post("/api/auth/register", json={"email": new_email(), "password": "password123"},
+                                  headers=headers).status_code
+
+    for i in range(10):
+        assert sign_up(f"203.0.113.{i}") == 202
+    assert sign_up("203.0.113.99") == 429   # a new forged value does not give a fresh limit
+
+    monkeypatch.setenv("RRC_CLIENT_IP_HEADER", "CF-Connecting-IP")
+    for i in range(10):
+        assert sign_up(f"203.0.113.{i}", cloudflare="198.51.100.7") == 202
+    assert sign_up("203.0.113.99", cloudflare="198.51.100.7") == 429
+    assert sign_up("203.0.113.99", visitor="198.51.100.8", cloudflare="198.51.100.8") == 202  # another visitor
+
+    # HTTPS seen through the trusted proxy, or a public address in https: the session cookie is Secure
+    monkeypatch.delenv("RRC_MAIL_LOG")
+    r = behind_render.post("/api/auth/register", json={"email": new_email(), "password": "password123"},
+                           headers={"X-Forwarded-For": "198.51.100.9, 10.17.3.2", "X-Forwarded-Proto": "https"})
+    assert r.status_code == 201 and "secure" in r.headers["set-cookie"].lower()
+    r = TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    assert r.status_code == 201 and "secure" not in r.headers["set-cookie"].lower()
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://rohs-checker.onrender.com")
+    r = TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    assert r.status_code == 201 and "secure" in r.headers["set-cookie"].lower()
+
+
 def test_signup_email_not_sent(mailbox, monkeypatch):
     def fail(*_):
         raise mailer_mod.MailError("Brevo HTTP 401")

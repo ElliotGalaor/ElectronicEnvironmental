@@ -6,6 +6,7 @@ Run with:  uvicorn app.main:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import html
+import ipaddress
 import json
 import logging
 import os
@@ -97,6 +98,31 @@ async def no_stale_frontend(request, call_next):
     if request.url.path == "/" or request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
+
+
+def client_ip(request: Request) -> str:
+    """Visitor's address, for the sign-up and sign-in limits and the captcha check: never a value the visitor
+    chooses, such as the start of X-Forwarded-For.
+
+    - RRC_CLIENT_IP_HEADER: header set by the hosting's edge proxy, which refuses or overwrites one sent by the
+      visitor (CF-Connecting-IP on Render, where Cloudflare is in front of every service);
+    - otherwise the address of the connection as uvicorn gives it: behind a proxy whose addresses are listed in
+      FORWARDED_ALLOW_IPS, the rightmost X-Forwarded-For entry that is not one of them.
+    """
+    header = os.environ.get("RRC_CLIENT_IP_HEADER", "").strip()
+    if header:
+        try:
+            return str(ipaddress.ip_address(request.headers.get(header, "").strip()))
+        except ValueError:
+            pass  # missing header (request that did not go through that proxy): the connection's address
+    return request.client.host if request.client else ""
+
+
+# FORWARDED_ALLOW_IPS="*" makes uvicorn take the leftmost X-Forwarded-For entry, which the visitor writes
+if os.environ.get("FORWARDED_ALLOW_IPS", "").strip() == "*" and not os.environ.get("RRC_CLIENT_IP_HEADER", "").strip():
+    logging.getLogger("uvicorn.error").warning(
+        "FORWARDED_ALLOW_IPS=* trusts the X-Forwarded-For sent by visitors: the sign-up and sign-in limits can be "
+        "bypassed. List the proxy's addresses instead, or set RRC_CLIENT_IP_HEADER (docs/GUIDE.md)")
 
 
 def get_conn():
@@ -415,9 +441,20 @@ def _open_session(conn, user: dict, request: Request, response: Response) -> dic
     token = auth.create_session(conn, user["id"])
     response.set_cookie(
         auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="lax",
-        secure=request.url.scheme == "https", path="/",
+        secure=_https(request), path="/",
     )
     return _account(conn, user)
+
+
+def _configured_url() -> str:
+    """Public address of the site, when the environment gives it (Render sets RENDER_EXTERNAL_URL)."""
+    return os.environ.get("RRC_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or ""
+
+
+def _https(request: Request) -> bool:
+    """Visit over HTTPS: as the trusted proxy says (X-Forwarded-Proto), or because the site's public address is
+    https, so that the session cookie stays Secure even if the proxy's address is missing from FORWARDED_ALLOW_IPS."""
+    return request.url.scheme == "https" or _configured_url().startswith("https://")
 
 
 # Sign-ups per client address while confirmation e-mails are sent: 10 per hour
@@ -436,8 +473,7 @@ def _check_signup_throttle(ip: str) -> None:
 
 def _public_url(request: Request) -> str:
     """Base address for the links in e-mails (Render sets RENDER_EXTERNAL_URL)."""
-    base = os.environ.get("RRC_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or str(request.base_url)
-    return base.rstrip("/")
+    return (_configured_url() or str(request.base_url)).rstrip("/")
 
 
 def _confirmation_email(link: str) -> str:
@@ -465,7 +501,7 @@ def auth_config():
 @app.post("/api/auth/register", status_code=201,
           summary="Create an account: signed in at once, or 202 when a confirmation e-mail is sent")
 def register(body: RegisterIn, request: Request, response: Response, conn=Depends(get_conn)):
-    ip = request.client.host if request.client else ""
+    ip = client_ip(request)
     confirm_by_email = mailer.available()
     if confirm_by_email:
         _check_signup_throttle(ip)
