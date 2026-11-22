@@ -1758,3 +1758,12 @@ def test_search_matches_the_typed_text_literally():
     assert found("Würth")["total"] == found("Wurth")["total"] >= 1
     assert found("lm 358")["total"] == found("LM358")["total"] >= 1  # part numbers still found in any spelling
 
+
+def test_country_of_origin_must_be_an_iso_code():
+    r = client.post("/api/components", json={"mpn": "CTRY-UK-1", "manufacturer": "Acme", "country_of_origin": "UK"})
+    assert r.status_code == 201, r.text
+    assert client.get(f"/api/components/{r.json()['id']}").json()["country_of_origin"] == "GB"
+    for value in ("XX", "Atlantis"):
+        r = client.post("/api/components", json={"mpn": "CTRY-BAD-1", "manufacturer": "Acme", "country_of_origin": value})
+        assert r.status_code == 422 and "Unrecognised country of origin" in r.json()["detail"], value
+    assert db.normalize_country("hr") == "HR"  # assigned codes are accepted even without a name in the list
