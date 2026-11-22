@@ -153,7 +153,11 @@ Safeguards:
   up first with another person's address cannot take the account over;
 - the e-mail does not contain the name typed in the form, so the form cannot be used to send text of one's
   own to someone else's mailbox;
-- at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address;
+- sign-up does not reveal which addresses have an account: the answer is the same for an address that
+  already has one, and its owner receives an e-mail saying so instead of a link (without e-mail
+  confirmation, the account is created at once, so an address already taken has to be refused);
+- at most 3 pending confirmation e-mails per address, and 10 sign-ups per hour from the same client address
+  (an address the visitor cannot choose: see `FORWARDED_ALLOW_IPS` and `RRC_CLIENT_IP_HEADER` below);
 - the link's token is in the address fragment (`#confirm/…`): it never reaches the server logs, the interface
   removes it from the address bar at once, and only its SHA-256 hash is stored.
 
@@ -163,8 +167,16 @@ Security:
 - passwords hashed with scrypt (random salt per account), never stored in clear text;
 - 30-day session in an `HttpOnly`, `SameSite=Lax` cookie (and `Secure` over HTTPS); only the SHA-256 hash of
   the token is stored in the database;
-- 5 failed sign-ins for the same address block attempts for 15 minutes;
-- changing the database needs an account approved by the administrator (see below).
+- failed sign-ins block attempts for 15 minutes after 5 for the same address (guessing one account's
+  password) or 10 from the same client address (one password tried against many accounts); signing in
+  successfully does not reset the client's count;
+- changing the database needs an account approved by the administrator (see below);
+- every answer carries a `Content-Security-Policy` (scripts, styles and requests from the site itself only,
+  plus the Turnstile captcha from `challenges.cloudflare.com`; no inline code; the pages cannot be framed by
+  another site), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and,
+  over HTTPS, `Strict-Transport-Security`. The Docker image does not send the `server` header;
+- an upload over the limit (10 MB, 30 MB for a PDF datasheet) is refused before it is read: from its declared
+  size, or as it arrives when the size is not given. It is never loaded into memory.
 
 ### Changing the database
 
@@ -174,7 +186,9 @@ pages, exemption and ECCN notes, confirming equivalences and extracting datashee
   only one that can delete components;
 - the accounts the administrator **approved**. A signed-in user clicks "Request edit access" in the Database
   tab; the administrator receives an e-mail with a link (valid 7 days) to approve or refuse, and the user is
-  told the answer by e-mail. One request per day at most.
+  told the answer by e-mail. One request per day at most. The link only works together with the
+  administrator's session: whoever opens it signed out, or signed in with another account, is asked to sign
+  in with the administrator's account first, so a forwarded e-mail does not let anyone else decide.
 
 An approved account can add `RRC_DAILY_ADDITIONS` new components per 24 hours (default 20), through the form,
 a PDF datasheet or an import. An import that would go over the limit is refused as a whole. Edits of existing
@@ -339,12 +353,12 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | GET | `/api/components/{id}/sheet` | component page: record, exemptions, ECCN, SVHC linked to the Candidate List |
 | GET | `/api/alternatives?mpn=&manufacturer=&description=` | equivalents for a part number not in the database |
 | POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
-| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when a confirmation e-mail is sent), sign in, sign out |
+| POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when sign-ups are confirmed by e-mail, also for an address that already has an account), sign in (429 after too many failures), sign out |
 | POST | `/api/auth/confirm` | confirm a sign-up (token of the e-mailed link + password) and sign in |
 | GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
 | GET | `/api/auth/me` | signed-in user and their rights: `can_edit`, `is_admin`, `additions_left` (`null` otherwise) |
 | POST | `/api/edit-access/request` | ask the administrator for the right to change the database (e-mail sent) |
-| POST | `/api/edit-access/lookup`, `/api/edit-access/review` | administrator: request of a review link / approve or refuse it |
+| POST | `/api/edit-access/lookup`, `/api/edit-access/review` | signed-in administrator only (401 / 403 otherwise): request of a review link / approve or refuse it |
 | GET | `/api/history` | latest BOMs analysed by the signed-in user |
 | GET / DELETE | `/api/history/{id}/file`, `/api/history/{id}` | original file of a BOM / deletion |
 | GET | `/api/exemptions` | RoHS exemptions used by the database components |
@@ -374,15 +388,20 @@ disappears as soon as the site answers again. Server errors are answered in JSON
   access requests of the other accounts, received by e-mail (see "Changing the database").
 - `RRC_DAILY_ADDITIONS`: new components an approved account can add per 24 hours (default 20).
 - `RRC_OPEN_EDITING=1`: anyone can change the database, without an account (development, private server).
-- `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the addresses whose `X-Forwarded-*` headers are trusted
-  (uvicorn setting). Needed for the session cookie to be marked `Secure` over HTTPS; `render.yaml` sets it
-  to `*` because only Render's proxy can reach the application.
+- `FORWARDED_ALLOW_IPS`: behind a reverse proxy, the proxy's addresses or networks, whose `X-Forwarded-*`
+  headers are trusted (uvicorn setting): the visit is then seen over HTTPS, and the visitor's address is the
+  rightmost `X-Forwarded-For` entry that is not one of them. Avoid `*`: uvicorn then takes the leftmost
+  entry, which the visitor writes, and the per-address limits no longer hold (a warning is logged at
+  start-up). `render.yaml` lists the private networks of Render's internal proxies.
+- `RRC_CLIENT_IP_HEADER`: header that holds the visitor's address, set by an edge proxy that refuses or
+  overwrites a value sent by the visitor (`CF-Connecting-IP` behind Cloudflare, set by `render.yaml`). Only
+  set it when every request goes through that proxy: otherwise visitors could write it themselves.
 - `RRC_BREVO_API_KEY`, `RRC_MAIL_FROM`: Brevo API key and sender address verified in Brevo; turn on the
   e-mail confirmation of sign-ups.
 - `RRC_MAIL_LOG=1`: for development, confirmation e-mails are written to the server log instead of being
   sent (this also turns on the e-mail confirmation).
 - `RRC_PUBLIC_URL`: address used in the e-mailed links (default: `RENDER_EXTERNAL_URL` on Render, otherwise
-  the address of the request).
+  the address of the request). When it starts with `https://`, the session cookie is always marked `Secure`.
 - `RRC_TURNSTILE_SITE_KEY`, `RRC_TURNSTILE_SECRET_KEY`: Cloudflare Turnstile keys; turn on the captcha.
   Cloudflare's test keys (`1x00000000000000000000AA` and `1x0000000000000000000000000000000AA`) always pass,
   for local use.

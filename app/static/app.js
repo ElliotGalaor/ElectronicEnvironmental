@@ -469,7 +469,7 @@ function renderCharts(S) {
     const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
     const legend = slices.map((s) => `<li data-k="${s.key}" tabindex="0" role="button" aria-pressed="false"
-      title="Show only these lines"><span class="sw" style="background:var(${s.color})"></span>
+      title="Show only these lines"><span class="sw"></span>
       <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
     const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
     return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">
@@ -1923,20 +1923,31 @@ async function onEditAccessClick(ev) {
   }
 }
 
-// Administrator: approve or refuse a request, from the link received by e-mail
+// Administrator: approve or refuse a request, from the link received by e-mail. The server also wants the
+// administrator's session: a visitor who is signed out, or signed in with another account, is asked to sign in.
 const dlgReview = $("#dlgReview");
 let reviewToken = "";
+let reviewAfterSignIn = "";  // review link to open again once the administrator has signed in
 
 function showReviewError(msg) {
   $("#reviewError").textContent = msg;
   $("#reviewError").hidden = !msg;
 }
 
+// 401 (signed out) or 403 (another account): the message of the server and a button to sign in
+function askReviewSignIn(e) {
+  $("#reviewInfo").textContent = e.message;
+  $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+  $("#btnReviewSignIn").textContent = state.user ? "Sign in with another account" : "Sign in";
+  $("#btnReviewSignIn").hidden = false;
+}
+const needsAdminSession = (e) => e.status === 401 || e.status === 403;
+
 async function openReview(link) {
   reviewToken = link;
   $("#reviewInfo").textContent = "Loading the request…";
   showReviewError("");
-  $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
+  $("#btnApprove").hidden = $("#btnRefuse").hidden = $("#btnReviewSignIn").hidden = true;
   if (!dlgReview.open) dlgReview.showModal();
   try {
     const r = await (await api("/api/edit-access/lookup", {
@@ -1948,9 +1959,16 @@ async function openReview(link) {
     $("#btnApprove").hidden = $("#btnRefuse").hidden = false;
   } catch (e) {
     $("#reviewInfo").textContent = "";
-    showReviewError(e.message);
+    if (needsAdminSession(e)) askReviewSignIn(e); else showReviewError(e.message);
   }
 }
+
+$("#btnReviewSignIn").addEventListener("click", async () => {
+  if (state.user) await signOut(); // signed in with an account that is not the administrator's
+  reviewAfterSignIn = reviewToken;
+  dlgReview.close();
+  openAuth("login", "Sign in with the administrator's account to review the edit access request.");
+});
 
 async function decide(approve) {
   $("#btnApprove").disabled = $("#btnRefuse").disabled = true;
@@ -1964,7 +1982,7 @@ async function decide(approve) {
     $("#btnApprove").hidden = $("#btnRefuse").hidden = true;
     if (state.user) refreshUser();
   } catch (e) {
-    showReviewError(e.message);
+    if (needsAdminSession(e)) askReviewSignIn(e); else showReviewError(e.message); // session expired meanwhile
   } finally {
     $("#btnApprove").disabled = $("#btnRefuse").disabled = false;
   }
@@ -1979,12 +1997,16 @@ $("#account").addEventListener("click", async (ev) => {
     location.hash = "#analysis";
     $("#historyBox").scrollIntoView({ behavior: "smooth", block: "start" });
   } else if (ev.target.closest("#btnLogout")) {
-    await api("/api/auth/logout", { method: "POST" }).catch(() => {});
-    state.user = null;
-    clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
-    renderAccount();
+    await signOut();
   }
 });
+
+async function signOut() {
+  await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+  state.user = null;
+  clearAnalysis(); // the open BOM belongs to the account that signed out: never saved into the next one
+  renderAccount();
+}
 $("#historyHint").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-auth]");
   if (b) openAuth(b.dataset.auth);
@@ -2027,6 +2049,13 @@ function setAuthMode(mode) {
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
 $("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
+// Sign-in asked by an edit access review: back to the review once signed in, or when the sign-in is given up
+// (the review then offers to sign in again)
+dlgAuth.addEventListener("close", () => {
+  const link = reviewAfterSignIn;
+  reviewAfterSignIn = "";
+  if (link) openReview(link);
+});
 
 // Turnstile captcha on the sign-up form, when the server has one configured (script loaded on demand)
 function loadTurnstile() {
@@ -2056,8 +2085,10 @@ function showSignupSent(data) {
   $("#authFields").hidden = true;
   $("#authSubmit").hidden = true;
   $("#btnAuthCancel").textContent = "Close";
-  $("#authInfo").innerHTML = `A confirmation link was sent to <strong>${esc(data.email)}</strong>.
-    Open it within ${data.hours} hours to activate your account (check the spam folder too).`;
+  // The same answer whether or not the address has an account: the e-mail tells its owner which case it is
+  $("#authInfo").innerHTML = `An e-mail was sent to <strong>${esc(data.email)}</strong> (check the spam folder
+    too). Open its confirmation link within ${data.hours} hours to activate your account. If this address
+    already has an account, the e-mail says so: sign in with your password instead.`;
   $("#authInfo").hidden = false;
 }
 
@@ -2084,7 +2115,7 @@ authForm.addEventListener("submit", async (ev) => {
     if (data && data.pending) { showSignupSent(data); return; }
     state.user = data;
     confirmToken = "";
-    dlgAuth.close();
+    dlgAuth.close(); // reopens the edit access review that asked for this sign-in, if any
     renderAccount();
     // A BOM that is already open is saved in the history as soon as the user signs in
     if (state.report && state.file) runAnalysis(); else loadHistory();
