@@ -311,8 +311,9 @@ a.eccn-link .badge { cursor: pointer; }
 .pie .center-value { font-size: 20px; font-weight: 700; fill: var(--text); }
 .pie .center-label { font-size: 10.5px; fill: var(--muted); }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; min-width: 0; }
-.legend li { display: flex; align-items: center; gap: 7px; padding: 1px 4px; border-radius: 5px; }
-.legend li.on { background: var(--surface-2); }
+.legend button { display: flex; align-items: center; gap: 7px; width: 100%; padding: 1px 4px; border: 0; border-radius: 5px;
+  background: none; font: inherit; color: inherit; text-align: left; }
+.legend button.on { background: var(--surface-2); }
 .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
 /* Colours set here rather than in a style attribute, which the Content-Security-Policy blocks */
 .legend [data-k="compliant"] .sw { background: var(--pie-ok); }
@@ -329,8 +330,8 @@ a.eccn-link .badge { cursor: pointer; }
 #charts .legend [data-k]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .chart.filtered { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .chart.filtered .pie [data-k]:not(.sel) { opacity: .3; }
-.chart.filtered .legend li:not(.sel) { opacity: .55; }
-.chart .legend li.sel { background: var(--surface-2); font-weight: 600; }
+.chart.filtered .legend button:not(.sel) { opacity: .55; }
+.chart .legend button.sel { background: var(--surface-2); font-weight: 600; }
 .chip.chartchip { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .chip.chartchip[hidden] { display: none; }
 .charttip { position: fixed; pointer-events: none; z-index: 50; background: var(--text); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }

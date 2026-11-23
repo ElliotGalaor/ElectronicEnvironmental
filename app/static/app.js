@@ -117,12 +117,25 @@ $$(".tab").forEach((t) => t.addEventListener("click", () => {
   if (location.hash === target) route(); else location.hash = target;
 }));
 
+// Page title: the item shown (if any), then the tab, then the site
+const APP_TITLE = "RoHS / REACH Checker";
+const setTitle = (...parts) => { document.title = [...parts, APP_TITLE].filter(Boolean).join(" — "); };
+
 // tab: the tab to highlight, when the panel has none of its own (the component page highlights Database)
 function showTab(name, tab = name) {
-  $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === tab));
+  $$(".tab").forEach((x) => {
+    const on = x.dataset.tab === tab;
+    x.classList.toggle("active", on);
+    x.setAttribute("aria-selected", on);
+    x.tabIndex = on ? 0 : -1; // the arrow keys move between the tabs; Tab goes on to the page
+    if (on) x.setAttribute("aria-controls", "tab-" + name);
+  });
   $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + name));
   const btn = $(`.tab[data-tab="${tab}"]`);
-  if (btn) revealTab(btn);
+  if (btn) {
+    revealTab(btn);
+    setTitle(tab === "home" ? "" : btn.textContent.trim()); // detail pages add their item once it is loaded
+  }
 }
 
 /* Tab bar on narrow screens. On touch screens the native scrollbar is hidden (style.css): a slim bar on the
@@ -148,6 +161,17 @@ function updateTabScroll() {
   tabThumb.style.width = `${thumb}px`;
   tabThumb.style.transform = `translateX(${(track - thumb) * left / hidden}px)`;
 }
+
+// Keyboard: arrow keys, Home and End move between the tabs (and open them), as in any tab list
+tabList.addEventListener("keydown", (ev) => {
+  const tabs = $$(".tab"), i = tabs.indexOf(document.activeElement);
+  const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+  if (i < 0 || to === undefined) return;
+  ev.preventDefault();
+  const t = tabs[(to + tabs.length) % tabs.length];
+  t.focus();
+  t.click();
+});
 
 tabList.addEventListener("scroll", () => {
   updateTabScroll();
@@ -497,9 +521,9 @@ function renderCharts(S) {
     if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">No populated line.</p></div></div>`;
     const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
-    const legend = slices.map((s) => `<li data-k="${s.key}" tabindex="0" role="button" aria-pressed="false"
+    const legend = slices.map((s) => `<li><button type="button" data-k="${s.key}" aria-pressed="false"
       title="Show only these lines"><span class="sw"></span>
-      <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
+      <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></button></li>`).join("");
     const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
     return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">
       ${pieSvg(slices, total, pctOf(okShare), "compliant")}
@@ -546,10 +570,7 @@ function chartClick(ev) {
     if (bar.top > innerHeight - 120 || bar.top < 0) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
-$("#charts").addEventListener("click", chartClick);
-$("#charts").addEventListener("keydown", (ev) => {
-  if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".legend [data-k]")) { ev.preventDefault(); chartClick(ev); }
-});
+$("#charts").addEventListener("click", chartClick); // the legend buttons also answer Enter and Space
 
 function setChartFilter(f) {
   state.chartFilter = f;
@@ -570,7 +591,7 @@ function markChartFilter() {
     card.querySelectorAll("[data-k]").forEach((e) => {
       const sel = mine && e.dataset.k === f.status;
       e.classList.toggle("sel", sel);
-      if (e.tagName === "LI") e.setAttribute("aria-pressed", sel);
+      if (e.tagName === "BUTTON") e.setAttribute("aria-pressed", sel);
     });
   });
   const chip = $("#chartFilterChip");
@@ -800,6 +821,7 @@ async function openManufacturer(key) {
 function renderManufacturer() {
   const m = currentMfr, s = m.stats;
   $("#mfrName").textContent = m.name || "(manufacturer not given)";
+  setTitle(m.name || "(manufacturer not given)", "Manufacturers");
   $("#mfrAliases").textContent = m.aliases.length ? "Also written: " + m.aliases.join(", ") : "";
   $("#btnEditMfr").hidden = m.key === "";
   $("#mfrCards").innerHTML = [
@@ -1559,6 +1581,7 @@ async function openSvhc(id) {
   }
   const none = `<span class="muted">—</span>`;
   $("#svhcName").textContent = s.name;
+  setTitle(s.name, "SVHC");
   $("#svhcInfo").innerHTML = `
     ${s.description ? `<dt>Description</dt><dd>${esc(s.description)}</dd>` : ""}
     <dt>EC number</dt><dd class="mono">${s.ec.map(esc).join(", ") || none}</dd>
@@ -1615,6 +1638,7 @@ async function openComponent(id) {
     return;
   }
   const c = s.component, none = `<span class="muted">—</span>`;
+  setTitle(c.mpn, "Component database");
   const exRows = s.exemptions.map((e) => `<tr>
       <td class="nowrap"><a class="ex-link" href="${exHref(e.key)}">${esc(e.found ? e.code : e.input)}</a>
         ${e.annex ? `<div class="muted small">Annex ${esc(e.annex)}</div>` : ""}</td>
@@ -1714,6 +1738,7 @@ async function openEccn(code) {
 
 function renderEccn() {
   const e = currentEccn;
+  setTitle(e.code, "ECCN codes");
   $("#btnEditEccn").hidden = false;
   $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-svhc">Subject to export control</span>` : `<span class="badge b-compliant">Not listed (EAR99)</span>`}`;
   $("#eccnSummary").textContent = e.title || e.summary;
@@ -1820,6 +1845,7 @@ async function openExemption(code) {
 
 function renderExemption() {
   const e = currentExemption;
+  setTitle(e.found ? `Exemption ${e.code}` : e.input, "RoHS exemptions");
   $("#exemptCode").innerHTML = `${e.found ? `Exemption ${esc(e.code)}` : esc(e.input)} ${statusBadge(e.status)}`;
   $("#exemptSummary").textContent = e.found ? e.annex_label : "This code does not match any exemption in Annexes III and IV.";
   const datesList = (e.dates || []).map((d) => {

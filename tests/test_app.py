@@ -2058,3 +2058,23 @@ def test_text_contrast_of_both_themes():
             assert _contrast(theme[fg], theme[bg]) >= 4.5, (name, fg, bg, round(_contrast(theme[fg], theme[bg]), 2))
     assert ":where(a) { color: var(--link); }" in css  # plain links (manufacturer websites) take the theme's colour
     assert "tr.dnp td { opacity" not in css  # not populated lines: muted colour, not a transparency
+
+
+def test_page_semantics_for_assistive_technologies():
+    import re
+    page = client.get("/").text
+    # Tabs: a navigation landmark holding the tab list; each tab controls a labelled tab panel
+    assert '<nav class="tabbar" aria-label="Sections">' in page and '<div class="tabs" role="tablist"' in page
+    tabs = re.findall(r'<button class="tab[^"]*" data-tab="(\w+)" role="tab" id="tabbtn-\1" aria-controls="tab-\1" aria-selected="(true|false)"', page)
+    assert len(tabs) == 7 and [s for _, s in tabs].count("true") == 1
+    for name, _ in tabs + [("component", "")]:
+        assert re.search(rf'<section id="tab-{name}" role="tabpanel" aria-labelledby="tabbtn-\w+"', page), name
+    # Search boxes have a name; definition terms sit in description lists; scrollable previews take the focus
+    for box in ("q", "exemptSearch", "svhcSearch", "eccnSearch", "mfrSearch"):
+        assert re.search(rf'<input type="search" id="{box}" aria-label="[^"]+"', page), box
+    for info in ("exemptInfo", "eccnInfo", "mfrInfo", "svhcInfo"):
+        assert f'<dl class="card mfrinfo" id="{info}">' in page
+    assert 'id="mapResultWrap" tabindex="0" role="region"' in page
+    js = client.get("/static/app.js").text
+    assert '<li><button type="button" data-k="${s.key}" aria-pressed="false"' in js  # legends: buttons in plain items
+    assert 'role="button"' not in js and "setTitle(" in js  # page titles follow the page shown
