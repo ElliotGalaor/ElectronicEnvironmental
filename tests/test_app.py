@@ -2022,3 +2022,17 @@ def test_upload_size_checked_before_reading(monkeypatch):
     r = client.post("/api/analyze", files={"file": ("big.csv", b"x" * (main_mod.MAX_UPLOAD + 1))})
     assert r.status_code == 413 and endpoint_reads == ["big.csv"] and read_sizes == [main_mod.MAX_UPLOAD + 1]
     assert analyze_text("MPN,Manufacturer\nNE555P,TI\n")["summary"]["found"] == 1  # normal uploads unchanged
+
+
+# ------------------------------------------------------------------ remaining issues
+
+def test_answers_are_compressed():
+    for url in ("/", "/static/app.js", "/api/svhc", "/api/components?limit=200"):
+        r = client.get(url, headers={"Accept-Encoding": "gzip"})
+        assert r.status_code == 200 and r.headers.get("content-encoding") == "gzip", url
+        assert "Accept-Encoding" in r.headers.get("vary", "")
+    # The security headers are still on compressed answers; small or uncompressible ones are left as they are
+    r = client.get("/", headers={"Accept-Encoding": "gzip"})
+    assert "Content-Security-Policy" in r.headers and r.headers["Cache-Control"] == "no-cache"
+    assert "content-encoding" not in client.get("/api/health", headers={"Accept-Encoding": "gzip"}).headers
+    assert "content-encoding" not in client.get("/", headers={"Accept-Encoding": "identity"}).headers

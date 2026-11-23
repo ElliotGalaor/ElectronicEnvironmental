@@ -19,6 +19,7 @@ from typing import Literal
 from urllib.parse import quote
 
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -140,6 +141,10 @@ class UploadLimit:
 
 
 app.add_middleware(UploadLimit)  # added first: the headers below are also set on its answers
+# Answers compressed when the browser accepts it (page, script, JSON lists, analysis results of large BOMs).
+# Added before the "http" middlewares below, which stream every answer: it still sees whole answers, so small
+# ones are left uncompressed, and the headers those middlewares set are kept.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 @app.middleware("http")
