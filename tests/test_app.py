@@ -553,12 +553,35 @@ def test_login_throttling():
     assert c.post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 429
 
 
+def test_failed_sign_ins_limited_per_client():
+    """One password tried against many accounts from the same client is slowed down too, and addresses that
+    were only checked are not kept in memory."""
+    c, spray = TestClient(app), [f"spray-{i}-{uuid.uuid4().hex[:6]}@example.com" for i in range(12)]
+    for email in spray[:10]:
+        assert c.post("/api/auth/login", json={"email": email, "password": "Summer2026!"}).status_code == 401
+    assert c.post("/api/auth/login", json={"email": spray[10], "password": "Summer2026!"}).status_code == 429
+    _, mine = new_client_with_account()
+    # Blocked for this client, even with a right password (signing in would otherwise reset the count)...
+    assert c.post("/api/auth/login", json={"email": mine, "password": "password123"}).status_code == 429
+    # ...but not for other clients
+    other = TestClient(app, client=("198.51.100.20", 50000))
+    assert other.post("/api/auth/login", json={"email": mine, "password": "password123"}).status_code == 200
+    assert other.post("/api/auth/login", json={"email": spray[11], "password": "Summer2026!"}).status_code == 401
+    from app import main
+    assert set(main._failures_by_email.events) == set(spray[:10]) | {spray[11]}
+
+    limit = main.RateLimit(1, 0.0)  # every event is already outside the window
+    limit.PRUNE_AT = 3
+    for key in "abcd":
+        limit.add(key)
+    assert list(limit.events) == ["d"]  # stale keys dropped once there are many
+
+
 # ---------------------------------------------------------------- sign-up confirmed by e-mail, captcha
 
 import re  # noqa: E402
 import urllib.error  # noqa: E402
 import urllib.parse  # noqa: E402
-from collections import defaultdict  # noqa: E402
 
 from app import captcha as captcha_mod  # noqa: E402
 from app import mailer as mailer_mod  # noqa: E402
@@ -570,11 +593,18 @@ SIGNUP_ENV = ("RRC_MAIL_LOG", "RRC_BREVO_API_KEY", "RRC_MAIL_FROM", "RRC_PUBLIC_
 TS_SITE, TS_SECRET, TS_TOKEN = "1x00000000000000000000AA", "1x0000000000000000000000000000000AA", "XXXX.DUMMY.TOKEN.XXXX"
 
 
+@pytest.fixture(autouse=True)
+def fresh_limits(monkeypatch):
+    """Every test starts with empty sign-up and sign-in limits: all test clients share one address."""
+    for name in ("_signups_by_client", "_failures_by_client", "_failures_by_email"):
+        old = getattr(main_mod, name)
+        monkeypatch.setattr(main_mod, name, main_mod.RateLimit(old.limit, old.window))
+
+
 @pytest.fixture
 def clean_signup_env(monkeypatch):
     for key in SIGNUP_ENV:
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.setattr(main_mod, "_signup_attempts", defaultdict(list))
 
 
 @pytest.fixture
@@ -618,9 +648,34 @@ def test_signup_confirmed_by_email(mailbox):
     assert r.status_code == 200 and r.json()["name"] == "Ann <b>Spam</b>"
     assert c.get("/api/auth/me").json()["email"] == email
 
-    # The link works once, and the address is now taken
+    # The link works once
     assert TestClient(app).post("/api/auth/confirm", json={"token": token, "password": "password123"}).status_code == 400
-    assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 409
+
+
+def test_signup_does_not_reveal_existing_accounts(mailbox):
+    """Same answer for an address that has an account and for a new one: only the owner of the mailbox learns
+    which it is, from the e-mail."""
+    existing = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, existing, "owner-password")
+    answers = [TestClient(app).post("/api/auth/register", json={"email": e, "password": "password123"})
+               for e in (existing.upper(), new_email())]
+    assert [r.status_code for r in answers] == [202, 202]
+    assert answers[0].json() == {"pending": True, "email": existing, "hours": 24}
+    told, confirm = mailbox
+    assert told["to"] == existing and "already has an account" in told["html"] and "#confirm/" not in told["html"]
+    assert "http://testserver/" in told["html"] and "#confirm/" in confirm["html"]
+    # Signing in afterwards does not tell them apart either
+    for email in (existing, confirm["to"]):
+        assert TestClient(app).post("/api/auth/login", json={"email": email, "password": "password123"}).status_code == 403
+    # The owner's account is untouched
+    assert TestClient(app).post("/api/auth/login", json={"email": existing, "password": "owner-password"}).status_code == 200
+    # Nor does the limit per address: 3 e-mails, then the same refusal
+    for email in (existing, confirm["to"]):
+        for _ in range(2):
+            assert TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"}).status_code == 202
+        r = TestClient(app).post("/api/auth/register", json={"email": email, "password": "password123"})
+        assert r.status_code == 429 and "mailbox" in r.json()["detail"]
 
 
 def test_signup_cannot_be_taken_over(mailbox):
@@ -659,6 +714,47 @@ def test_signup_limit_per_connection(mailbox):
     for _ in range(10):
         assert c.post("/api/auth/register", json={"email": new_email(), "password": "password123"}).status_code == 202
     assert c.post("/api/auth/register", json={"email": new_email(), "password": "password123"}).status_code == 429
+
+
+def test_signup_limit_ignores_forged_forwarded_for(mailbox, monkeypatch):
+    """Render's proxy appends to the X-Forwarded-For sent by the visitor: its leftmost entry is forged at will.
+    The limit is keyed on the address Cloudflare gives (RRC_CLIENT_IP_HEADER) or, without it, on the rightmost
+    hop that is not one of Render's internal proxies, with the uvicorn settings of render.yaml."""
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+    config = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    trusted = re.search(r'key: FORWARDED_ALLOW_IPS\s+value: "([^"]+)"', config).group(1)
+    assert trusted != "*" and re.search(r"key: RRC_CLIENT_IP_HEADER\s+value: CF-Connecting-IP$", config, re.MULTILINE)
+    # The application behind uvicorn as on Render, reached through an internal proxy (private address)
+    behind_render = TestClient(ProxyHeadersMiddleware(app, trusted_hosts=trusted), client=("10.17.0.4", 41000))
+
+    def sign_up(forged, visitor="198.51.100.7", cloudflare=None):
+        headers = {"X-Forwarded-For": f"{forged}, {visitor}, 172.71.0.9, 10.17.3.2", "X-Forwarded-Proto": "https"}
+        if cloudflare:
+            headers["CF-Connecting-IP"] = cloudflare
+        return behind_render.post("/api/auth/register", json={"email": new_email(), "password": "password123"},
+                                  headers=headers).status_code
+
+    for i in range(10):
+        assert sign_up(f"203.0.113.{i}") == 202
+    assert sign_up("203.0.113.99") == 429   # a new forged value does not give a fresh limit
+
+    monkeypatch.setenv("RRC_CLIENT_IP_HEADER", "CF-Connecting-IP")
+    for i in range(10):
+        assert sign_up(f"203.0.113.{i}", cloudflare="198.51.100.7") == 202
+    assert sign_up("203.0.113.99", cloudflare="198.51.100.7") == 429
+    assert sign_up("203.0.113.99", visitor="198.51.100.8", cloudflare="198.51.100.8") == 202  # another visitor
+
+    # HTTPS seen through the trusted proxy, or a public address in https: the session cookie is Secure
+    monkeypatch.delenv("RRC_MAIL_LOG")
+    r = behind_render.post("/api/auth/register", json={"email": new_email(), "password": "password123"},
+                           headers={"X-Forwarded-For": "198.51.100.9, 10.17.3.2", "X-Forwarded-Proto": "https"})
+    assert r.status_code == 201 and "secure" in r.headers["set-cookie"].lower()
+    r = TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    assert r.status_code == 201 and "secure" not in r.headers["set-cookie"].lower()
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://rohs-checker.onrender.com")
+    r = TestClient(app).post("/api/auth/register", json={"email": new_email(), "password": "password123"})
+    assert r.status_code == 201 and "secure" in r.headers["set-cookie"].lower()
 
 
 def test_signup_email_not_sent(mailbox, monkeypatch):
@@ -746,7 +842,7 @@ def protected(mailbox, monkeypatch):
 def signed_in(email=None, password="password123"):
     email = email or new_email()
     with db.session() as conn:
-        if not conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+        if not conn.execute("SELECT 1 FROM users WHERE email = ?", (auth_mod.normalize_email(email),)).fetchone():
             auth_mod.create_user(conn, email, password)
     c = TestClient(app)
     assert c.post("/api/auth/login", json={"email": email, "password": password}).status_code == 200
@@ -781,7 +877,7 @@ def test_edit_access_request_and_approval(protected):
     assert mail["to"] == ADMIN and email in mail["html"] and f"http://testserver/#review/{token}" in mail["html"]
     assert c.post("/api/edit-access/request").status_code == 409                # one pending request at a time
 
-    reviewer = TestClient(app)  # the link is enough: the administrator does not need to be signed in
+    reviewer, _ = signed_in(ADMIN)  # the link together with the administrator's session
     assert reviewer.post("/api/edit-access/lookup", json={"token": "forged"}).status_code == 404
     assert reviewer.post("/api/edit-access/lookup", json={"token": token}).json()["email"] == email
     r = reviewer.post("/api/edit-access/review", json={"token": token, "approve": True})
@@ -802,7 +898,8 @@ def test_edit_access_request_and_approval(protected):
 def test_edit_access_refused(protected):
     c, email = signed_in()
     c.post("/api/edit-access/request")
-    TestClient(app).post("/api/edit-access/review", json={"token": review_token(protected[0]), "approve": False})
+    admin, _ = signed_in(ADMIN)
+    assert admin.post("/api/edit-access/review", json={"token": review_token(protected[0]), "approve": False}).status_code == 200
     assert "not approved" in protected[-1]["html"]
     assert c.get("/api/auth/me").json()["edit_access"] == "refused"
     assert c.post("/api/components", json={"mpn": "EDIT-REFUSED"}).status_code == 403
@@ -811,6 +908,29 @@ def test_edit_access_refused(protected):
     with db.session() as conn:  # one request per day
         conn.execute("UPDATE users SET edit_requested_at = '2000-01-01T00:00:00+00:00' WHERE email = ?", (email,))
     assert c.post("/api/edit-access/request").status_code == 200
+
+
+def test_edit_access_review_needs_the_administrator(protected):
+    """The e-mailed link alone does not let anyone decide (forwarded e-mail, shared screen): the token only
+    works together with the administrator's session, and nothing about the request is shown to anyone else."""
+    c, email = signed_in()
+    c.post("/api/edit-access/request")
+    [mail] = protected
+    token = review_token(mail)
+    assert "sign in with your administrator account" in mail["html"]
+    anonymous, other = TestClient(app), signed_in()[0]
+    for who, status in ((anonymous, 401), (other, 403), (c, 403)):  # nor can the requester approve themself
+        r = who.post("/api/edit-access/lookup", json={"token": token})
+        assert r.status_code == status and email not in r.text
+        r = who.post("/api/edit-access/review", json={"token": token, "approve": True})
+        assert r.status_code == status and "administrator" in r.json()["detail"]
+    me = c.get("/api/auth/me").json()
+    assert me["can_edit"] is False and me["edit_access"] == "pending" and len(protected) == 1
+
+    admin, _ = signed_in(ADMIN.upper())
+    assert admin.post("/api/edit-access/lookup", json={"token": token}).json()["email"] == email
+    assert admin.post("/api/edit-access/review", json={"token": token, "approve": True}).json()["edit_access"] == "approved"
+    assert c.get("/api/auth/me").json()["can_edit"] is True
 
 
 def test_administrator(protected):
@@ -1675,16 +1795,17 @@ def test_last_checked_dates_normalised(tmp_path):
 
 # ------------------------------------------------------------------ minor fixes from the end-to-end tests
 
-def test_garbled_link_tokens_are_unknown_tokens():
+def test_garbled_link_tokens_are_unknown_tokens(protected):
     # A token with accents (hand-edited or garbled link) is an unknown token, not a server error
-    for path, body in (("/api/auth/confirm", {"token": "été", "password": "password123"}),
-                       ("/api/edit-access/lookup", {"token": "été"}),
-                       ("/api/edit-access/review", {"token": "été", "approve": True})):
-        r = client.post(path, json=body)
+    admin, _ = signed_in(ADMIN)  # review links are used with the administrator's session
+    for c, path, body in ((client, "/api/auth/confirm", {"token": "été", "password": "password123"}),
+                          (admin, "/api/edit-access/lookup", {"token": "été"}),
+                          (admin, "/api/edit-access/review", {"token": "été", "approve": True})):
+        r = c.post(path, json=body)
         assert r.status_code in (400, 404), (path, r.status_code, r.text)
         assert "X-Error-Kind" not in r.headers
     # A lone surrogate (sent as a JSON escape) cannot be encoded either
-    r = client.post("/api/edit-access/lookup", content=b'{"token": "\\ud800"}', headers={"Content-Type": "application/json"})
+    r = admin.post("/api/edit-access/lookup", content=b'{"token": "\\ud800"}', headers={"Content-Type": "application/json"})
     assert r.status_code == 404, r.text
 
 
@@ -1835,3 +1956,69 @@ def test_page_has_an_icon():
     for url in ("/static/favicon.svg", "/favicon.ico"):
         r = client.get(url)
         assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml") and "<svg" in r.text
+
+
+def test_security_headers():
+    for path in ("/", "/static/app.js", "/api/stats", "/api/components/999999"):
+        h = client.get(path).headers
+        csp = h["content-security-policy"]
+        assert "script-src 'self' https://challenges.cloudflare.com" in csp            # Turnstile captcha
+        assert "frame-src https://challenges.cloudflare.com" in csp and "frame-ancestors 'none'" in csp
+        assert "default-src 'self'" in csp and "unsafe" not in csp
+        assert h["x-content-type-options"] == "nosniff" and h["x-frame-options"] == "DENY"
+        assert h["referrer-policy"] == "strict-origin-when-cross-origin"
+        assert "strict-transport-security" not in h                                     # plain HTTP
+    # Nothing in the interface needs inline scripts or styles, which the policy blocks
+    page, script = client.get("/").text, (ROOT / "app" / "static" / "app.js").read_text(encoding="utf-8")
+    assert not re.search(r"<script(?![^>]*\bsrc=)", page) and "<style" not in page
+    assert not re.search(r"\sstyle=|\son[a-z]+=\"", page + script)
+    # The interactive API documentation keeps its CDN scripts; it cannot be framed either
+    assert client.get("/docs").headers["content-security-policy"] == "frame-ancestors 'none'"
+    assert TestClient(app, base_url="https://testserver").get("/").headers["strict-transport-security"] == "max-age=31536000"
+    assert "--no-server-header" in (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+
+def test_upload_size_checked_before_reading(monkeypatch):
+    """An upload over the limit is refused before the form is read, or as it arrives when its size is not
+    given: it is never loaded into memory."""
+    import starlette.datastructures
+
+    endpoint_reads, read_sizes = [], []
+    real_read_upload, real_read = main_mod._read_upload, starlette.datastructures.UploadFile.read
+
+    async def spy_read_upload(file):
+        endpoint_reads.append(file.filename)
+        return await real_read_upload(file)
+
+    async def spy_read(self, size=-1):
+        read_sizes.append(size)
+        return await real_read(self, size)
+    monkeypatch.setattr(main_mod, "_read_upload", spy_read_upload)
+    monkeypatch.setattr(starlette.datastructures.UploadFile, "read", spy_read)
+
+    too_big = b"x" * (main_mod.MAX_UPLOAD + main_mod._BODY_MARGIN)
+    for path in ("/api/analyze", "/api/table/preview", "/api/components/import"):
+        r = client.post(path, files={"file": ("big.csv", too_big)})
+        assert r.status_code == 413 and r.json()["detail"] == "File too large (max 10 MB)"
+        assert r.headers["x-content-type-options"] == "nosniff"
+    pdf = b"x" * (main_mod.MAX_DATASHEET + main_mod._BODY_MARGIN)
+    r = client.post("/api/datasheet/extract", files={"file": ("big.pdf", pdf)})
+    assert r.status_code == 413 and r.json()["detail"] == "PDF too large (max 30 MB)"
+
+    boundary = "rrc-test-boundary"
+
+    def chunked_upload():  # no Content-Length: counted as the chunks arrive
+        yield (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="big.csv"\r\n'
+               "Content-Type: text/csv\r\n\r\n").encode()
+        for _ in range(12):
+            yield b"x" * 1024 * 1024
+        yield f"\r\n--{boundary}--\r\n".encode()
+    r = client.post("/api/analyze", content=chunked_upload(),
+                    headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+    assert r.status_code == 413 and r.json()["detail"] == "File too large (max 10 MB)"
+    assert endpoint_reads == [] and read_sizes == []  # the endpoints never ran
+
+    # Just over 10 MB, within the room left for the form fields: the endpoint reads no more than the limit
+    r = client.post("/api/analyze", files={"file": ("big.csv", b"x" * (main_mod.MAX_UPLOAD + 1))})
+    assert r.status_code == 413 and endpoint_reads == ["big.csv"] and read_sizes == [main_mod.MAX_UPLOAD + 1]
+    assert analyze_text("MPN,Manufacturer\nNE555P,TI\n")["summary"]["found"] == 1  # normal uploads unchanged

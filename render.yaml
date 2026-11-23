@@ -15,9 +15,15 @@ services:
       # The application listens on port 8000 (Render's default is 10000)
       - key: PORT
         value: "8000"
-      # Trust the X-Forwarded-* headers of Render's proxy, so the session cookie is marked Secure
+      # Trust the X-Forwarded-* headers of Render's internal proxies only (private addresses), so the visit is
+      # seen over HTTPS. Never "*": uvicorn would then take the leftmost X-Forwarded-For entry, which the
+      # visitor writes (Render appends to it), and every forged value would get fresh sign-up and sign-in limits
       - key: FORWARDED_ALLOW_IPS
-        value: "*"
+        value: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
+      # Visitor's address for those limits and the captcha: set by Cloudflare, which is in front of every Render
+      # service and refuses a request that already carries it
+      - key: RRC_CLIENT_IP_HEADER
+        value: CF-Connecting-IP
     # Added in the dashboard (service > Environment), see docs/DEPLOY.md:
     #   RRC_ADMIN_EMAIL                                    administrator: approves who may change the database
     #                                                      (nobody can change it while this is not set)

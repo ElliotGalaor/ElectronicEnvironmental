@@ -6,6 +6,7 @@ Run with:  uvicorn app.main:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import html
+import ipaddress
 import json
 import logging
 import os
@@ -13,7 +14,6 @@ import re
 import sqlite3
 import time
 import unicodedata
-from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
@@ -61,6 +61,8 @@ STATIC = Path(__file__).resolve().parent / "static"
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"   # example BOMs, offered on the home page
 MAX_UPLOAD = 10 * 1024 * 1024  # 10 MB
 MAX_DATASHEET = 30 * 1024 * 1024  # 30 MB
+UPLOAD_TOO_LARGE = "File too large (max 10 MB)"
+PDF_TOO_LARGE = "PDF too large (max 30 MB)"
 
 app = FastAPI(
     title="RoHS / REACH Checker",
@@ -87,6 +89,59 @@ async def server_error(request: Request, exc: Exception):
     return JSONResponse({"detail": SERVER_ERROR}, status_code=500, headers={"X-Error-Kind": "server"})
 
 
+_BODY_MARGIN = 1024 * 1024        # form fields sent with the file (column mapping, replacements…)
+_DISCARD_MAX = 200 * 1024 * 1024  # a refused body is read and discarded up to this size
+
+
+async def _discard_body(receive) -> None:
+    """Reads the rest of a refused request body without keeping it, so that the browser, still sending,
+    receives the 413 answer instead of a broken connection."""
+    left = _DISCARD_MAX
+    while left > 0:
+        message = await receive()
+        if message["type"] != "http.request" or not message.get("more_body"):
+            return
+        left -= len(message.get("body", b""))
+
+
+class UploadLimit:
+    """Refuses a request body larger than the upload limit (413) before it is stored.
+
+    Starlette otherwise reads the whole upload (into memory, then a temporary file) before the endpoint can
+    look at its size: an 80 MB file would be loaded on a 512 MB instance. A declared size over the limit is
+    refused before anything is read; a body sent without its size is counted as it arrives."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        pdf = scope["path"] == "/api/datasheet/extract"
+        limit, detail = (MAX_DATASHEET if pdf else MAX_UPLOAD) + _BODY_MARGIN, PDF_TOO_LARGE if pdf else UPLOAD_TOO_LARGE
+        declared = dict(scope["headers"]).get(b"content-length", b"")
+        if declared.isdigit() and int(declared) > limit:
+            await _discard_body(receive)
+            return await JSONResponse({"detail": detail}, status_code=413)(scope, receive, send)
+        received = 0
+
+        async def counted_receive():
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > limit:
+                    if message.get("more_body"):
+                        await _discard_body(receive)
+                    raise HTTPException(413, detail)  # raised while the form is read: answered by FastAPI
+            return message
+
+        await self.app(scope, counted_receive, send)
+
+
+app.add_middleware(UploadLimit)  # added first: the headers below are also set on its answers
+
+
 @app.middleware("http")
 async def no_stale_frontend(request, call_next):
     """Force the browser to revalidate the page and its scripts on every load.
@@ -98,6 +153,61 @@ async def no_stale_frontend(request, call_next):
     if request.url.path == "/" or request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
+
+
+# Content-Security-Policy: scripts, styles, images and requests from the site itself only, plus the Turnstile
+# captcha (script and iframe from challenges.cloudflare.com); no inline script or style; no framing by other
+# sites (the administrator's Approve button included).
+CSP = "; ".join((
+    "default-src 'self'",
+    "script-src 'self' https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+))
+# The interactive API documentation loads its scripts and styles from a CDN, with inline code: framing only
+DOCS_CSP = "frame-ancestors 'none'"
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    docs = request.url.path in (app.docs_url, app.redoc_url, app.swagger_ui_oauth2_redirect_url)
+    response.headers["Content-Security-Policy"] = DOCS_CSP if docs else CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"  # frame-ancestors for older browsers
+    # Full addresses never sent to other sites (the captcha still sees the site's origin)
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if _https(request):
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    return response
+
+
+def client_ip(request: Request) -> str:
+    """Visitor's address, for the sign-up and sign-in limits and the captcha check: never a value the visitor
+    chooses, such as the start of X-Forwarded-For.
+
+    - RRC_CLIENT_IP_HEADER: header set by the hosting's edge proxy, which refuses or overwrites one sent by the
+      visitor (CF-Connecting-IP on Render, where Cloudflare is in front of every service);
+    - otherwise the address of the connection as uvicorn gives it: behind a proxy whose addresses are listed in
+      FORWARDED_ALLOW_IPS, the rightmost X-Forwarded-For entry that is not one of them.
+    """
+    header = os.environ.get("RRC_CLIENT_IP_HEADER", "").strip()
+    if header:
+        try:
+            return str(ipaddress.ip_address(request.headers.get(header, "").strip()))
+        except ValueError:
+            pass  # missing header (request that did not go through that proxy): the connection's address
+    return request.client.host if request.client else ""
+
+
+# FORWARDED_ALLOW_IPS="*" makes uvicorn take the leftmost X-Forwarded-For entry, which the visitor writes
+if os.environ.get("FORWARDED_ALLOW_IPS", "").strip() == "*" and not os.environ.get("RRC_CLIENT_IP_HEADER", "").strip():
+    logging.getLogger("uvicorn.error").warning(
+        "FORWARDED_ALLOW_IPS=* trusts the X-Forwarded-For sent by visitors: the sign-up and sign-in limits can be "
+        "bypassed. List the proxy's addresses instead, or set RRC_CLIENT_IP_HEADER (docs/GUIDE.md)")
 
 
 def get_conn():
@@ -142,6 +252,17 @@ def require_admin(user=Depends(current_user)) -> dict | None:
     return user
 
 
+def require_reviewer(user=Depends(current_user)) -> dict:
+    """Edit access requests: decided by the signed-in administrator. The e-mailed link alone is not enough,
+    since anyone who gets hold of it (forwarded e-mail, shared screen) could otherwise grant write access."""
+    if not user:
+        raise HTTPException(401, "Sign in with the administrator's account to review this request")
+    if not editors.is_admin(user):
+        raise HTTPException(403, "Only the administrator can review edit access requests: "
+                                 "sign in with the administrator's account")
+    return user
+
+
 def check_additions(conn, user: dict | None, count: int) -> None:
     try:
         editors.check_additions(conn, user, count)
@@ -167,9 +288,9 @@ class ComponentIn(BaseModel):
 
 
 async def _read_upload(file: UploadFile) -> bytes:
-    data = await file.read()
+    data = await file.read(MAX_UPLOAD + 1)  # never more than the limit in memory
     if len(data) > MAX_UPLOAD:
-        raise HTTPException(413, "File too large (max 10 MB)")
+        raise HTTPException(413, UPLOAD_TOO_LARGE)
     if not data:
         raise HTTPException(400, "Empty file")
     return data
@@ -391,17 +512,38 @@ class ConfirmIn(BaseModel):
     password: str
 
 
-# Password attempt throttling: 5 failures per address in 15 minutes
-_LOGIN_WINDOW, _LOGIN_MAX = 15 * 60, 5
-_login_failures: dict[str, list[float]] = defaultdict(list)
+class RateLimit:
+    """At most `limit` events per key within `window` seconds, kept in memory (one server process).
+
+    Only events are stored, not every key checked, and keys whose events are all older than the window are
+    dropped once there are many of them, so the memory used stays bounded by recent activity."""
+
+    PRUNE_AT = 1000
+
+    def __init__(self, limit: int, window: float):
+        self.limit, self.window = limit, window
+        self.events: dict[str, list[float]] = {}
+
+    def _recent(self, key: str, now: float) -> list[float]:
+        return [t for t in self.events.get(key, ()) if now - t < self.window]
+
+    def full(self, key: str) -> bool:
+        return len(self._recent(key, time.monotonic())) >= self.limit
+
+    def add(self, key: str) -> None:
+        now = time.monotonic()
+        if len(self.events) >= self.PRUNE_AT:
+            self.events = {k: v for k, v in self.events.items() if now - v[-1] < self.window}
+        self.events[key] = [*self._recent(key, now), now]
+
+    def clear(self, key: str) -> None:
+        self.events.pop(key, None)
 
 
-def _check_throttle(email: str) -> None:
-    now = time.monotonic()
-    recent = [t for t in _login_failures[email] if now - t < _LOGIN_WINDOW]
-    _login_failures[email] = recent
-    if len(recent) >= _LOGIN_MAX:
-        raise HTTPException(429, "Too many attempts: try again in a few minutes")
+# Failed sign-ins in 15 minutes: 5 per address (guessing one account's password), 10 per client address
+# (one password tried against many accounts)
+_failures_by_email = RateLimit(5, 15 * 60)
+_failures_by_client = RateLimit(10, 15 * 60)
 
 
 def _account(conn, user: dict | None) -> dict | None:
@@ -416,29 +558,35 @@ def _open_session(conn, user: dict, request: Request, response: Response) -> dic
     token = auth.create_session(conn, user["id"])
     response.set_cookie(
         auth.SESSION_COOKIE, token, max_age=auth.SESSION_DAYS * 86400, httponly=True, samesite="lax",
-        secure=request.url.scheme == "https", path="/",
+        secure=_https(request), path="/",
     )
     return _account(conn, user)
 
 
+def _configured_url() -> str:
+    """Public address of the site, when the environment gives it (Render sets RENDER_EXTERNAL_URL)."""
+    return os.environ.get("RRC_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or ""
+
+
+def _https(request: Request) -> bool:
+    """Visit over HTTPS: as the trusted proxy says (X-Forwarded-Proto), or because the site's public address is
+    https, so that the session cookie stays Secure even if the proxy's address is missing from FORWARDED_ALLOW_IPS."""
+    return request.url.scheme == "https" or _configured_url().startswith("https://")
+
+
 # Sign-ups per client address while confirmation e-mails are sent: 10 per hour
-_SIGNUP_WINDOW, _SIGNUP_MAX = 60 * 60, 10
-_signup_attempts: dict[str, list[float]] = defaultdict(list)
+_signups_by_client = RateLimit(10, 60 * 60)
 
 
 def _check_signup_throttle(ip: str) -> None:
-    now = time.monotonic()
-    recent = [t for t in _signup_attempts[ip] if now - t < _SIGNUP_WINDOW]
-    if len(recent) >= _SIGNUP_MAX:
-        _signup_attempts[ip] = recent
+    if _signups_by_client.full(ip):
         raise HTTPException(429, "Too many sign-ups from your connection: try again later")
-    _signup_attempts[ip] = [*recent, now]
+    _signups_by_client.add(ip)
 
 
 def _public_url(request: Request) -> str:
     """Base address for the links in e-mails (Render sets RENDER_EXTERNAL_URL)."""
-    base = os.environ.get("RRC_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or str(request.base_url)
-    return base.rstrip("/")
+    return (_configured_url() or str(request.base_url)).rstrip("/")
 
 
 def _confirmation_email(link: str) -> str:
@@ -456,6 +604,19 @@ def _confirmation_email(link: str) -> str:
     )
 
 
+def _existing_account_email(site: str) -> str:
+    # Sent instead of a confirmation link when the address already has an account: the sign-up form answers
+    # the same way for every address, and only the owner of the mailbox learns that the account exists.
+    url = html.escape(site, quote=True)
+    return (
+        "<p>Hello,</p>"
+        "<p>Someone tried to create an account on the RoHS / REACH Checker with this e-mail address, which "
+        "already has an account. Nothing was changed.</p>"
+        f'<p>If it was you, sign in with your password: <a href="{url}">{url}</a></p>'
+        "<p>If it was not you, ignore this e-mail.</p>"
+    )
+
+
 @app.get("/api/auth/config", summary="Sign-up settings: e-mail confirmation, captcha key")
 def auth_config():
     return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key(),
@@ -466,7 +627,7 @@ def auth_config():
 @app.post("/api/auth/register", status_code=201,
           summary="Create an account: signed in at once, or 202 when a confirmation e-mail is sent")
 def register(body: RegisterIn, request: Request, response: Response, conn=Depends(get_conn)):
-    ip = request.client.host if request.client else ""
+    ip = client_ip(request)
     confirm_by_email = mailer.available()
     if confirm_by_email:
         _check_signup_throttle(ip)
@@ -475,17 +636,21 @@ def register(body: RegisterIn, request: Request, response: Response, conn=Depend
     try:
         if not confirm_by_email:
             return _open_session(conn, auth.create_user(conn, body.email, body.password, body.name), request, response)
-        token = auth.create_signup_request(conn, body.email, body.password, body.name)
+        token, exists = auth.create_signup_request(conn, body.email, body.password, body.name)
     except db.ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
     except auth.TooManyRequests as exc:
         raise HTTPException(429, str(exc)) from exc
     except auth.AuthError as exc:
+        # Only without e-mail confirmation: the account is created and signed in at once
         raise HTTPException(409, str(exc)) from exc
     email = auth.normalize_email(body.email)
     try:
-        mailer.send(email, "Confirm your account - RoHS / REACH Checker",
-                    _confirmation_email(f"{_public_url(request)}/#confirm/{token}"))
+        if exists:  # same answer as for a new address: only the owner is told, by e-mail
+            mailer.send(email, "Sign-up attempt - RoHS / REACH Checker", _existing_account_email(_public_url(request) + "/"))
+        else:
+            mailer.send(email, "Confirm your account - RoHS / REACH Checker",
+                        _confirmation_email(f"{_public_url(request)}/#confirm/{token}"))
     except mailer.MailError as exc:
         # The error cancels the transaction: the sign-up attempt is not kept
         raise HTTPException(502, "The confirmation e-mail could not be sent: try again later") from exc
@@ -504,17 +669,20 @@ def confirm(body: ConfirmIn, request: Request, response: Response, conn=Depends(
 
 @app.post("/api/auth/login", summary="Sign in")
 def login(body: LoginIn, request: Request, response: Response, conn=Depends(get_conn)):
-    email = auth.normalize_email(body.email)
-    _check_throttle(email)
+    email, ip = auth.normalize_email(body.email), client_ip(request)
+    if _failures_by_client.full(ip) or _failures_by_email.full(email):
+        raise HTTPException(429, "Too many attempts: try again in a few minutes")
     try:
         user = auth.authenticate(conn, email, body.password)
     except auth.AuthError as exc:
         if auth.signup_pending(conn, email, body.password):
             raise HTTPException(403, "Confirm your e-mail address first: open the link sent to you "
                                      "when you created the account") from exc
-        _login_failures[email].append(time.monotonic())
+        _failures_by_client.add(ip)
+        _failures_by_email.add(email)
         raise HTTPException(401, str(exc)) from exc
-    _login_failures.pop(email, None)
+    # The client's failures are kept: signing in to one's own account must not reset the count
+    _failures_by_email.clear(email)
     return _open_session(conn, user, request, response)
 
 
@@ -548,7 +716,7 @@ def _request_email(email: str, created_at: str, link: str) -> str:
         "<p>Hello,</p>"
         f"<p><strong>{html.escape(email)}</strong> (account created on {html.escape(created_at[:10])}) asks for "
         "permission to add and edit components in the database of the RoHS / REACH Checker.</p>"
-        f'<p><a href="{url}">Review the request</a> (approve or refuse)</p>'
+        f'<p><a href="{url}">Review the request</a> (sign in with your administrator account, then approve or refuse)</p>'
         f"<p>Or copy this address into your browser:<br>{url}</p>"
         f"<p>The link is valid for {editors.REVIEW_DAYS} days. An approved account can add up to "
         f"{editors.daily_limit()} new components per day; only you can delete components.</p>"
@@ -583,7 +751,8 @@ def request_edit_access(request: Request, user=Depends(require_user), conn=Depen
     return _account(conn, user | {"edit_access": "pending"})
 
 
-@app.post("/api/edit-access/lookup", summary="Request matching an administrator's review link")
+@app.post("/api/edit-access/lookup", dependencies=[Depends(require_reviewer)],
+          summary="Request matching an administrator's review link (signed-in administrator)")
 def lookup_edit_access(body: TokenIn, conn=Depends(get_conn)):
     row = editors.find_request(conn, body.token)
     if not row:
@@ -592,7 +761,8 @@ def lookup_edit_access(body: TokenIn, conn=Depends(get_conn)):
             "requested_at": row["edit_requested_at"]}
 
 
-@app.post("/api/edit-access/review", summary="Approve or refuse a request (token of the administrator's link)")
+@app.post("/api/edit-access/review", dependencies=[Depends(require_reviewer)],
+          summary="Approve or refuse a request (token of the administrator's link, signed-in administrator)")
 def review_edit_access(body: ReviewIn, request: Request, conn=Depends(get_conn)):
     try:
         row = editors.review(conn, body.token, body.approve)
@@ -782,7 +952,7 @@ def extract_datasheet(
 ):
     data = file.file.read(MAX_DATASHEET + 1)
     if len(data) > MAX_DATASHEET:
-        raise HTTPException(413, "PDF too large (max 30 MB)")
+        raise HTTPException(413, PDF_TOO_LARGE)
     if not data:
         raise HTTPException(400, "Empty file")
     name = file.filename or "datasheet.pdf"
