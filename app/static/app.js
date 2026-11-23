@@ -49,7 +49,7 @@ async function api(url, opts = {}) {
     showServerDown(kind);
     throw Object.assign(new Error(SERVER_DOWN[kind]), { status: r.status, kind: "server_down" });
   }
-  if (!$("#serverDown").hidden) hideServerDown(); // the server answers again
+  if (!$("#serverDown").hidden) serverBack(); // the server answers again
   if (!r.ok) {
     let msg = r.statusText;
     try { const j = await r.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
@@ -83,14 +83,23 @@ function hideServerDown() {
   $("#serverDown").hidden = true;
 }
 
+// The server answers again: what could not be loaded during the outage is loaded again (the session first: a
+// page opened during the outage took the user as signed out, and would no longer save the analyses)
+function serverBack(reroute = false) {
+  hideServerDown();
+  loadStats(); // the header shows the database size again
+  loadUser();
+  loadAuthConfig();
+  if (reroute) route(); // the current view still shows the error
+}
+
 async function checkServer() {
   clearTimeout(healthTimer);
   $("#btnServerRetry").disabled = true;
   try {
     const r = await fetch("/api/health", { cache: "no-store", signal: timeoutSignal(30000) });
     if (!r.ok) throw Object.assign(new Error(r.statusText), { kind: r.headers.get("X-Error-Kind") === "database" ? "database" : "network" });
-    hideServerDown();
-    loadStats(); // the header shows the database size again
+    serverBack(true);
   } catch (e) {
     showServerDown(e.kind || "network");
   } finally {
@@ -156,7 +165,8 @@ if (window.ResizeObserver) {
 updateTabScroll();
 
 function route() {
-  const h = decodeURIComponent(location.hash.slice(1));
+  let h = location.hash.slice(1);
+  try { h = decodeURIComponent(h); } catch { /* malformed % sequence in a hand-edited link: kept as typed */ }
   if (h.startsWith("confirm/")) {
     // Link from the sign-up confirmation e-mail: the token is removed from the address bar at once
     confirmToken = h.slice("confirm/".length);
@@ -270,6 +280,7 @@ function resetLineFilters() {
 // No BOM open any more (after signing out): its file, result and settings are forgotten
 function clearAnalysis() {
   analysisSeq++; // an analysis still running is ignored when it answers
+  analysisPending = false;
   state.file = null; state.report = null; state.overrides = {}; state.substitutions = {}; state.classifications = {};
   state.historyId = null;
   resetLineFilters();
@@ -309,13 +320,15 @@ const BUSY_TEXT = {
   csv: () => "Preparing the CSV report…",
   bom: () => "Preparing the modified BOM…",
 };
-let analysisSeq = 0, slowTimer = null;
+let analysisSeq = 0, analysisPending = false, slowTimer = null;
 
 function showBusy(format) {
   $("#analysingText").textContent = BUSY_TEXT[format](state.file.name);
   $("#analysingSlow").hidden = true;
   $("#analysing").hidden = false;
   $("#result").classList.add("busy"); // the current result stays visible, dimmed, until the new one arrives
+  // ... and out of reach of the keyboard too: an export or a setting would apply to the BOM being analysed
+  $("#result").inert = format === "json";
   clearTimeout(slowTimer);
   slowTimer = setTimeout(() => { $("#analysingSlow").hidden = false; }, 6000);
 }
@@ -324,12 +337,17 @@ function hideBusy() {
   clearTimeout(slowTimer);
   $("#analysing").hidden = true;
   $("#result").classList.remove("busy");
+  $("#result").inert = false;
 }
 
 async function runAnalysis(format = "json") {
   if (!state.file) return;
-  // A new file or setting while an analysis is running: only the latest answer is shown
-  const seq = ++analysisSeq;
+  // No export while a new BOM is being analysed: it would not match the result on screen
+  if (format !== "json" && analysisPending) return;
+  // A new file or setting while an analysis is running: only the latest answer is shown. An export does not
+  // count as one, so it never discards an analysis.
+  const seq = format === "json" ? ++analysisSeq : analysisSeq;
+  if (format === "json") analysisPending = true;
   const fd = new FormData();
   fd.append("file", state.file);
   fd.append("mapping", JSON.stringify(withStatusValues(state.overrides)));
@@ -360,6 +378,12 @@ async function runAnalysis(format = "json") {
     if (seq !== analysisSeq) return;
     state.report = report;
     if (state.report.history_id) state.historyId = state.report.history_id;
+    // Replacements whose component was deleted from the database since (saved BOM reopened): dropped
+    const dropped = report.dropped_substitutions || [];
+    dropped.forEach((d) => delete state.substitutions[d.line]);
+    $("#swapDropped").hidden = !dropped.length;
+    $("#swapDropped").textContent = dropped.length ? `The replacement of ${dropped.length > 1 ? "lines" : "line"} ` +
+      `${dropped.map((d) => d.line).join(", ")} was dropped: the component chosen no longer exists in the database.` : "";
     renderReport();
     renderSwapBar();
     renderClassifyBar();
@@ -378,7 +402,10 @@ async function runAnalysis(format = "json") {
     $("#error").hidden = false;
     if (format === "json") $("#result").hidden = true;
   } finally {
-    if (seq === analysisSeq) hideBusy();
+    if (seq === analysisSeq) {
+      if (format === "json") analysisPending = false;
+      hideBusy();
+    }
   }
 }
 
@@ -402,7 +429,9 @@ function renderReport() {
   $("#result").hidden = false;
   $("#fname").textContent = R.filename;
   $("#fmeta").textContent = `— ${plural(S.lines, "line")}, analysed against ${plural(R.database_size, "component")} in the database`;
-  const unrecognised = R.lines.filter((l) => Object.values(l.review || {}).some((r) => r.includes("not recognised"))).length;
+  // Lines with a value of the file that is not understood, for a regulation not given a status by hand since
+  const unrecognised = R.lines.filter((l) => Object.entries(l.review || {})
+    .some(([norm, r]) => r.includes("not recognised") && !(l.manual || []).includes(norm))).length;
   $("#statusHint").hidden = !unrecognised;
   $("#statusHintText").textContent = `${plural(unrecognised, "line")} with a RoHS / REACH value of the file that is not recognised.`;
 
@@ -692,7 +721,7 @@ $("#comps").addEventListener("click", async (ev) => {
 $("#btnAdd").addEventListener("click", () => openDialog(null));
 
 async function editComponent(id) {
-  if (ensureEditor()) openDialog(await (await api("/api/components/" + id)).json());
+  if (ensureEditor(() => editComponent(id))) openDialog(await (await api("/api/components/" + id)).json());
 }
 
 /* ------------------------------------------------------------------ manufacturers */
@@ -781,7 +810,7 @@ $("#mfrComps").addEventListener("click", async (ev) => {
 
 const dlgMfr = $("#dlgMfr"), mfrForm = $("#mfrForm");
 $("#btnEditMfr").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditMfr").click())) return;
   const m = currentMfr;
   for (const f of ["name", "website", "country", "notes"]) mfrForm.elements[f].value = m[f] || "";
   $("#mfrError").hidden = true;
@@ -805,12 +834,13 @@ const dlg = $("#dlg"), form = $("#compForm");
 let editingId = null;
 
 function openDialog(comp, preset = {}) {
-  if (!ensureEditor()) return false;
+  if (!ensureEditor(() => openDialog(comp, preset))) return false;
   editingId = comp ? comp.id : null;
   const data = comp || { rohs2: "unknown", rohs3: "unknown", reach: "unknown", last_checked: new Date().toLocaleDateString("sv-SE"), ...preset };
   for (const el of form.elements) if (el.name) el.value = data[el.name] ?? "";
   $("#dlgTitle").textContent = comp ? "Edit component" : "New component";
-  $("#btnDelete").hidden = !comp;
+  // Deleting: an existing component, by the administrator (or anyone when editing is open)
+  $("#btnDelete").hidden = !comp || !(!authConfig || authConfig.open_editing || state.user?.is_admin);
   $("#dlgError").hidden = true;
   $("#pdfStatus").hidden = true;
   $("#mpnList").innerHTML = $("#mfrOptions").innerHTML = "";
@@ -916,7 +946,7 @@ function afterDbChange() {
 }
 
 /* ------------------------------------------------------------------ import */
-$("#btnImport").addEventListener("click", () => { if (ensureEditor()) $("#importFile").click(); });
+$("#btnImport").addEventListener("click", () => { if (ensureEditor(() => $("#importFile").click())) $("#importFile").click(); });
 $("#importFile").addEventListener("change", (ev) => {
   const f = ev.target.files[0];
   ev.target.value = "";
@@ -1034,6 +1064,7 @@ function renderMapping() {
   $("#mapStatus").classList.toggle("warn", missing.length > 0);
   $$("#mapFields select").forEach((s) => s.classList.toggle("missing", !!s.dataset.required && !s.value));
   $("#btnMapOk").disabled = missing.length > 0;
+  if (!missing.length) $("#mapAlert").hidden = true; // the problem the dialog was opened for is solved
 }
 
 const DEMO_ROWS = 3;
@@ -1344,7 +1375,7 @@ $("#altBody").addEventListener("click", async (ev) => {
     runAnalysis();
     return;
   }
-  if ((confirmBtn || unconfirm) && !ensureEditor()) return;
+  if ((confirmBtn || unconfirm) && !ensureEditor(() => (confirmBtn || unconfirm).click())) return;
   const compId = altCtx.compId ?? altCtx.line?.component?.id;
   try {
     if (confirmBtn) {
@@ -1388,7 +1419,9 @@ function openClassify(lineNo, norm) {
   $("#classifyChoices").innerHTML = CLASSIFY_CHOICES[norm].map(([v, label]) =>
     `<label class="choice"><input type="radio" name="classify" value="${v}" ${manual && l[norm] === v ? "checked" : ""}> ${badge(v)} <span>${label}</span></label>`).join("") +
     (manual ? `<label class="choice"><input type="radio" name="classify" value=""> <span>Back to “Needs review”</span></label>` : "");
-  const same = reason ? state.report.lines.filter((x) => x !== l && x[norm] === "needs_review" && (x.review || {})[norm] === reason) : [];
+  // Same reason, case ignored: the reason quotes the value of the file, whose case does not matter
+  const sameReason = (r) => !!r && r.toLowerCase() === reason.toLowerCase();
+  const same = reason ? state.report.lines.filter((x) => x !== l && x[norm] === "needs_review" && sameReason((x.review || {})[norm])) : [];
   $("#classifySame").hidden = !same.length;
   $("#classifySameTitle").textContent = `Same status for the ${plural(same.length, "other line")} that need${same.length > 1 ? "" : "s"} review for the same reason`;
   $("#classifyAll").checked = true;
@@ -1548,12 +1581,14 @@ function statusText(norm, status) {
 
 async function openComponent(id) {
   const box = $("#compSheet");
+  const notFound = `<div class="alert error">This component is not in the database.</div>`;
+  if (!/^\d+$/.test(id)) { box.innerHTML = notFound; return; } // hand-edited link: ids are numbers
   box.innerHTML = `<p class="muted">Loading…</p>`;
   let s;
   try {
     s = await (await api(`/api/components/${encodeURIComponent(id)}/sheet`)).json();
   } catch (e) {
-    box.innerHTML = `<div class="alert error">${e.status === 404 ? "This component is not in the database." : esc("Error: " + e.message)}</div>`;
+    box.innerHTML = [404, 422].includes(e.status) ? notFound : `<div class="alert error">${esc("Error: " + e.message)}</div>`;
     return;
   }
   const c = s.component, none = `<span class="muted">—</span>`;
@@ -1683,7 +1718,7 @@ $("#eccnComps").addEventListener("click", async (ev) => {
 
 const dlgEccn = $("#dlgEccn"), eccnForm = $("#eccnForm");
 $("#btnEditEccn").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditEccn").click())) return;
   eccnForm.elements.title.value = currentEccn.title || "";
   eccnForm.elements.notes.value = currentEccn.notes || "";
   $("#eccnError").hidden = true;
@@ -1793,7 +1828,7 @@ $("#exemptComps").addEventListener("click", async (ev) => {
 
 const dlgExempt = $("#dlgExempt"), exemptForm = $("#exemptForm");
 $("#btnEditExempt").addEventListener("click", () => {
-  if (!ensureEditor()) return;
+  if (!ensureEditor(() => $("#btnEditExempt").click())) return;
   exemptForm.elements.notes.value = currentExemption.notes || "";
   $("#exemptError").hidden = true;
   dlgExempt.showModal();
@@ -1892,14 +1927,19 @@ function editAccessHtml() {
 const dlgEditAccess = $("#dlgEditAccess");
 const canEdit = () => !authConfig || authConfig.open_editing || !!state.user?.can_edit;
 
-function ensureEditor() {
+// retry: the action to run once the rights checked again turn out to allow it
+function ensureEditor(retry) {
   if (canEdit()) return true;
   if (!state.user) {
     openAuth("login", "Sign in with an account approved by the administrator to add or edit components.");
-  } else {
+    return false;
+  }
+  // The rights loaded with the page may be out of date (request approved since): checked again before refusing
+  refreshUser().then(() => {
+    if (canEdit()) { retry?.(); return; }
     $("#editAccessBody").innerHTML = editAccessHtml();
     if (!dlgEditAccess.open) dlgEditAccess.showModal();
-  }
+  });
   return false;
 }
 $("#btnEditAccessClose").addEventListener("click", () => dlgEditAccess.close());

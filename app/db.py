@@ -336,6 +336,16 @@ COUNTRIES = {
     "SE": "Sweden", "SG": "Singapore", "SI": "Slovenia", "SK": "Slovakia", "TH": "Thailand", "TN": "Tunisia",
     "TR": "Turkey", "TW": "Taiwan", "UA": "Ukraine", "US": "United States", "VN": "Vietnam", "ZA": "South Africa",
 }
+# Every ISO 3166-1 alpha-2 code assigned to a country or territory (COUNTRIES names the usual ones)
+ISO_COUNTRY_CODES = frozenset("""
+    AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ
+    CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO
+    FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE
+    JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO
+    MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW
+    PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM
+    TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW
+""".split())
 _COUNTRY_ALIASES = {
     # English variants
     "prc": "CN", "people s republic of china": "CN", "czech republic": "CZ", "uk": "GB", "great britain": "GB",
@@ -367,9 +377,9 @@ def normalize_country(value: str | None) -> str:
     v = (value or "").strip()
     if v.lower() in _EMPTY_VALUES:
         return ""
-    if re.fullmatch(r"[A-Za-z]{2}", v):
+    if re.fullmatch(r"[A-Za-z]{2}", v) and v.upper() in ISO_COUNTRY_CODES:
         return v.upper()
-    key = _country_key(v)
+    key = _country_key(v)  # "UK" and unassigned codes such as "XX" go through the names and aliases
     if key in _COUNTRY_LOOKUP:
         return _COUNTRY_LOOKUP[key]
     raise ValidationError(f"Unrecognised country of origin: {value!r} (use the 2-letter ISO code, e.g. CN, MY, DE)")
@@ -384,6 +394,7 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     p.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(p, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.create_function("fold", 1, fold, deterministic=True)
     conn.executescript(SCHEMA)
     _migrate(conn)
     return conn
@@ -574,12 +585,29 @@ def get(conn: sqlite3.Connection, comp_id: int) -> dict | None:
     return row_to_dict(conn.execute("SELECT * FROM components WHERE id = ?", (comp_id,)).fetchone())
 
 
+def fold(text: str | None) -> str:
+    """Text compared by the search: no accents, lower case ("Würth" finds "Wurth", "µF" finds "μF")."""
+    return strip_accents(text or "").lower()
+
+
+# Characters of a typed part number: its permissive form (letters and digits) is also searched only then, so that
+# "µF" does not find every part number with an F, nor "-" or "%" every component
+_MPN_QUERY_RE = re.compile(r"[A-Za-z0-9\s\-/#.,+()]+")
+
+
 def search(conn: sqlite3.Connection, q: str = "", limit: int = 50, offset: int = 0, status: str = "") -> tuple[list[dict], int]:
     where, params = [], []
+    q = (q or "").strip()
     if q:
-        like = f"%{q.strip()}%"
-        where.append("(mpn LIKE ? OR manufacturer LIKE ? OR description LIKE ? OR mpn_loose LIKE ?)")
-        params += [like, like, like, f"%{loose_mpn(q)}%"]
+        # The typed text is matched literally: % and _ are not wildcards
+        like = "%" + fold(q).replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+        cond = [f"fold({col}) LIKE ? ESCAPE '!'" for col in ("mpn", "manufacturer", "description")]
+        params += [like, like, like]
+        loose = loose_mpn(q)
+        if loose and _MPN_QUERY_RE.fullmatch(q):
+            cond.append("mpn_loose LIKE ?")
+            params.append(f"%{loose}%")
+        where.append(f"({' OR '.join(cond)})")
     if status == "issues":
         where.append("(rohs2 IN ('non_compliant','unknown') OR rohs3 IN ('non_compliant','unknown') "
                      "OR reach IN ('non_compliant','unknown','svhc'))")

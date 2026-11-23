@@ -170,7 +170,7 @@ def authenticate(conn: sqlite3.Connection, email: str, password: str) -> dict:
 
 
 def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode("ascii")).hexdigest()
+    return hashlib.sha256(token.encode("utf-8", "replace")).hexdigest()  # a garbled link is just an unknown token
 
 
 def create_session(conn: sqlite3.Connection, user_id: int) -> str:

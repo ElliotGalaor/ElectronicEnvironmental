@@ -140,7 +140,9 @@ def _natural_key(key: str) -> list[tuple[int, int | str]]:
 
 def list_all(conn: sqlite3.Connection) -> dict:
     by_key = _components_by_key(conn)
-    notes = {r["key"] for r in conn.execute("SELECT key FROM exemption_notes")}
+    # Codes with notes are listed even when no component uses them, unless the notes are empty (older versions
+    # stored them) or the code is not in the annexes
+    notes = {r["key"] for r in conn.execute("SELECT key FROM exemption_notes WHERE notes != ''") if describe(r["key"])["found"]}
     rows = []
     for key in set(by_key) | notes:
         d = describe(key)
@@ -181,9 +183,15 @@ def update(conn: sqlite3.Connection, code: str, notes: str) -> dict:
     key = normalize_key(code)
     if not key:
         raise db.ValidationError("Missing exemption code")
+    notes = (notes or "").strip()
+    if not notes:  # empty notes: no record, so the code is no longer listed for its notes alone
+        conn.execute("DELETE FROM exemption_notes WHERE key = ?", (key,))
+        return get(conn, code)
+    if not describe(key)["found"] and key not in _components_by_key(conn):
+        raise db.ValidationError(f"{code} is not in Annexes III and IV and no component uses it: notes cannot be added")
     conn.execute(
         "INSERT INTO exemption_notes (key, notes, updated_at) VALUES (?, ?, ?) "
         "ON CONFLICT(key) DO UPDATE SET notes = excluded.notes, updated_at = excluded.updated_at",
-        (key, (notes or "").strip(), datetime.now(timezone.utc).replace(microsecond=0).isoformat()),
+        (key, notes, datetime.now(timezone.utc).replace(microsecond=0).isoformat()),
     )
     return get(conn, code)

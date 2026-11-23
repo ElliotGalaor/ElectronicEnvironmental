@@ -45,14 +45,16 @@ served at `/examples/bom_example.csv`.
    `Not RoHS Compliant`, `REACH Unaffected`, `Contains SVHC`…).
    **Column mapping**: if the manufacturer part number is not detected, a dialog opens to choose the column
    for each field and the header row (`0` = file without a header); the "Columns and statuses…" button opens
-   it too. It shows the effect of each change on the first 3 lines and the result of the reading (part number
+   it too. A file that cannot be read, is empty or has nothing below its header gives a plain message instead,
+   since there are no columns to choose. It shows the effect of each change on the first 3 lines and the result of the reading (part number
    found in the database or not). The choice is kept in the history.
    **Status values**: the same dialog lists the RoHS / REACH values written in the file (`Compliant(YES)`,
    `Conforme`, `TBD`…) with their number of lines and the meaning recognised automatically, which can be changed:
    compliant, with exemption, non-compliant, contains an SVHC, or *not accepted* (as if no status were given).
    The RoHS choices apply to the RoHS 2 and RoHS 3 columns; the case of the value does not matter. They are
    remembered in the browser and applied to the next BOMs and database imports, and kept with each analysis in
-   the history. When the report has values that are not recognised, a banner offers to choose their meaning.
+   the history. When the report has values that are not recognised, a banner offers to choose their meaning
+   (lines given a status by hand since are no longer counted).
 2. **Matching against the database**, from most to least reliable:
    | Match | Rule | Status used |
    |---|---|---|
@@ -70,7 +72,7 @@ served at `/examples/bom_example.csv`.
    missing, otherwise *Compliant* (flagging RoHS exemptions and REACH SVHCs above 0.1 %).
    **Statuses given by hand**: clicking a *Needs review* status shows why the line needs review and lets you
    give it a status. The other lines that need review for the same reason (for example the same unrecognised
-   value in the BOM) are offered in the same dialog. These statuses only apply to the analysis: they are marked
+   value in the BOM, whatever its case) are offered in the same dialog. These statuses only apply to the analysis: they are marked
    "by hand" on screen and in the exports and kept in the history, while the component database is unchanged.
    Components that are not populated (DNP) are excluded.
    A pie chart per regulation shows the breakdown of the statuses: clicking a slice or a legend row shows only
@@ -104,7 +106,8 @@ BOM history.
 
 - The ECCN is normalised (`5a992.C` becomes `5A992.c`) and rejected if its format is not valid.
 - The country can be entered as an ISO code or spelled out, in English or French ("Germany", "Malaisie");
-  it is stored as a code.
+  it is stored as a code. A two-letter code must be an assigned ISO code: `UK` is stored as `GB`, and a code
+  that does not exist (`XX`) is refused.
 - In the BOM analysis: "ECCN / Origin" column, "Controlled ECCN" filter, a note on every line whose ECCN is
   not EAR99, and a summary (controlled and unknown ECCNs, breakdown of countries of origin), also in the
   Excel export.
@@ -123,7 +126,8 @@ Every manufacturer name (Database tab, manufacturer page, BOM analysis) links to
 - list of its components in the database, with direct access to their record.
 
 Spelling variants are grouped: "TI", "Texas Instruments" and "Texas Instruments Inc." lead to the same page.
-Each page has its own address (`#manufacturer/texas instruments`), usable as a direct link.
+Each page has its own address (`#manufacturer/texas instruments`), usable as a direct link; the address accepts
+any of these spellings (`#manufacturer/TI`), and so does the API.
 
 ## Accounts and BOM history
 
@@ -132,7 +136,8 @@ optional name).
 
 Once signed in, every analysed BOM is saved in **"My latest BOMs"** (Analysis tab): original file, chosen
 columns, replacements by equivalents and verdicts. Changing the columns or replacing a line updates the same
-entry. "Reopen" reruns the analysis against the current database: statuses may have changed since. The 20 most
+entry. "Reopen" reruns the analysis against the current database: statuses may have changed since. A replacement
+whose component has been deleted from the database since is dropped, with a note saying which line it was. The 20 most
 recent analyses are kept per user; everyone only sees their own BOMs.
 
 ### Limiting sign-ups
@@ -213,6 +218,8 @@ Every exemption code shown in the application (Database tab, BOM analysis) links
   a renewal application submitted in time is being examined);
 - upcoming consolidated version already published (changes planned for the exemption);
 - links to EUR-Lex, components concerned (with access to equivalents to prepare for an expiry), editable notes.
+  An exemption with notes is listed even if no component uses it; emptying the notes removes it from the list.
+  A code that is not in the annexes can only be annotated while a component uses it.
 
 Codes are recognised in several spellings (`7(c)-I`, `7 c)-I`, `7c-I`); prefix with `IV-` for Annex IV.
 Updating the official text when a new consolidated version is published:
@@ -257,7 +264,8 @@ components and the manufacturers. Every ECCN code shown in the application links
   622 entries extracted from the eCFR, public domain);
 - **links to the official definition** on the eCFR (US government website): Commerce Control List
   (15 CFR part 774, Supplement No. 1) and Commerce Country Chart (15 CFR part 738); for EAR99, 15 CFR 734.3(c);
-- database components with this code, editable title and notes.
+- database components with this code, editable title and notes. A code with a title or notes is listed even
+  if no component uses it; emptying both removes it from the list.
 
 The summary by category / group / reason is indicative: only the official definition is authoritative.
 To update the headings, rerun the extraction from the eCFR API
@@ -286,7 +294,9 @@ before confirming a replacement.
 
 ## Feeding the database
 
-- **Web interface**: "Component database" tab (add, edit, CSV/XLSX import, export).
+- **Web interface**: "Component database" tab (add, edit, CSV/XLSX import, export). The search box looks
+  for the typed text in the part number, manufacturer and description, ignoring case and accents ("Würth" finds
+  "Wurth Elektronik"); a part number is also found whatever its punctuation (`lm 358` finds `LM358DR`).
   From a report, the "+ Add to database" button prefills a part number that was not found.
 - **Manual entry**: "+ Add" button, then fill in the fields.
 - **From a PDF datasheet**: "From a PDF datasheet" button, or drop the PDF into the record.

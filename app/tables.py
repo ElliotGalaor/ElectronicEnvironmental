@@ -17,6 +17,10 @@ class TableError(ValueError):
     pass
 
 
+class FileReadError(TableError):
+    """The file itself cannot be read, or holds no line: choosing its columns cannot help."""
+
+
 def _decode(data: bytes) -> str:
     for enc in ("utf-8-sig", "cp1252", "latin-1"):
         try:
@@ -51,6 +55,15 @@ def _excel_format(data: bytes) -> str | None:
 
 def read_rows(data: bytes, filename: str) -> list[list[str]]:
     """Return every row of the file as a list of strings (for a workbook, the sheet holding the table)."""
+    try:
+        return _read_rows(data)
+    except FileReadError:
+        raise
+    except TableError as exc:
+        raise FileReadError(str(exc)) from exc
+
+
+def _read_rows(data: bytes) -> list[list[str]]:
     fmt = _excel_format(data)
     if fmt == "xlsx":
         return _read_xlsx(data)
@@ -493,7 +506,7 @@ def detect_header_row(rows: list[list[str]], max_scan: int = 25) -> int:
 
 def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = None, require_mpn: bool = True) -> ColumnMapping:
     if not rows:
-        raise TableError("The file is empty")
+        raise FileReadError("The file is empty")
     hr = resolve_header_row(rows, overrides, detect_header_row)
     headers, labels = table_headers(rows, hr)
     data = rows[hr + 1 : hr + 51]
@@ -579,7 +592,9 @@ def parse_bom(data: bytes, filename: str, overrides: dict[str, str] | None = Non
     mapping = detect_columns(rows, overrides)
     lines = bom_lines(rows, mapping)
     if not lines:
-        raise TableError("No component line found below the header")
+        # Nothing below the header: a read error. Rows without a part number: perhaps the wrong column was chosen
+        error = FileReadError if len(rows) <= mapping.header_row + 1 else TableError
+        raise error("No component line found below the header")
     return lines, mapping
 
 
@@ -626,7 +641,8 @@ def bom_lines(rows: list[list[str]], mapping: ColumnMapping) -> list[BomLine]:
 def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dict[int, dict]:
     """Replace the part number and manufacturer of the given lines with those of a database component.
 
-    subs: {line number: component id}. Returns {line number: component} for the export.
+    subs: {line number: component id}. Returns {line number: component} for the export. A component deleted from
+    the database since the replacement was chosen (saved BOM reopened) is left out: its line keeps the BOM's part.
     """
     from .db import ValidationError, get
 
@@ -638,7 +654,7 @@ def apply_substitutions(conn, lines: list[BomLine], subs: dict[int, int]) -> dic
         if line is None:
             raise ValidationError(f"Replacement: line {line_no} does not exist in the BOM")
         if comp is None:
-            raise ValidationError(f"Replacement: component {comp_id} no longer exists in the database")
+            continue
         line.original_mpn, line.original_manufacturer = line.mpn, line.manufacturer
         line.mpn, line.manufacturer = comp["mpn"], comp["manufacturer"]
         if comp.get("description"):

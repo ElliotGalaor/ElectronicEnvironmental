@@ -1793,6 +1793,171 @@ def test_last_checked_dates_normalised(tmp_path):
         assert dict(conn.execute("SELECT mpn, last_checked FROM components").fetchall()) == {"OLD-1": "2026-03-10", "OLD-2": "soon"}
 
 
+# ------------------------------------------------------------------ minor fixes from the end-to-end tests
+
+def test_garbled_link_tokens_are_unknown_tokens(protected):
+    # A token with accents (hand-edited or garbled link) is an unknown token, not a server error
+    admin, _ = signed_in(ADMIN)  # review links are used with the administrator's session
+    for c, path, body in ((client, "/api/auth/confirm", {"token": "été", "password": "password123"}),
+                          (admin, "/api/edit-access/lookup", {"token": "été"}),
+                          (admin, "/api/edit-access/review", {"token": "été", "approve": True})):
+        r = c.post(path, json=body)
+        assert r.status_code in (400, 404), (path, r.status_code, r.text)
+        assert "X-Error-Kind" not in r.headers
+    # A lone surrogate (sent as a JSON escape) cannot be encoded either
+    r = admin.post("/api/edit-access/lookup", content=b'{"token": "\\ud800"}', headers={"Content-Type": "application/json"})
+    assert r.status_code == 404, r.text
+
+
+def test_empty_notes_and_unknown_codes_add_no_reference_row():
+    def exemption_keys():
+        return {e["key"] for e in client.get("/api/exemptions").json()["exemptions"]}
+
+    def eccn_codes():
+        return {e["code"] for e in client.get("/api/eccn").json()["codes"]}
+
+    # Exemption used by no component: saving empty notes stores nothing
+    r = client.put("/api/exemptions/7(b)", json={"notes": ""})
+    assert r.status_code == 200, r.text
+    key = r.json()["key"]
+    assert key not in exemption_keys()
+    # Real notes list it; emptying them removes it again
+    client.put("/api/exemptions/7(b)", json={"notes": "Watch the renewal"})
+    assert key in exemption_keys()
+    client.put("/api/exemptions/7(b)", json={"notes": "  "})
+    assert key not in exemption_keys()
+    # A code that is not in the annexes and used by no component cannot be annotated
+    r = client.put("/api/exemptions/ZZZ-99", json={"notes": "x"})
+    assert r.status_code == 422 and "not in Annexes III and IV" in r.json()["detail"]
+    assert "ZZZ-99" not in exemption_keys()
+    # Empty rows stored by older versions are not listed
+    with db.session() as conn:
+        conn.execute("INSERT OR REPLACE INTO exemption_notes (key, notes, updated_at) VALUES ('7B', '', '')")
+        conn.execute("INSERT OR REPLACE INTO eccn_codes (code, title, notes, updated_at) VALUES ('9A998', '', '', '')")
+    assert "7B" not in exemption_keys() and "9A998" not in eccn_codes()
+    # ECCN: an empty title and notes store nothing; emptying them removes the code from the tab
+    assert client.put("/api/eccn/9A999", json={"title": "", "notes": ""}).status_code == 200
+    assert "9A999" not in eccn_codes()
+    client.put("/api/eccn/9A999", json={"title": "Test entry", "notes": ""})
+    assert "9A999" in eccn_codes()
+    client.put("/api/eccn/9A999", json={"title": "", "notes": ""})
+    assert "9A999" not in eccn_codes()
+
+
+def test_manufacturer_pages_accept_any_spelling():
+    # The key of the address is normalised like the components' manufacturers
+    expected = client.get("/api/manufacturers/texas instruments").json()
+    for spelling in ("TI", "Texas Instruments", "Texas Instruments Inc.", "TEXAS-INSTRUMENTS"):
+        r = client.get(f"/api/manufacturers/{spelling}")
+        assert r.status_code == 200, spelling
+        assert r.json()["key"] == "texas instruments" and len(r.json()["components"]) == len(expected["components"])
+    # A write with a spelling variant updates the same record instead of creating a duplicate
+    r = client.put("/api/manufacturers/Texas Instruments", json={"name": "Texas Instruments", "notes": "any spelling"})
+    assert r.status_code == 200 and r.json()["key"] == "texas instruments", r.text
+    listed = [m for m in client.get("/api/manufacturers").json() if m["name"] == "Texas Instruments"]
+    assert len(listed) == 1 and listed[0]["notes"] == "any spelling"
+    assert client.get("/api/manufacturers/%25%25").status_code == 404
+    assert client.get("/api/manufacturers/_").status_code in (200, 404)  # components without a manufacturer
+
+
+def test_search_matches_the_typed_text_literally():
+    def found(q):
+        r = client.get("/api/components", params={"q": q, "limit": 500})
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    total = found("")["total"]
+    for q in ("%", "_", "-", "/", "Ω", "!"):
+        d = found(q)
+        assert d["total"] < total, q
+        for c in d["items"]:  # only components that contain the typed text
+            text = " ".join(c[k] or "" for k in ("mpn", "manufacturer", "description")).lower()
+            assert db.fold(q) in db.fold(text), (q, c["mpn"])
+    assert found("_")["total"] == 0  # no component contains "_": it is not a wildcard
+    micro = found("µF")["items"]
+    assert micro and all("μf" in db.fold(c["description"]) for c in micro)  # not every part number with an F
+    assert found("Würth")["total"] == found("Wurth")["total"] >= 1
+    assert found("lm 358")["total"] == found("LM358")["total"] >= 1  # part numbers still found in any spelling
+
+
+def test_country_of_origin_must_be_an_iso_code():
+    r = client.post("/api/components", json={"mpn": "CTRY-UK-1", "manufacturer": "Acme", "country_of_origin": "UK"})
+    assert r.status_code == 201, r.text
+    assert client.get(f"/api/components/{r.json()['id']}").json()["country_of_origin"] == "GB"
+    for value in ("XX", "Atlantis"):
+        r = client.post("/api/components", json={"mpn": "CTRY-BAD-1", "manufacturer": "Acme", "country_of_origin": value})
+        assert r.status_code == 422 and "Unrecognised country of origin" in r.json()["detail"], value
+    assert db.normalize_country("hr") == "HR"  # assigned codes are accepted even without a name in the list
+
+
+def test_datasheet_regulatory_references_are_not_part_numbers(monkeypatch):
+    monkeypatch.setattr(datasheet_ai, "available", lambda: False)
+    pdf = make_pdf([["LM358DR Dual Operational Amplifier", "Texas Instruments",
+                     "RoHS compliant, Directive 2011/65/EU and (EU) 2015/863", "REACH: Regulation 1907/2006/EC",
+                     "ECCN: EAR99", "Ordering information: LM358DR"]])
+    mpns = [c["value"] for c in extract_pdf(pdf, "a.pdf").json()["candidates"]["mpn"]]
+    assert "LM358DR" in mpns and not {"2011/65/EU", "2015/863", "1907/2006/EC", "EAR99"} & set(mpns)
+    pdf = make_pdf([["XYZ1234 Wireless module", "Acme Corp", "ECCN: 3A991.a.2", "ECCN: 5A992.C",
+                     "Country of origin: Japan", "XYZ1234 ordering code XYZ1234-TR"]])
+    mpns = [c["value"] for c in extract_pdf(pdf, "b.pdf").json()["candidates"]["mpn"]]
+    assert "XYZ1234" in mpns and not {"3A991", "5A992.C"} & set(mpns), mpns
+
+
+def test_saved_bom_reopens_after_its_replacement_component_is_deleted():
+    c, _ = new_client_with_account()
+    new = client.post("/api/components", json={"mpn": "SWAP-GONE-1", "manufacturer": "Acme", "rohs3": "compliant"})
+    gone, lm = new.json()["id"], comp_id("LM358DR")
+    subs = json.dumps({"2": gone, "3": lm})
+    r = c.post("/api/analyze", files={"file": ("swap.csv", BOM_SWAP.encode())}, data={"save": "1", "substitutions": subs})
+    assert r.status_code == 200 and r.json()["dropped_substitutions"] == []
+    hid = r.json()["history_id"]
+    assert client.delete(f"/api/components/{gone}").status_code == 204
+    # Reopened: the obsolete replacement is dropped with a note, the other one is kept
+    r = c.post("/api/analyze", files={"file": ("swap.csv", BOM_SWAP.encode())},
+               data={"history_id": str(hid), "substitutions": subs})
+    assert r.status_code == 200, r.text
+    rep = r.json()
+    assert rep["dropped_substitutions"] == [{"line": 2, "component_id": gone}]
+    lines = {l["line"]: l for l in rep["lines"]}
+    assert lines[2]["bom_mpn"] == "DEMO-LEADED-DIP8" and not lines[2]["original_mpn"]
+    assert lines[3]["bom_mpn"] == "LM358DR" and rep["summary"]["substituted"] == 1
+    # The history entry no longer holds it, so the next reopening is clean
+    assert c.get("/api/history").json()[0]["substitutions"] == {"3": lm}
+    # The exports and the modified BOM leave it out too
+    r = client.post("/api/analyze?format=bom", files={"file": ("swap.csv", BOM_SWAP.encode())}, data={"substitutions": subs})
+    assert r.status_code == 200 and "DEMO-LEADED-DIP8" in r.text
+
+
+def test_unreadable_or_empty_files_are_not_column_errors():
+    zip_buf = io.BytesIO()
+    import zipfile
+    with zipfile.ZipFile(zip_buf, "w") as z:
+        z.writestr("readme.txt", "not a workbook")
+    for name, data, message in (("not_excel.xlsx", zip_buf.getvalue(), "ZIP archive"),
+                                ("blank.csv", b"\n\n\n", "empty"),
+                                ("header_only.csv", b"Designator;Manufacturer;MPN\n", "No component line")):
+        for url in ("/api/analyze", "/api/components/import")[: 1 if name == "header_only.csv" else 2]:
+            r = client.post(url, files={"file": (name, data)})  # (importing a header alone creates nothing)
+            assert r.status_code == 422 and message in r.json()["detail"], (url, name, r.text)
+            assert "X-Error-Kind" not in r.headers, (url, name)  # no column mapping dialog: nothing to map
+
+
+def test_hidden_elements_stay_hidden_and_delete_is_for_the_administrator():
+    # .btn sets display: inline-flex, which beat the hidden attribute (Delete, Edit buttons left visible)
+    css = client.get("/static/style.css").text
+    assert "[hidden] { display: none !important; }" in css
+    js = client.get("/static/app.js").text
+    assert '$("#btnDelete").hidden = !comp || !(!authConfig || authConfig.open_editing || state.user?.is_admin);' in js
+
+
+def test_page_has_an_icon():
+    # No icon declared: browsers asked for /favicon.ico and logged a 404 on every page load
+    assert '<link rel="icon" href="/static/favicon.svg"' in client.get("/").text
+    for url in ("/static/favicon.svg", "/favicon.ico"):
+        r = client.get(url)
+        assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml") and "<svg" in r.text
+
+
 def test_security_headers():
     for path in ("/", "/static/app.js", "/api/stats", "/api/components/999999"):
         h = client.get(path).headers

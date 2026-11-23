@@ -26,6 +26,8 @@
   }
 }
 * { box-sizing: border-box; }
+/* An element hidden by the script stays hidden whatever its display (.btn is inline-flex, for instance) */
+[hidden] { display: none !important; }
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
 h1 { font-size: 18px; margin: 0; }
 h2 { font-size: 17px; margin: 0 0 14px; }

@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
-<link rel="stylesheet" href="/static/style.css?v=38">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css?v=39">
 </head>
 <body>
 <header class="top">
@@ -184,6 +185,7 @@
         <button class="btn" id="btnStatusHint">Choose what these values mean</button>
       </div>
 
+      <div id="swapDropped" class="alert" role="status" hidden></div>
       <div id="swapBar" class="swapbar" hidden>
         <span id="swapCount"></span>
         <span class="spacer"></span>
@@ -628,6 +630,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=38"></script>
+<script src="/static/app.js?v=39"></script>
 </body>
 </html>

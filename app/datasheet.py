@@ -84,6 +84,9 @@ _NOT_MPN = [
         r"^[A-Z]{1,2}\d{1,2}$",  # R1, C10, U2 (designators)
         r"^\d{2,7}-\d{2}-\d$",  # CAS numbers
         r"^PAGE\d",
+        r"^\d{2,4}/\d+/(EU|EC|EEC|UE|CE|CEE)$",  # EU legal references: 2011/65/EU, 1907/2006/EC
+        r"^EAR99$",  # export control classification numbers
+        r"^\d[A-E]\d{3}(\.[A-Z0-9]+)*$",  # 3A991, 5A992.C
         r"^(I2C|I2S|SPI|USB\d?|UART|CAN|LIN|PCIE|DDR\d|LPDDR\d|MIPI|HDMI|SATA|GPIO\d*|ADC\d*|DAC\d*|PWM\d*|ESD|HBM|CDM|MSL\d?|ARM|RISC-V|CORTEX-M\d+|X\d+R|C0G|NP0|X5R|X7R|X7S|Y5V|Z5U|AC|DC)$",
     )
 ]
