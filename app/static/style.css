@@ -1,12 +1,12 @@
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f0f2f5; --border: #dde1e7;
-  --text: #1c2330; --muted: #667085; --accent: #1f7a5a; --accent-text: #ffffff;
+  --text: #1c2330; --muted: #5d6879; --accent: #1f7a5a; --accent-text: #ffffff; --link: #1a5fb4;
   --ok-bg: #e3f4ea; --ok: #17663f;
   --ex-bg: #e4eefb; --ex: #1d4f91;
   --svhc-bg: #fff3d1; --svhc: #8a5a00;
   --ko-bg: #fde4e4; --ko: #a31f1f;
   --chk-bg: #fdecdc; --chk: #9a4a0b;
-  --skip-bg: #eceef1; --skip: #667085;
+  --skip-bg: #eceef1; --skip: #5d6879;
   /* Status pie charts: palette validated (colour blindness and normal vision) on a light background */
   --pie-ok: #1a7f5a; --pie-ex: #4f8fe6; --pie-svhc: #e0b02a; --pie-chk: #a3abb8; --pie-ko: #ef7a64;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
@@ -14,7 +14,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #12161c; --surface: #1a2028; --surface-2: #222a34; --border: #2f3946;
-    --text: #e6e9ee; --muted: #9aa4b2; --accent: #3fb489; --accent-text: #0b1a14;
+    --text: #e6e9ee; --muted: #9aa4b2; --accent: #3fb489; --accent-text: #0b1a14; --link: #8fb8f0;
     --ok-bg: #173826; --ok: #7fdba7;
     --ex-bg: #1a2c47; --ex: #8fb8f0;
     --svhc-bg: #3a2f12; --svhc: #f2cb6b;
@@ -29,6 +29,8 @@
 /* An element hidden by the script stays hidden whatever its display (.btn is inline-flex, for instance) */
 [hidden] { display: none !important; }
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+/* Plain links (manufacturer websites, footer…) in the colours of the theme, not the browser's dark blue */
+:where(a) { color: var(--link); } /* no specificity: any class (.btn, .back, .comp-link…) keeps its colour */
 h1 { font-size: 18px; margin: 0; }
 h2 { font-size: 17px; margin: 0 0 14px; }
 .muted { color: var(--muted); }
@@ -166,7 +168,7 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
 .grid th { text-align: left; font-weight: 600; color: var(--muted); background: var(--surface-2); padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; }
 .grid td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .grid tr:last-child td { border-bottom: 0; }
-.grid tr.dnp td { opacity: .55; }
+.grid tr.dnp td { color: var(--muted); }
 #comps { min-width: 1350px; }
 #comps td:nth-child(1) { white-space: nowrap; }
 #comps td:nth-child(3) { min-width: 220px; }

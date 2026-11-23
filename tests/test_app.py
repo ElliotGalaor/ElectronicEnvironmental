@@ -2036,3 +2036,25 @@ def test_answers_are_compressed():
     assert "Content-Security-Policy" in r.headers and r.headers["Cache-Control"] == "no-cache"
     assert "content-encoding" not in client.get("/api/health", headers={"Accept-Encoding": "gzip"}).headers
     assert "content-encoding" not in client.get("/", headers={"Accept-Encoding": "identity"}).headers
+
+
+def _contrast(fg: str, bg: str) -> float:
+    def lum(h):
+        c = [int(h.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted((lum(fg), lum(bg)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def test_text_contrast_of_both_themes():
+    import re
+    css = client.get("/static/style.css").text
+    light = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", css.split("@media (prefers-color-scheme: dark)")[0]))
+    dark = light | dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", css.split("@media (prefers-color-scheme: dark)")[1].split("\n}")[0]))
+    for name, theme in (("light", light), ("dark", dark)):
+        for fg, bg in (("link", "surface"), ("link", "surface-2"), ("muted", "surface"), ("muted", "surface-2"),
+                       ("muted", "bg"), ("skip", "skip-bg"), ("text", "surface")):
+            assert _contrast(theme[fg], theme[bg]) >= 4.5, (name, fg, bg, round(_contrast(theme[fg], theme[bg]), 2))
+    assert ":where(a) { color: var(--link); }" in css  # plain links (manufacturer websites) take the theme's colour
+    assert "tr.dnp td { opacity" not in css  # not populated lines: muted colour, not a transparency
