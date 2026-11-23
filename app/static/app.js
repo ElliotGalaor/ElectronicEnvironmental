@@ -470,8 +470,11 @@ function renderReport() {
     NORMS.map(([k, name, ref]) => `<div class="vcard v-${S[k].verdict}"><div class="norm">${name} <span title="${ref}">· ${ref}</span></div>
       <div class="verdict">${VERDICT[S[k].verdict]}</div><div class="detail">${detail(S[k].counts)}</div></div>`).join("");
 
+  const expiring = S.exemptions_expiring || { lines: 0, codes: [] };
   $("#counts").innerHTML = `<span><b>${S.found}</b> found in database</span><span><b>${S.uncertain}</b> uncertain ${S.uncertain > 1 ? "matches" : "match"}</span>
     <span><b>${S.not_found}</b> not found</span><span><b>${S.dnp}</b> not populated</span>` +
+    (expiring.lines ? `<span class="expiring"><b>${expiring.lines}</b> ${expiring.lines > 1 ? "lines rely" : "line relies"} on a RoHS exemption ` +
+      `expiring within a year: ${exLinks(expiring.codes.join(", "))}</span>` : "") +
     (S.export ? `<span>Export: <b>${S.export.eccn_controlled}</b> controlled ECCN${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> unknown ECCN${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
       `<span>Origins: ${[
         ...Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`),
@@ -658,7 +661,7 @@ function renderLines() {
       ? `<div class="sugg">Similar: ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
     const add = (l.match === "not_found" && l.bom_mpn)
       ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Add to database</button></div>` : "";
-    const notes = l.notes.map((n) => n.startsWith("RoHS exemption") && l.exemptions
+    const notes = l.notes.map((n) => n.startsWith("RoHS exemption:") && l.exemptions
       ? `<div>RoHS exemption: ${exLinks(l.exemptions)} (check the expiry date)</div>` : `<div>${esc(n)}</div>`).join("");
     const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small btn-count" data-altline="${l.line}">Equivalents${eqBadge(l.equivalents)}</button></div>` : "";
     const ref = comp

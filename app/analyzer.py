@@ -19,6 +19,8 @@ from .db import (
     normalize_mpn,
     row_to_dict,
 )
+from .exemptions import describe as describe_exemption
+from .exemptions import split_codes
 from .tables import BomLine, ColumnMapping
 
 NORMS = ("rohs2", "rohs3", "reach")
@@ -73,6 +75,7 @@ class LineResult:
     # Why each "needs review" status was given: lines with the same reason can be classified together
     review: dict[str, str] = field(default_factory=dict)
     manual: list[str] = field(default_factory=list)  # regulations classified by hand (see apply_classifications)
+    expiring_exemptions: list[str] = field(default_factory=list)  # RoHS exemptions expiring within a year
 
 
 def declared_statuses(line: BomLine) -> tuple[dict[str, str], list[str]]:
@@ -306,7 +309,7 @@ def analyze_line(conn: sqlite3.Connection, line: BomLine, all_mpns) -> LineResul
             res.notes.append(f"Partial match with {comp['mpn']} (different suffix): check")
         res.suggestions = [{"id": c["id"], "mpn": c["mpn"], "manufacturer": c["manufacturer"]} for c in cands[:5]]
     if res.exemptions and OK_EXEMPTION in (res.rohs2, res.rohs3):
-        res.notes.append(f"RoHS exemption: {res.exemptions} (check its expiry date)")
+        _exemption_notes(res)
     if eccn_is_controlled(comp.get("eccn", "")):
         res.notes.append(f"ECCN {comp['eccn']}: component subject to export control, check licences")
 
@@ -369,6 +372,24 @@ def apply_classifications(results: list[LineResult], classifications: dict[int, 
                            f"(needed review: {r.review.get(n, 'unknown reason')})")
 
 
+def _exemption_notes(res: LineResult) -> None:
+    """Notes on the RoHS exemptions of a line: expiry within a year (counted in the summary) or date passed,
+    otherwise a reminder to check the expiry date."""
+    others = []
+    for code in split_codes(res.exemptions):
+        d = describe_exemption(code)
+        name, status = (d["code"] if d["found"] else code), d["status"]
+        if status["kind"] == "expiring_soon":
+            res.expiring_exemptions.append(name)
+            res.notes.append(f"RoHS exemption {name}: {status['label'][0].lower()}{status['label'][1:]}")
+        elif status["kind"] == "expired":
+            res.notes.append(f"RoHS exemption {name}: {status['label'][0].lower()}{status['label'][1:]}")
+        else:
+            others.append(code)
+    if others:
+        res.notes.append(f"RoHS exemption: {', '.join(others)} (check its expiry date)")
+
+
 def _global_verdict(values: list[str], norm: str) -> str:
     counted = [v for v in values if v != SKIPPED]
     if not counted:
@@ -422,6 +443,11 @@ def analyze(conn: sqlite3.Connection, lines: list[BomLine], mapping: ColumnMappi
             "not_found": matches.get(MATCH_NONE, 0),
             "substituted": sum(1 for r in results if r.original_mpn),
             "classified": sum(1 for r in results if r.manual),
+            # Populated lines relying on a RoHS exemption that expires within a year, and those exemptions
+            "exemptions_expiring": {
+                "lines": sum(1 for r in results if r.expiring_exemptions and not r.dnp),
+                "codes": sorted({c for r in results if not r.dnp for c in r.expiring_exemptions}),
+            },
             "overall": overall,
             "export": export,
             **summary,

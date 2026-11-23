@@ -165,6 +165,10 @@ def report_xlsx(report: dict) -> bytes:
     ws.append(["Not found", s["not_found"]])
     if s.get("substituted"):
         ws.append(["Lines replaced by an equivalent", s["substituted"]])
+    expiring = s.get("exemptions_expiring") or {}
+    if expiring.get("lines"):
+        ws.append(["Lines with a RoHS exemption expiring within a year", expiring["lines"]])
+        ws.append(["Exemptions expiring within a year", ", ".join(expiring["codes"])])
     ex = s.get("export", {})
     if ex:
         ws.append([])

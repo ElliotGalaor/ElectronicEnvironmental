@@ -2087,3 +2087,36 @@ def test_results_and_database_tables_become_cards_on_a_phone():
     assert ".cards-sm thead { display: none; }" in phone and "td[data-label]::before { content: attr(data-label)" in phone
     assert "#lines td:nth-child(8), #lines td:nth-child(9), #lines td:nth-child(10) { order: 3; }" in phone  # statuses first
     assert js.count("labelCells($(") == 2  # cells labelled with their column after each rendering
+
+
+def test_rohs_exemptions_expiring_within_a_year_are_flagged(monkeypatch):
+    import datetime as dt
+
+    from openpyxl import load_workbook
+
+    def on(day):
+        class Today(dt.date):
+            @classmethod
+            def today(cls):
+                return cls.fromisoformat(day)
+        monkeypatch.setattr(ex_mod, "date", Today)
+
+    bom = "Designator;Manufacturer;MPN\nR1;Yageo;RC0603FR-0710KL\nD1;Littelfuse;SMBJ5.0A\nU1;Texas Instruments;LM358DR\n"
+    on("2026-11-23")  # 7(a) and 7(c)-I expire on 30 June 2027
+    rep = analyze_text(bom)
+    lines = {l["bom_mpn"]: l for l in rep["lines"]}
+    assert lines["RC0603FR-0710KL"]["expiring_exemptions"] == ["7(c)-I"]
+    assert "RoHS exemption 7(c)-I: expires on 30 June 2027 (in 219 days)" in lines["RC0603FR-0710KL"]["notes"]
+    assert lines["LM358DR"]["expiring_exemptions"] == []
+    assert rep["summary"]["exemptions_expiring"] == {"lines": 2, "codes": ["7(a)", "7(c)-I"]}
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("bom.csv", bom.encode())}).content
+    summary = {r[0]: r[1] for r in load_workbook(io.BytesIO(xlsx))["Summary"].iter_rows(values_only=True) if r and r[0]}
+    assert summary["Lines with a RoHS exemption expiring within a year"] == 2
+    assert summary["Exemptions expiring within a year"] == "7(a), 7(c)-I"
+    # More than a year before: only the reminder to check the date; after it: the date has passed
+    on("2025-01-01")
+    rep = analyze_text(bom)
+    assert rep["summary"]["exemptions_expiring"]["lines"] == 0
+    assert "RoHS exemption: 7(c)-I (check its expiry date)" in rep["lines"][0]["notes"]
+    on("2027-08-01")
+    assert any("expiry date passed" in n for n in analyze_text(bom)["lines"][0]["notes"])
