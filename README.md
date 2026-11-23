@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-134%20pytest-success)
+![Tests](https://img.shields.io/badge/tests-145%20pytest-success)
 [![Release](https://img.shields.io/github/v/release/ElliotGalaor/ElectronicEnvironmental?label=version)](https://github.com/ElliotGalaor/ElectronicEnvironmental/releases)
 
 <img src="docs/images/analysis.png" alt="BOM analysis: RoHS 2, RoHS 3 and REACH verdicts with the breakdown of statuses" width="100%">
@@ -101,7 +101,7 @@ Each ECCN code is broken down (category, product group, reason for control), lin
 | Front end | HTML / CSS / **framework-free JavaScript**, hand-made SVG charts, light and dark themes, responsive down to mobile (*container queries*) |
 | Documents | openpyxl, pyxlsb and xlrd (Excel `.xlsx`, `.xlsb`, `.xls`), pypdf (datasheets), **Claude** API (optional extraction, structured outputs) |
 | Security | Passwords hashed with **scrypt**, `HttpOnly` / `SameSite` cookie sessions, sign-in attempt throttling, sign-ups confirmed by e-mail (**Brevo**) and **Cloudflare Turnstile** captcha (optional), database changes reserved for accounts approved by the administrator by e-mail, with a daily limit on added components; Content-Security-Policy and other security headers, uploads capped before they are read |
-| Quality | **pytest** (134 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
+| Quality | **pytest** (145 tests), **ruff** and **actionlint** (lint of the code and of the workflows), automated screenshots (Playwright) |
 | DevOps | **GitHub Actions**: CI (lint + tests on 3 Python versions, **Docker** image built once, smoke-tested and published to GHCR, automatic release) and CD (that same image promoted on **Render**: staging, then production after approval) |
 
 ## Architecture
@@ -164,6 +164,7 @@ Every change goes through a reviewed pull request, linked to its issue.
 | | [#77](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/77) | **Fixes from the end-to-end tests** (12 major issues, #41 to #52): no formulas in the exports, sign-out clears the open BOM, statuses given by hand tied to the part reviewed, replacements judged on their own, Mac line endings, any file name, Excel sheet holding the BOM, RoHS 2 / RoHS 3 inferences for declared statuses, exemption list with unknown codes, Manufacturers tab kept, normalised dates, drop zones usable with the keyboard |
 | | [#78](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/78) | **Minor fixes from the end-to-end tests** (15 bugs, #57 to #70 and #76): session reloaded when the server is back, hidden buttons and Delete for the administrator only, malformed links, empty notes, manufacturer addresses in any spelling, literal and accent-insensitive search, ISO country codes, no directive or ECCN as part number, saved BOMs with a deleted replacement, plain error for unreadable files, mapping alert, unrecognised-values banner, exports during an analysis, edit rights checked again, page icon |
 | | [#79](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/79) | **Security fixes** (#53 to #56): the edit access review link also needs the administrator signed in; sign-up and sign-in limits keyed on an address the visitor cannot forge (Cloudflare's `CF-Connecting-IP` on Render); sign-up no longer reveals which addresses have an account, and failed sign-ins are also limited per client; Content-Security-Policy and other security headers; uploads over the limit refused before they are read |
+| | [#80](https://github.com/ElliotGalaor/ElectronicEnvironmental/pull/80) | **Remaining issues** (#71 to #75, #5, #6, #9): accessible tabs, search boxes, legends and page titles; readable colours in dark mode; results and database as cards on a phone; "Loading…" in the lists; gzip compression; exemptions expiring within a year flagged in the analysis; forgotten password reset by an e-mailed link (or `cli.py set-password`); KiCad, Altium and EAGLE exports validated |
 
 ## Quick start
 
@@ -175,7 +176,7 @@ docker run -p 8000:8000 -v rohs-data:/data ghcr.io/elliotgalaor/electronicenviro
 
 Then open http://localhost:8000. The database is initialised with 129 demo components. For a specific version, add its number to the image (`…/electronicenvironmental:2.0.0`).
 
-To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens).
+To try it: drop [`examples/bom_example.csv`](examples/bom_example.csv) (CAD format, columns recognised automatically), then [`examples/bom_erp_format.csv`](examples/bom_erp_format.csv) (unknown format: the column mapping dialog opens). Exports of KiCad, Altium and EAGLE are read too: [`bom_kicad.csv`](examples/bom_kicad.csv), [`bom_altium.csv`](examples/bom_altium.csv), [`bom_eagle.csv`](examples/bom_eagle.csv).
 
 **Online, for free**: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ElliotGalaor/ElectronicEnvironmental)
 
@@ -195,11 +196,11 @@ python -m venv .venv
 
 Next changes, tracked as issues:
 - [ ] REACH status of the components from the distributor ([#4](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/4))
-- [ ] Exemption expiry alert in the BOM analysis ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
-- [ ] Password reset ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
+- [x] Exemption expiry alert in the BOM analysis ([#5](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/5))
+- [x] Password reset ([#6](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/6))
 - [x] HTTPS deployment guide ([#7](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/7))
 - [ ] Corpus of real datasheets for the extraction ([#8](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/8))
-- [ ] Validation of KiCad, Altium and Eagle exports ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
+- [x] Validation of KiCad, Altium and Eagle exports ([#9](https://github.com/ElliotGalaor/ElectronicEnvironmental/issues/9))
 
 ## Documentation
 

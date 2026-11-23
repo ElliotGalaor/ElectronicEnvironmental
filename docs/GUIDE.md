@@ -40,6 +40,12 @@ served at `/examples/bom_example.csv`.
    An **internal reference** (company part number: *Internal ref*, *CPN*, *Code article*…) is shown in its own
    column of the results and of the exports.
    KiCad's "Reference" column is recognised as a designator if it holds `R1, C2…`.
+   The BOM exports of the main EDA tools are read as they come, with an example of each in `examples/`:
+   KiCad 8+ "Export BOM" (`Refs`, `Qty`, `DNP` and the symbols' `Manufacturer` / `MPN` fields,
+   [`bom_kicad.csv`](../examples/bom_kicad.csv)), Altium Designer ActiveBOM (`Manufacturer 1`,
+   `Manufacturer Part 1`; the supplier columns are not taken for part numbers, [`bom_altium.csv`](../examples/bom_altium.csv))
+   and EAGLE / Fusion `bom.ulp` (`Parts` for the designators, `MF` / `MPN` attributes,
+   [`bom_eagle.csv`](../examples/bom_eagle.csv)).
    RoHS 2, RoHS 3 and REACH statuses declared in the BOM are also recognised ("RoHS" alone = RoHS 3), including
    the wording of distributors and PLM tools (`Compliant(YES)`, `ROHS3 Compliant`, `RoHS Compliant by Exemption`,
    `Not RoHS Compliant`, `REACH Unaffected`, `Contains SVHC`…).
@@ -134,6 +140,14 @@ any of these spellings (`#manufacturer/TI`), and so does the API.
 "Sign in" button at the top right: sign in or create an account (e-mail, password of at least 8 characters,
 optional name).
 
+**Forgotten password**: "Forgot your password?" under the sign-in form (when the server sends e-mails) sends a
+link to choose a new one. The link works once, within 60 minutes, and only the SHA-256 hash of its token is
+stored. The form answers the same way for every address, so it does not reveal which ones have an account; at
+most 3 links wait at the same time for one account, requests are limited to 10 per hour from the same client
+address and go through the captcha when it is on. Choosing the new password signs the user in and signs the
+account out of every other session. On a server that sends no e-mail, the administrator sets a new password
+with `python cli.py set-password <email>`.
+
 Once signed in, every analysed BOM is saved in **"My latest BOMs"** (Analysis tab): original file, chosen
 columns, replacements by equivalents and verdicts. Changing the columns or replacing a line updates the same
 entry. "Reopen" reruns the analysis against the current database: statuses may have changed since. A replacement
@@ -219,6 +233,11 @@ Every exemption code shown in the application (Database tab, BOM analysis) links
 - upcoming consolidated version already published (changes planned for the exemption);
 - links to EUR-Lex, components concerned (with access to equivalents to prepare for an expiry), editable notes.
   An exemption with notes is listed even if no component uses it; emptying the notes removes it from the list.
+
+In the BOM analysis, a line relying on an exemption that expires within a year gets the note "RoHS exemption
+7(c)-I: expires on 30 June 2027 (in N days)", and one whose date has passed says so. The summary counts the lines
+relying on an exemption that expires within a year and lists those exemptions, also in the Summary sheet of the
+Excel export.
   A code that is not in the annexes can only be annotated while a component uses it.
 
 Codes are recognised in several spellings (`7(c)-I`, `7 c)-I`, `7c-I`); prefix with `IV-` for Annex IV.
@@ -341,6 +360,7 @@ Variables: `ANTHROPIC_API_KEY` (enables the AI), `RRC_AI=off` (disables the AI),
 .venv\Scripts\python cli.py analyze bom.csv --mapping "{\"mpn\": \"Part Number\"}"
 .venv\Scripts\python cli.py approve someone@example.com      # let an account change the local database
 .venv\Scripts\python cli.py revoke someone@example.com       # remove this right
+.venv\Scripts\python cli.py set-password someone@example.com # new password for an account (asked twice)
 .venv\Scripts\python cli.py import components.csv --server http://server:8000 --email me@example.com
 ```
 Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continuous integration).
@@ -365,6 +385,8 @@ Exit code: `0` compliant, `1` needs review, `2` non-compliant (usable in continu
 | POST / DELETE | `/api/components/{id}/equivalents[/{other_id}]` | confirm / remove an equivalence |
 | POST | `/api/auth/register`, `/api/auth/login`, `/api/auth/logout` | create an account (202 when sign-ups are confirmed by e-mail, also for an address that already has an account), sign in (429 after too many failures), sign out |
 | POST | `/api/auth/confirm` | confirm a sign-up (token of the e-mailed link + password) and sign in |
+| POST | `/api/auth/password-reset/request` | e-mail a link to choose a new password (202, the same answer for every address; 503 when the server sends no e-mail) |
+| POST | `/api/auth/password-reset` | choose a new password (token of the e-mailed link + password) and sign in |
 | GET | `/api/auth/config` | sign-up settings: e-mail confirmation on or off, captcha site key |
 | GET | `/api/auth/me` | signed-in user and their rights: `can_edit`, `is_admin`, `additions_left` (`null` otherwise) |
 | POST | `/api/edit-access/request` | ask the administrator for the right to change the database (e-mail sent) |
