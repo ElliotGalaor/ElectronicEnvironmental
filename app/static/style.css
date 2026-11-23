@@ -114,6 +114,8 @@ main { padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
   border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+.loadingrow td { color: var(--muted); }
+.loadingrow .spinner { display: inline-block; vertical-align: -3px; margin-right: 6px; }
 #result { transition: opacity .2s; }
 #result.busy { opacity: .45; pointer-events: none; }
 

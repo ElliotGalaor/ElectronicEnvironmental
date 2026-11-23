@@ -693,8 +693,23 @@ async function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+/* A list whose data is slow to come (the free server can take about a minute to wake up) says so instead of
+   showing an empty table: at once when it is empty, after a short delay when it already shows rows (a new search,
+   another page), so that quick answers do not flicker. Returns the function that cancels the placeholder. */
+function showLoading(tbody) {
+  const body = $(tbody);
+  const put = () => {
+    const cols = body.closest("table").tHead.rows[0].cells.length;
+    body.innerHTML = `<tr class="loadingrow"><td colspan="${cols}"><span class="spinner" aria-hidden="true"></span> Loading…</td></tr>`;
+  };
+  if (!body.rows.length) { put(); return () => {}; }
+  const timer = setTimeout(put, 400);
+  return () => clearTimeout(timer);
+}
+
 async function loadComponents() {
   const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "issues" : "" });
+  const loaded = showLoading("#comps tbody");
   try {
     const { total, items } = await (await api("/api/components?" + p)).json();
     const pages = Math.max(1, Math.ceil(total / state.pageSize));
@@ -711,6 +726,8 @@ async function loadComponents() {
       || `<tr><td colspan="12" class="muted">No components.</td></tr>`;
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="12">Error: ${esc(e.message)}</td></tr>`;
+  } finally {
+    loaded();
   }
 }
 
@@ -732,10 +749,13 @@ const siteLink = (url) => url
   : `<span class="muted">—</span>`;
 
 async function loadManufacturers() {
+  const loaded = showLoading("#mfrs tbody");
   try {
     MFRS = await (await api("/api/manufacturers")).json();
+    loaded();
     renderManufacturers();
   } catch (e) {
+    loaded();
     $("#mfrs tbody").innerHTML = `<tr><td colspan="7">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1488,10 +1508,13 @@ const longDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "")
 const svhcHref = (id) => "#svhc/" + encodeURIComponent(id);
 
 async function loadSvhcList() {
+  const loaded = showLoading("#svhcs tbody");
   try {
     SVHC = await (await api("/api/svhc")).json();
+    loaded();
     renderSvhcList();
   } catch (e) {
+    loaded();
     $("#svhcs tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1646,10 +1669,13 @@ let ECCNS = { codes: [], unknown_components: 0 };
 let currentEccn = null;
 
 async function loadEccnList() {
+  const loaded = showLoading("#eccns tbody");
   try {
     ECCNS = await (await api("/api/eccn")).json();
+    loaded();
     renderEccnList();
   } catch (e) {
+    loaded();
     $("#eccns tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1744,10 +1770,13 @@ const STATUS_BADGE = { in_force: "b-compliant", expiring_soon: "b-svhc", expired
 const statusBadge = (s) => `<span class="badge ${STATUS_BADGE[s.kind] || "b-unknown"}">${esc(s.label)}</span>`;
 
 async function loadExemptionList() {
+  const loaded = showLoading("#exempts tbody");
   try {
     EXEMPTIONS = await (await api("/api/exemptions")).json();
+    loaded();
     renderExemptionList();
   } catch (e) {
+    loaded();
     $("#exempts tbody").innerHTML = `<tr><td colspan="6">Error: ${esc(e.message)}</td></tr>`;
   }
 }
