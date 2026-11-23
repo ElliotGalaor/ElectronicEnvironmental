@@ -2081,7 +2081,7 @@ def test_page_semantics_for_assistive_technologies():
 
 
 def test_results_and_database_tables_become_cards_on_a_phone():
-    page, css, js = (client.get(u).text for u in ("/", "/static/style.css", "/static/app.js"))
+    page, css, js = (client.get(u).text.replace("\r\n", "\n") for u in ("/", "/static/style.css", "/static/app.js"))
     assert '<table class="grid cards-sm" id="lines">' in page and '<table class="grid cards-sm" id="comps">' in page
     phone = css.split("@media (max-width: 640px) {\n  .cards-sm")[1]
     assert ".cards-sm thead { display: none; }" in phone and "td[data-label]::before { content: attr(data-label)" in phone
