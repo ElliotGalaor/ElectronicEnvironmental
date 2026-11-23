@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RoHS / REACH Checker</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/style.css?v=39">
+<link rel="stylesheet" href="/static/style.css?v=40">
 </head>
 <body>
 <header class="top">
@@ -29,22 +29,22 @@
   <button type="button" class="btn small" id="btnServerRetry">Try again now</button>
 </div>
 
-<div class="tabbar">
-  <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="home" role="tab">Home</button>
-    <button class="tab" data-tab="analysis" role="tab">BOM analysis</button>
-    <button class="tab" data-tab="database" role="tab">Component database</button>
-    <button class="tab" data-tab="manufacturers" role="tab">Manufacturers</button>
-    <button class="tab" data-tab="exemptions" role="tab">RoHS exemptions</button>
-    <button class="tab" data-tab="svhc" role="tab">SVHC</button>
-    <button class="tab" data-tab="eccn" role="tab">ECCN codes</button>
-  </nav>
+<nav class="tabbar" aria-label="Sections">
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab active" data-tab="home" role="tab" id="tabbtn-home" aria-controls="tab-home" aria-selected="true">Home</button>
+    <button class="tab" data-tab="analysis" role="tab" id="tabbtn-analysis" aria-controls="tab-analysis" aria-selected="false" tabindex="-1">BOM analysis</button>
+    <button class="tab" data-tab="database" role="tab" id="tabbtn-database" aria-controls="tab-database" aria-selected="false" tabindex="-1">Component database</button>
+    <button class="tab" data-tab="manufacturers" role="tab" id="tabbtn-manufacturers" aria-controls="tab-manufacturers" aria-selected="false" tabindex="-1">Manufacturers</button>
+    <button class="tab" data-tab="exemptions" role="tab" id="tabbtn-exemptions" aria-controls="tab-exemptions" aria-selected="false" tabindex="-1">RoHS exemptions</button>
+    <button class="tab" data-tab="svhc" role="tab" id="tabbtn-svhc" aria-controls="tab-svhc" aria-selected="false" tabindex="-1">SVHC</button>
+    <button class="tab" data-tab="eccn" role="tab" id="tabbtn-eccn" aria-controls="tab-eccn" aria-selected="false" tabindex="-1">ECCN codes</button>
+  </div>
   <div class="tabscroll" aria-hidden="true"><span></span></div>
-</div>
+</nav>
 
 <main>
   <!-- ============================== HOME ============================== -->
-  <section id="tab-home" class="panel active home">
+  <section id="tab-home" role="tabpanel" aria-labelledby="tabbtn-home" class="panel active home">
     <div class="hero">
       <div class="hero-text">
         <p class="eyebrow">Compliance check for electronic bills of materials</p>
@@ -141,7 +141,7 @@
   </section>
 
   <!-- ============================== ANALYSIS ============================== -->
-  <section id="tab-analysis" class="panel">
+  <section id="tab-analysis" role="tabpanel" aria-labelledby="tabbtn-analysis" class="panel">
     <label id="drop" class="drop" tabindex="0" role="button" aria-describedby="dropHint">
       <input type="file" id="bomFile" accept=".csv,.txt,.tsv,.xlsx,.xlsm,.xlsb,.xls" hidden>
       <div class="drop-icon" aria-hidden="true">⬆</div>
@@ -218,7 +218,7 @@
       </div>
 
       <div class="tablewrap">
-        <table class="grid" id="lines">
+        <table class="grid cards-sm" id="lines">
           <thead><tr>
             <th>Line</th><th>Designators</th><th>Qty</th><th>BOM part number</th><th class="col-ref">Internal ref</th><th>Manufacturer</th>
             <th>Match</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th><th>ECCN / Origin</th><th>Notes</th>
@@ -231,10 +231,10 @@
   </section>
 
   <!-- ============================== DATABASE ============================== -->
-  <section id="tab-database" class="panel">
+  <section id="tab-database" role="tabpanel" aria-labelledby="tabbtn-database" class="panel">
     <div class="toolbar">
       <div class="left">
-        <input type="search" id="q" name="filter-q" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a part number, a manufacturer, a description…">
+        <input type="search" id="q" aria-label="Search the components" name="filter-q" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a part number, a manufacturer, a description…">
         <label class="check"><input type="checkbox" id="onlyIssues"> Issues only</label>
       </div>
       <div class="actions">
@@ -248,7 +248,7 @@
     <div id="editBox" class="card editbox" hidden></div>
     <div id="importMsg" class="alert" hidden></div>
     <div class="tablewrap">
-      <table class="grid" id="comps">
+      <table class="grid cards-sm" id="comps">
         <thead><tr>
           <th>Part number</th><th>Manufacturer</th><th>Description</th><th>RoHS 2</th><th>RoHS 3</th><th>REACH</th>
           <th>RoHS exemptions</th><th>SVHC</th><th>ECCN</th><th>Origin</th><th>Last checked</th><th></th>
@@ -263,10 +263,10 @@
     </div>
   </section>
   <!-- ============================== RoHS EXEMPTIONS ============================== -->
-  <section id="tab-exemptions" class="panel">
+  <section id="tab-exemptions" role="tabpanel" aria-labelledby="tabbtn-exemptions" class="panel">
     <div id="exemptList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="exemptSearch" name="filter-exemptSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search an exemption, a substance, a manufacturer…"></div>
+        <div class="left"><input type="search" id="exemptSearch" aria-label="Search the exemptions" name="filter-exemptSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search an exemption, a substance, a manufacturer…"></div>
       </div>
       <div class="tablewrap">
         <table class="grid" id="exempts">
@@ -286,7 +286,7 @@
         <div><h2 id="exemptCode"></h2><div class="muted" id="exemptSummary"></div></div>
         <button class="btn" id="btnEditExempt">Edit the notes</button>
       </div>
-      <div class="card mfrinfo" id="exemptInfo"></div>
+      <dl class="card mfrinfo" id="exemptInfo"></dl>
       <h3 class="section">Database components using this exemption</h3>
       <div class="tablewrap">
         <table class="grid" id="exemptComps">
@@ -300,11 +300,11 @@
   </section>
 
   <!-- ============================== SVHC (REACH CANDIDATE LIST) ============================== -->
-  <section id="tab-svhc" class="panel">
+  <section id="tab-svhc" role="tabpanel" aria-labelledby="tabbtn-svhc" class="panel">
     <div id="svhcList">
       <div class="toolbar" id="svhcTools">
         <div class="left">
-          <input type="search" id="svhcSearch" name="filter-svhcSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a substance, an EC or CAS number…">
+          <input type="search" id="svhcSearch" aria-label="Search the SVHC" name="filter-svhcSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a substance, an EC or CAS number…">
           <label class="check"><input type="checkbox" id="svhcOnlyUsed"> In the database only</label>
         </div>
         <span class="muted small" id="svhcCount"></span>
@@ -338,16 +338,16 @@
   </section>
 
   <!-- ============================== COMPONENT PAGE ============================== -->
-  <section id="tab-component" class="panel">
+  <section id="tab-component" role="tabpanel" aria-labelledby="tabbtn-database" class="panel">
     <a href="#database" class="back">‹ Component database</a>
     <div id="compSheet"></div>
   </section>
 
   <!-- ============================== ECCN CODES ============================== -->
-  <section id="tab-eccn" class="panel">
+  <section id="tab-eccn" role="tabpanel" aria-labelledby="tabbtn-eccn" class="panel">
     <div id="eccnList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="eccnSearch" name="filter-eccnSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a code, a field, a manufacturer…"></div>
+        <div class="left"><input type="search" id="eccnSearch" aria-label="Search the ECCN codes" name="filter-eccnSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a code, a field, a manufacturer…"></div>
         <span class="muted small" id="eccnUnknown"></span>
       </div>
       <div class="tablewrap">
@@ -367,7 +367,7 @@
         <button class="btn" id="btnEditEccn">Edit the title and notes</button>
       </div>
       <div class="cards" id="eccnParts"></div>
-      <div class="card mfrinfo" id="eccnInfo"></div>
+      <dl class="card mfrinfo" id="eccnInfo"></dl>
       <h3 class="section">Database components with this code</h3>
       <div class="tablewrap">
         <table class="grid" id="eccnComps">
@@ -381,10 +381,10 @@
   </section>
 
   <!-- ============================== MANUFACTURERS ============================== -->
-  <section id="tab-manufacturers" class="panel">
+  <section id="tab-manufacturers" role="tabpanel" aria-labelledby="tabbtn-manufacturers" class="panel">
     <div id="mfrList">
       <div class="toolbar">
-        <div class="left"><input type="search" id="mfrSearch" name="filter-mfrSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a manufacturer…"></div>
+        <div class="left"><input type="search" id="mfrSearch" aria-label="Search the manufacturers" name="filter-mfrSearch" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other" placeholder="Search a manufacturer…"></div>
       </div>
       <div class="tablewrap">
         <table class="grid" id="mfrs">
@@ -406,7 +406,7 @@
         <button class="btn" id="btnEditMfr">Edit the information</button>
       </div>
       <div class="cards" id="mfrCards"></div>
-      <div class="card mfrinfo" id="mfrInfo"></div>
+      <dl class="card mfrinfo" id="mfrInfo"></dl>
       <h3 class="section">Components in the database</h3>
       <div class="tablewrap">
         <table class="grid" id="mfrComps">
@@ -427,14 +427,15 @@
     <button type="button" class="authtab" data-mode="register">Create an account</button>
   </div>
   <form id="authForm">
-    <h2 id="authTitle" hidden>Confirm your e-mail address</h2>
-    <p id="authIntro" class="muted" hidden>Enter the password you chose when creating the account to activate it.</p>
+    <h2 id="authTitle" hidden></h2>
+    <p id="authIntro" class="muted" hidden></p>
     <p id="authHint" class="alert" hidden></p>
     <div class="formgrid single" id="authFields">
       <label id="authNameRow" hidden>Name (optional)<input name="name" autocomplete="name" maxlength="80"></label>
       <label id="authEmailRow">E-mail address<input name="email" type="email" autocomplete="email" required></label>
-      <label>Password<input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
+      <label id="authPasswordRow"><span id="authPasswordLabel">Password</span><input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
       <span id="authPwHint" class="muted small" hidden>At least 8 characters.</span>
+      <button type="button" class="linkbtn small" id="btnForgot" hidden>Forgot your password?</button>
       <div id="authCaptcha" class="captcha" hidden></div>
     </div>
     <div id="authInfo" class="alert success" hidden></div>
@@ -538,8 +539,8 @@
     </div>
     <div id="mapSummary" class="mapsummary"></div>
     <div id="mapManual" class="mapmanual small" hidden></div>
-    <div class="tablewrap mappreview" id="mapResultWrap"><table class="grid" id="mapResult"></table></div>
-    <div class="tablewrap mappreview" id="mapRawWrap" hidden><table class="grid" id="mapPreview"></table></div>
+    <div class="tablewrap mappreview" id="mapResultWrap" tabindex="0" role="region" aria-label="Result of the reading"><table class="grid" id="mapResult"></table></div>
+    <div class="tablewrap mappreview" id="mapRawWrap" tabindex="0" role="region" aria-label="Rows of the file" hidden><table class="grid" id="mapPreview"></table></div>
     <p class="muted small" id="mapFoot"></p>
     <div class="dlgactions">
       <span class="muted small" id="mapStatus"></span>
@@ -630,6 +631,6 @@
   </form>
 </dialog>
 
-<script src="/static/app.js?v=39"></script>
+<script src="/static/app.js?v=40"></script>
 </body>
 </html>

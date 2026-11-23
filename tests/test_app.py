@@ -2022,3 +2022,176 @@ def test_upload_size_checked_before_reading(monkeypatch):
     r = client.post("/api/analyze", files={"file": ("big.csv", b"x" * (main_mod.MAX_UPLOAD + 1))})
     assert r.status_code == 413 and endpoint_reads == ["big.csv"] and read_sizes == [main_mod.MAX_UPLOAD + 1]
     assert analyze_text("MPN,Manufacturer\nNE555P,TI\n")["summary"]["found"] == 1  # normal uploads unchanged
+
+
+# ------------------------------------------------------------------ remaining issues
+
+def test_answers_are_compressed():
+    for url in ("/", "/static/app.js", "/api/svhc", "/api/components?limit=200"):
+        r = client.get(url, headers={"Accept-Encoding": "gzip"})
+        assert r.status_code == 200 and r.headers.get("content-encoding") == "gzip", url
+        assert "Accept-Encoding" in r.headers.get("vary", "")
+    # The security headers are still on compressed answers; small or uncompressible ones are left as they are
+    r = client.get("/", headers={"Accept-Encoding": "gzip"})
+    assert "Content-Security-Policy" in r.headers and r.headers["Cache-Control"] == "no-cache"
+    assert "content-encoding" not in client.get("/api/health", headers={"Accept-Encoding": "gzip"}).headers
+    assert "content-encoding" not in client.get("/", headers={"Accept-Encoding": "identity"}).headers
+
+
+def _contrast(fg: str, bg: str) -> float:
+    def lum(h):
+        c = [int(h.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted((lum(fg), lum(bg)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def test_text_contrast_of_both_themes():
+    import re
+    css = client.get("/static/style.css").text
+    light = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", css.split("@media (prefers-color-scheme: dark)")[0]))
+    dark = light | dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", css.split("@media (prefers-color-scheme: dark)")[1].split("\n}")[0]))
+    for name, theme in (("light", light), ("dark", dark)):
+        for fg, bg in (("link", "surface"), ("link", "surface-2"), ("muted", "surface"), ("muted", "surface-2"),
+                       ("muted", "bg"), ("skip", "skip-bg"), ("text", "surface")):
+            assert _contrast(theme[fg], theme[bg]) >= 4.5, (name, fg, bg, round(_contrast(theme[fg], theme[bg]), 2))
+    assert ":where(a) { color: var(--link); }" in css  # plain links (manufacturer websites) take the theme's colour
+    assert "tr.dnp td { opacity" not in css  # not populated lines: muted colour, not a transparency
+
+
+def test_page_semantics_for_assistive_technologies():
+    import re
+    page = client.get("/").text
+    # Tabs: a navigation landmark holding the tab list; each tab controls a labelled tab panel
+    assert '<nav class="tabbar" aria-label="Sections">' in page and '<div class="tabs" role="tablist"' in page
+    tabs = re.findall(r'<button class="tab[^"]*" data-tab="(\w+)" role="tab" id="tabbtn-\1" aria-controls="tab-\1" aria-selected="(true|false)"', page)
+    assert len(tabs) == 7 and [s for _, s in tabs].count("true") == 1
+    for name, _ in tabs + [("component", "")]:
+        assert re.search(rf'<section id="tab-{name}" role="tabpanel" aria-labelledby="tabbtn-\w+"', page), name
+    # Search boxes have a name; definition terms sit in description lists; scrollable previews take the focus
+    for box in ("q", "exemptSearch", "svhcSearch", "eccnSearch", "mfrSearch"):
+        assert re.search(rf'<input type="search" id="{box}" aria-label="[^"]+"', page), box
+    for info in ("exemptInfo", "eccnInfo", "mfrInfo", "svhcInfo"):
+        assert f'<dl class="card mfrinfo" id="{info}">' in page
+    assert 'id="mapResultWrap" tabindex="0" role="region"' in page
+    js = client.get("/static/app.js").text
+    assert '<li><button type="button" data-k="${s.key}" aria-pressed="false"' in js  # legends: buttons in plain items
+    assert 'role="button"' not in js and "setTitle(" in js  # page titles follow the page shown
+
+
+def test_results_and_database_tables_become_cards_on_a_phone():
+    page, css, js = (client.get(u).text.replace("\r\n", "\n") for u in ("/", "/static/style.css", "/static/app.js"))
+    assert '<table class="grid cards-sm" id="lines">' in page and '<table class="grid cards-sm" id="comps">' in page
+    phone = css.split("@media (max-width: 640px) {\n  .cards-sm")[1]
+    assert ".cards-sm thead { display: none; }" in phone and "td[data-label]::before { content: attr(data-label)" in phone
+    assert "#lines td:nth-child(8), #lines td:nth-child(9), #lines td:nth-child(10) { order: 3; }" in phone  # statuses first
+    assert js.count("labelCells($(") == 2  # cells labelled with their column after each rendering
+
+
+def test_rohs_exemptions_expiring_within_a_year_are_flagged(monkeypatch):
+    import datetime as dt
+
+    from openpyxl import load_workbook
+
+    def on(day):
+        class Today(dt.date):
+            @classmethod
+            def today(cls):
+                return cls.fromisoformat(day)
+        monkeypatch.setattr(ex_mod, "date", Today)
+
+    bom = "Designator;Manufacturer;MPN\nR1;Yageo;RC0603FR-0710KL\nD1;Littelfuse;SMBJ5.0A\nU1;Texas Instruments;LM358DR\n"
+    on("2026-11-23")  # 7(a) and 7(c)-I expire on 30 June 2027
+    rep = analyze_text(bom)
+    lines = {l["bom_mpn"]: l for l in rep["lines"]}
+    assert lines["RC0603FR-0710KL"]["expiring_exemptions"] == ["7(c)-I"]
+    assert "RoHS exemption 7(c)-I: expires on 30 June 2027 (in 219 days)" in lines["RC0603FR-0710KL"]["notes"]
+    assert lines["LM358DR"]["expiring_exemptions"] == []
+    assert rep["summary"]["exemptions_expiring"] == {"lines": 2, "codes": ["7(a)", "7(c)-I"]}
+    xlsx = client.post("/api/analyze?format=xlsx", files={"file": ("bom.csv", bom.encode())}).content
+    summary = {r[0]: r[1] for r in load_workbook(io.BytesIO(xlsx))["Summary"].iter_rows(values_only=True) if r and r[0]}
+    assert summary["Lines with a RoHS exemption expiring within a year"] == 2
+    assert summary["Exemptions expiring within a year"] == "7(a), 7(c)-I"
+    # More than a year before: only the reminder to check the date; after it: the date has passed
+    on("2025-01-01")
+    rep = analyze_text(bom)
+    assert rep["summary"]["exemptions_expiring"]["lines"] == 0
+    assert "RoHS exemption: 7(c)-I (check its expiry date)" in rep["lines"][0]["notes"]
+    on("2027-08-01")
+    assert any("expiry date passed" in n for n in analyze_text(bom)["lines"][0]["notes"])
+
+
+def test_forgotten_password_reset_by_e_mailed_link(mailbox):
+    email = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, email, "old-password")
+    old = TestClient(app)
+    assert old.post("/api/auth/login", json={"email": email, "password": "old-password"}).status_code == 200
+    assert client.get("/api/auth/config").json()["password_reset"] is True
+    # The same answer for an address with or without an account; only the account's owner gets a link
+    unknown = client.post("/api/auth/password-reset/request", json={"email": new_email()})
+    r = client.post("/api/auth/password-reset/request", json={"email": email.upper()})
+    assert r.status_code == unknown.status_code == 202
+    assert r.json()["minutes"] == unknown.json()["minutes"] == 60 and len(mailbox) == 1
+    assert mailbox[0]["to"] == email and "#reset/" in mailbox[0]["html"]
+    token = re.search(r"#reset/([\w-]+)", mailbox[0]["html"]).group(1)
+    with db.session() as conn:  # only the hash of the token is stored
+        assert conn.execute("SELECT COUNT(*) FROM password_resets WHERE token_hash = ?", (token,)).fetchone()[0] == 0
+    # New password: too short refused, then accepted; the user is signed in and signed out everywhere else
+    c = TestClient(app)
+    assert c.post("/api/auth/password-reset", json={"token": token, "password": "short"}).status_code == 422
+    r = c.post("/api/auth/password-reset", json={"token": token, "password": "new-password"})
+    assert r.status_code == 200 and r.json()["email"] == email and c.get("/api/auth/me").json()["email"] == email
+    assert old.get("/api/auth/me").status_code in (200, 401) and old.get("/api/auth/me").json() is None
+    assert client.post("/api/auth/login", json={"email": email, "password": "old-password"}).status_code == 401
+    assert TestClient(app).post("/api/auth/login", json={"email": email, "password": "new-password"}).status_code == 200
+    # The link works once
+    assert c.post("/api/auth/password-reset", json={"token": token, "password": "other-password"}).status_code == 400
+    # Several links waiting for one account: no more e-mails (same answer)
+    for _ in range(4):
+        assert client.post("/api/auth/password-reset/request", json={"email": email}).status_code == 202
+    assert len(mailbox) == 1 + auth_mod.RESET_MAX_PER_ACCOUNT
+
+
+def test_password_reset_link_expires_and_needs_e_mail(mailbox, monkeypatch, clean_signup_env):
+    email = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, email, "old-password")
+        token = auth_mod.create_password_reset(conn, email)
+        conn.execute("UPDATE password_resets SET expires_at = '2000-01-01T00:00:00+00:00'")
+    r = client.post("/api/auth/password-reset", json={"token": token, "password": "new-password"})
+    assert r.status_code == 400 and "expired" in r.json()["detail"]
+    # Without e-mail sending, the form says to ask the administrator (command line: cli.py set-password)
+    monkeypatch.delenv("RRC_MAIL_LOG", raising=False)
+    assert client.get("/api/auth/config").json()["password_reset"] is False
+    assert client.post("/api/auth/password-reset/request", json={"email": email}).status_code == 503
+    with db.session() as conn:
+        assert auth_mod.set_password(conn, email, "admin-set-password") is True
+        assert auth_mod.set_password(conn, new_email(), "admin-set-password") is False
+    assert client.post("/api/auth/login", json={"email": email, "password": "admin-set-password"}).status_code == 200
+
+
+@pytest.mark.parametrize("name, columns, lines, designators", [
+    # KiCad 8+ "Export BOM" (Refs, Qty, DNP and the Manufacturer / MPN fields of the symbols)
+    ("bom_kicad.csv", {"designator": "Refs", "quantity": "Qty", "manufacturer": "Manufacturer", "mpn": "MPN", "dnp": "DNP"},
+     11, "C1,C2,C5,C6"),
+    # Altium Designer ActiveBOM (first manufacturer of each item; the supplier columns are not part numbers)
+    ("bom_altium.csv", {"designator": "Designator", "quantity": "Quantity", "manufacturer": "Manufacturer 1",
+                        "mpn": "Manufacturer Part 1", "description": "Description"}, 10, "C1, C2, C7, C8"),
+    # EAGLE / Fusion bom.ulp, list of values ("Parts" holds the designators, MF / MPN are attributes)
+    ("bom_eagle.csv", {"designator": "Parts", "quantity": "Qty", "manufacturer": "MF", "mpn": "MPN"}, 8, "C1, C2, C3"),
+])
+def test_eda_tool_exports(name, columns, lines, designators):
+    rep = analyze_text((ROOT / "examples" / name).read_text(encoding="utf-8"), name)
+    assert {k: v for k, v in rep["mapping"]["columns"].items() if k in columns} == columns
+    assert rep["summary"]["lines"] == lines and rep["lines"][0]["designator"] == designators
+    populated = [l for l in rep["lines"] if not l["dnp"]]
+    assert all(l["match"] == "exact" for l in populated), [(l["bom_mpn"], l["match"]) for l in populated if l["match"] != "exact"]
+    if name == "bom_kicad.csv":  # the DNP field of KiCad
+        assert [l["designator"] for l in rep["lines"] if l["dnp"]] == ["R4"]
+
+
+def test_parts_column_is_a_designator_only_when_it_holds_designators():
+    rep = analyze_text("Parts;MPN;Manufacturer\nOp-amp board;LM358DR;Texas Instruments\nTimer;NE555P;Texas Instruments\n")
+    assert "designator" not in rep["mapping"]["columns"] and rep["lines"][0]["bom_mpn"] == "LM358DR"

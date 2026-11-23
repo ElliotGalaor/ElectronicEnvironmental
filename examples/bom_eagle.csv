@@ -1,0 +1,9 @@
+"Qty";"Value";"Device";"Package";"Parts";"Description";"MF";"MPN";"OC_FARNELL";
+"3";"100nF";"C-EUC0603";"C0603";"C1, C2, C3";"CAPACITOR, European symbol";"Yageo";"CC0603KRX7R9BB104";"";
+"2";"10uF";"C-EUC0805";"C0805";"C4, C5";"CAPACITOR, European symbol";"Samsung";"CL21A106KAYNNNE";"";
+"2";"1k";"R-EU_R0603";"R0603";"R1, R2";"RESISTOR, European symbol";"Yageo";"RC0603FR-071KL";"";
+"1";"4.7k";"R-EU_R0603";"R0603";"R3";"RESISTOR, European symbol";"Yageo";"RC0603FR-074K7L";"";
+"1";"BAT54S";"BAT54S";"SOT23";"D1";"Dual Schottky diode";"Nexperia";"BAT54S";"";
+"1";"NE555P";"NE555P";"DIL08";"IC1";"Timer";"Texas Instruments";"NE555P";"";
+"1";"L7805CV";"78XXL";"TO220L";"IC2";"Voltage regulator";"STMicroelectronics";"L7805CV";"";
+"1";"RELAY-12V";"RELAY";"RELAY";"K1";"Relay 12 V";"Example Corp";"DEMO-RELAY-12V";"";

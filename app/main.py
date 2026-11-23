@@ -19,6 +19,7 @@ from typing import Literal
 from urllib.parse import quote
 
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -140,6 +141,10 @@ class UploadLimit:
 
 
 app.add_middleware(UploadLimit)  # added first: the headers below are also set on its answers
+# Answers compressed when the browser accepts it (page, script, JSON lists, analysis results of large BOMs).
+# Added before the "http" middlewares below, which stream every answer: it still sees whole answers, so small
+# ones are left uncompressed, and the headers those middlewares set are kept.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 @app.middleware("http")
@@ -512,6 +517,16 @@ class ConfirmIn(BaseModel):
     password: str
 
 
+class ResetRequestIn(BaseModel):
+    email: str
+    captcha: str = ""   # Turnstile token, when the captcha is on
+
+
+class ResetIn(BaseModel):
+    token: str
+    password: str
+
+
 class RateLimit:
     """At most `limit` events per key within `window` seconds, kept in memory (one server process).
 
@@ -604,6 +619,19 @@ def _confirmation_email(link: str) -> str:
     )
 
 
+def _reset_email(link: str) -> str:
+    url = html.escape(link, quote=True)
+    return (
+        "<p>Hello,</p>"
+        "<p>A new password was requested for the account of this e-mail address on the RoHS / REACH Checker. "
+        "To choose it, open the link below.</p>"
+        f'<p><a href="{url}">Choose a new password</a></p>'
+        f"<p>Or copy this address into your browser:<br>{url}</p>"
+        f"<p>The link can be used once, within {auth.RESET_MINUTES} minutes. If you did not ask for it, ignore "
+        "this e-mail: your password stays the same.</p>"
+    )
+
+
 def _existing_account_email(site: str) -> str:
     # Sent instead of a confirmation link when the address already has an account: the sign-up form answers
     # the same way for every address, and only the owner of the mailbox learns that the account exists.
@@ -619,7 +647,8 @@ def _existing_account_email(site: str) -> str:
 
 @app.get("/api/auth/config", summary="Sign-up settings: e-mail confirmation, captcha key")
 def auth_config():
-    return {"email_confirmation": mailer.available(), "captcha_site_key": captcha.site_key(),
+    return {"email_confirmation": mailer.available(), "password_reset": mailer.available(),
+            "captcha_site_key": captcha.site_key(),
             "open_editing": editors.open_editing(), "edit_requests": bool(editors.admin_email() and mailer.available()),
             "daily_additions": editors.daily_limit()}
 
@@ -662,6 +691,44 @@ def register(body: RegisterIn, request: Request, response: Response, conn=Depend
 def confirm(body: ConfirmIn, request: Request, response: Response, conn=Depends(get_conn)):
     try:
         user = auth.confirm_signup(conn, body.token, body.password)
+    except auth.AuthError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return _open_session(conn, user, request, response)
+
+
+# Password reset requests per client address: 10 per hour
+_resets_by_client = RateLimit(10, 60 * 60)
+
+
+@app.post("/api/auth/password-reset/request", status_code=202,
+          summary="E-mail a link to choose a new password (the same answer for every address)")
+def request_password_reset(body: ResetRequestIn, request: Request, conn=Depends(get_conn)):
+    if not mailer.available():
+        raise HTTPException(503, "This server sends no e-mail: ask the administrator to set a new password")
+    ip = client_ip(request)
+    if _resets_by_client.full(ip):
+        raise HTTPException(429, "Too many requests from your connection: try again later")
+    _resets_by_client.add(ip)
+    if not captcha.verify(body.captcha, ip or None):
+        raise HTTPException(400, "Captcha check failed: try again")
+    email = auth.normalize_email(body.email)
+    token = auth.create_password_reset(conn, email)
+    if token:
+        try:
+            mailer.send(email, "Choose a new password - RoHS / REACH Checker",
+                        _reset_email(f"{_public_url(request)}/#reset/{token}"))
+        except mailer.MailError:
+            # Same answer as for an address without an account: the form must not reveal which ones have one
+            log.warning("Password reset e-mail not sent", exc_info=True)
+    return {"pending": True, "email": email, "minutes": auth.RESET_MINUTES}
+
+
+@app.post("/api/auth/password-reset", summary="Choose a new password with the token of the e-mailed link (and sign in)")
+def password_reset(body: ResetIn, request: Request, response: Response, conn=Depends(get_conn)):
+    try:
+        user = auth.reset_password(conn, body.token, body.password)
+    except db.ValidationError as exc:
+        raise HTTPException(422, str(exc)) from exc
     except auth.AuthError as exc:
         raise HTTPException(400, str(exc)) from exc
     return _open_session(conn, user, request, response)

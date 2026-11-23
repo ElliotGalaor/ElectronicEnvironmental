@@ -117,12 +117,25 @@ $$(".tab").forEach((t) => t.addEventListener("click", () => {
   if (location.hash === target) route(); else location.hash = target;
 }));
 
+// Page title: the item shown (if any), then the tab, then the site
+const APP_TITLE = "RoHS / REACH Checker";
+const setTitle = (...parts) => { document.title = [...parts, APP_TITLE].filter(Boolean).join(" — "); };
+
 // tab: the tab to highlight, when the panel has none of its own (the component page highlights Database)
 function showTab(name, tab = name) {
-  $$(".tab").forEach((x) => x.classList.toggle("active", x.dataset.tab === tab));
+  $$(".tab").forEach((x) => {
+    const on = x.dataset.tab === tab;
+    x.classList.toggle("active", on);
+    x.setAttribute("aria-selected", on);
+    x.tabIndex = on ? 0 : -1; // the arrow keys move between the tabs; Tab goes on to the page
+    if (on) x.setAttribute("aria-controls", "tab-" + name);
+  });
   $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + name));
   const btn = $(`.tab[data-tab="${tab}"]`);
-  if (btn) revealTab(btn);
+  if (btn) {
+    revealTab(btn);
+    setTitle(tab === "home" ? "" : btn.textContent.trim()); // detail pages add their item once it is loaded
+  }
 }
 
 /* Tab bar on narrow screens. On touch screens the native scrollbar is hidden (style.css): a slim bar on the
@@ -149,6 +162,17 @@ function updateTabScroll() {
   tabThumb.style.transform = `translateX(${(track - thumb) * left / hidden}px)`;
 }
 
+// Keyboard: arrow keys, Home and End move between the tabs (and open them), as in any tab list
+tabList.addEventListener("keydown", (ev) => {
+  const tabs = $$(".tab"), i = tabs.indexOf(document.activeElement);
+  const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
+  if (i < 0 || to === undefined) return;
+  ev.preventDefault();
+  const t = tabs[(to + tabs.length) % tabs.length];
+  t.focus();
+  t.click();
+});
+
 tabList.addEventListener("scroll", () => {
   updateTabScroll();
   tabBar.classList.add("scrolling");
@@ -173,6 +197,12 @@ function route() {
     history.replaceState(null, "", location.pathname + location.search + "#analysis");
     showTab("analysis");
     openAuth("confirm");
+  } else if (h.startsWith("reset/")) {
+    // Link from the password reset e-mail: the token is removed from the address bar at once
+    resetToken = h.slice("reset/".length);
+    history.replaceState(null, "", location.pathname + location.search + "#analysis");
+    showTab("analysis");
+    openAuth("reset");
   } else if (h.startsWith("review/")) {
     // Link from the administrator's e-mail: the token is removed from the address bar at once
     const reviewLink = h.slice("review/".length);
@@ -446,8 +476,11 @@ function renderReport() {
     NORMS.map(([k, name, ref]) => `<div class="vcard v-${S[k].verdict}"><div class="norm">${name} <span title="${ref}">· ${ref}</span></div>
       <div class="verdict">${VERDICT[S[k].verdict]}</div><div class="detail">${detail(S[k].counts)}</div></div>`).join("");
 
+  const expiring = S.exemptions_expiring || { lines: 0, codes: [] };
   $("#counts").innerHTML = `<span><b>${S.found}</b> found in database</span><span><b>${S.uncertain}</b> uncertain ${S.uncertain > 1 ? "matches" : "match"}</span>
     <span><b>${S.not_found}</b> not found</span><span><b>${S.dnp}</b> not populated</span>` +
+    (expiring.lines ? `<span class="expiring"><b>${expiring.lines}</b> ${expiring.lines > 1 ? "lines rely" : "line relies"} on a RoHS exemption ` +
+      `expiring within a year: ${exLinks(expiring.codes.join(", "))}</span>` : "") +
     (S.export ? `<span>Export: <b>${S.export.eccn_controlled}</b> controlled ECCN${S.export.eccn_controlled > 1 ? "s" : ""}, <b>${S.export.eccn_unknown}</b> unknown ECCN${S.export.eccn_unknown > 1 ? "s" : ""}</span>` +
       `<span>Origins: ${[
         ...Object.entries(S.export.countries).map(([c, n]) => `${country(c)} (${n})`),
@@ -497,9 +530,9 @@ function renderCharts(S) {
     if (!total) return `<div class="card chart"><div><h4>${name}</h4><p class="muted">No populated line.</p></div></div>`;
     const okShare = slices.filter((s) => s.key !== "needs_review" && s.key !== "non_compliant").reduce((t, s) => t + s.n, 0);
     const pctOf = (n) => Math.round((100 * n) / total) + " %";
-    const legend = slices.map((s) => `<li data-k="${s.key}" tabindex="0" role="button" aria-pressed="false"
+    const legend = slices.map((s) => `<li><button type="button" data-k="${s.key}" aria-pressed="false"
       title="Show only these lines"><span class="sw"></span>
-      <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></li>`).join("");
+      <span class="lbl">${s.label}</span><span class="val">${s.n} · ${pctOf(s.n)}</span></button></li>`).join("");
     const desc = slices.map((s) => `${s.label}: ${s.n}`).join(", ");
     return `<div class="card chart" data-norm="${k}" role="figure" aria-label="${name}: ${desc}">
       ${pieSvg(slices, total, pctOf(okShare), "compliant")}
@@ -546,10 +579,7 @@ function chartClick(ev) {
     if (bar.top > innerHeight - 120 || bar.top < 0) $("#filters").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
-$("#charts").addEventListener("click", chartClick);
-$("#charts").addEventListener("keydown", (ev) => {
-  if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest(".legend [data-k]")) { ev.preventDefault(); chartClick(ev); }
-});
+$("#charts").addEventListener("click", chartClick); // the legend buttons also answer Enter and Space
 
 function setChartFilter(f) {
   state.chartFilter = f;
@@ -570,7 +600,7 @@ function markChartFilter() {
     card.querySelectorAll("[data-k]").forEach((e) => {
       const sel = mine && e.dataset.k === f.status;
       e.classList.toggle("sel", sel);
-      if (e.tagName === "LI") e.setAttribute("aria-pressed", sel);
+      if (e.tagName === "BUTTON") e.setAttribute("aria-pressed", sel);
     });
   });
   const chip = $("#chartFilterChip");
@@ -637,7 +667,7 @@ function renderLines() {
       ? `<div class="sugg">Similar: ${l.suggestions.map((s) => `<span class="mono">${esc(s.mpn)}</span>`).join(", ")}</div>` : "";
     const add = (l.match === "not_found" && l.bom_mpn)
       ? `<div class="sugg"><button class="btn small" data-add="${l.line}">+ Add to database</button></div>` : "";
-    const notes = l.notes.map((n) => n.startsWith("RoHS exemption") && l.exemptions
+    const notes = l.notes.map((n) => n.startsWith("RoHS exemption:") && l.exemptions
       ? `<div>RoHS exemption: ${exLinks(l.exemptions)} (check the expiry date)</div>` : `<div>${esc(n)}</div>`).join("");
     const altBtn = (!l.dnp && l.bom_mpn) ? `<div class="sugg"><button class="btn small btn-count" data-altline="${l.line}">Equivalents${eqBadge(l.equivalents)}</button></div>` : "";
     const ref = comp
@@ -653,6 +683,7 @@ function renderLines() {
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
   }).join("") || emptyLinesRow();
+  labelCells($("#lines"));
   $("#lines").classList.toggle("no-ref", !state.report.lines.some((x) => x.internal_ref));
   const total = state.report.lines.length;
   $("#lineCount").textContent = rows.length === total ? plural(total, "line") : `${rows.length} of ${total} lines shown`;
@@ -693,8 +724,32 @@ async function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// On a phone the results and database tables show each row as a card (style.css, .cards-sm): every cell is
+// labelled with the name of its column
+function labelCells(table) {
+  const names = [...table.tHead.rows[0].cells].map((th) => th.textContent.trim());
+  for (const tr of table.tBodies[0].rows) {
+    [...tr.cells].forEach((td, i) => { if (td.colSpan === 1 && names[i]) td.dataset.label = names[i]; });
+  }
+}
+
+/* A list whose data is slow to come (the free server can take about a minute to wake up) says so instead of
+   showing an empty table: at once when it is empty, after a short delay when it already shows rows (a new search,
+   another page), so that quick answers do not flicker. Returns the function that cancels the placeholder. */
+function showLoading(tbody) {
+  const body = $(tbody);
+  const put = () => {
+    const cols = body.closest("table").tHead.rows[0].cells.length;
+    body.innerHTML = `<tr class="loadingrow"><td colspan="${cols}"><span class="spinner" aria-hidden="true"></span> Loading…</td></tr>`;
+  };
+  if (!body.rows.length) { put(); return () => {}; }
+  const timer = setTimeout(put, 400);
+  return () => clearTimeout(timer);
+}
+
 async function loadComponents() {
   const p = new URLSearchParams({ q: $("#q").value, limit: state.pageSize, offset: state.page * state.pageSize, status: $("#onlyIssues").checked ? "issues" : "" });
+  const loaded = showLoading("#comps tbody");
   try {
     const { total, items } = await (await api("/api/components?" + p)).json();
     const pages = Math.max(1, Math.ceil(total / state.pageSize));
@@ -709,8 +764,11 @@ async function loadComponents() {
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
       <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
       || `<tr><td colspan="12" class="muted">No components.</td></tr>`;
+    labelCells($("#comps"));
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="12">Error: ${esc(e.message)}</td></tr>`;
+  } finally {
+    loaded();
   }
 }
 
@@ -732,10 +790,13 @@ const siteLink = (url) => url
   : `<span class="muted">—</span>`;
 
 async function loadManufacturers() {
+  const loaded = showLoading("#mfrs tbody");
   try {
     MFRS = await (await api("/api/manufacturers")).json();
+    loaded();
     renderManufacturers();
   } catch (e) {
+    loaded();
     $("#mfrs tbody").innerHTML = `<tr><td colspan="7">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -780,6 +841,7 @@ async function openManufacturer(key) {
 function renderManufacturer() {
   const m = currentMfr, s = m.stats;
   $("#mfrName").textContent = m.name || "(manufacturer not given)";
+  setTitle(m.name || "(manufacturer not given)", "Manufacturers");
   $("#mfrAliases").textContent = m.aliases.length ? "Also written: " + m.aliases.join(", ") : "";
   $("#btnEditMfr").hidden = m.key === "";
   $("#mfrCards").innerHTML = [
@@ -1488,10 +1550,13 @@ const longDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "")
 const svhcHref = (id) => "#svhc/" + encodeURIComponent(id);
 
 async function loadSvhcList() {
+  const loaded = showLoading("#svhcs tbody");
   try {
     SVHC = await (await api("/api/svhc")).json();
+    loaded();
     renderSvhcList();
   } catch (e) {
+    loaded();
     $("#svhcs tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1536,6 +1601,7 @@ async function openSvhc(id) {
   }
   const none = `<span class="muted">—</span>`;
   $("#svhcName").textContent = s.name;
+  setTitle(s.name, "SVHC");
   $("#svhcInfo").innerHTML = `
     ${s.description ? `<dt>Description</dt><dd>${esc(s.description)}</dd>` : ""}
     <dt>EC number</dt><dd class="mono">${s.ec.map(esc).join(", ") || none}</dd>
@@ -1592,6 +1658,7 @@ async function openComponent(id) {
     return;
   }
   const c = s.component, none = `<span class="muted">—</span>`;
+  setTitle(c.mpn, "Component database");
   const exRows = s.exemptions.map((e) => `<tr>
       <td class="nowrap"><a class="ex-link" href="${exHref(e.key)}">${esc(e.found ? e.code : e.input)}</a>
         ${e.annex ? `<div class="muted small">Annex ${esc(e.annex)}</div>` : ""}</td>
@@ -1646,10 +1713,13 @@ let ECCNS = { codes: [], unknown_components: 0 };
 let currentEccn = null;
 
 async function loadEccnList() {
+  const loaded = showLoading("#eccns tbody");
   try {
     ECCNS = await (await api("/api/eccn")).json();
+    loaded();
     renderEccnList();
   } catch (e) {
+    loaded();
     $("#eccns tbody").innerHTML = `<tr><td colspan="5">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1688,6 +1758,7 @@ async function openEccn(code) {
 
 function renderEccn() {
   const e = currentEccn;
+  setTitle(e.code, "ECCN codes");
   $("#btnEditEccn").hidden = false;
   $("#eccnCode").innerHTML = `${esc(e.code)} ${e.controlled ? `<span class="badge b-svhc">Subject to export control</span>` : `<span class="badge b-compliant">Not listed (EAR99)</span>`}`;
   $("#eccnSummary").textContent = e.title || e.summary;
@@ -1744,10 +1815,13 @@ const STATUS_BADGE = { in_force: "b-compliant", expiring_soon: "b-svhc", expired
 const statusBadge = (s) => `<span class="badge ${STATUS_BADGE[s.kind] || "b-unknown"}">${esc(s.label)}</span>`;
 
 async function loadExemptionList() {
+  const loaded = showLoading("#exempts tbody");
   try {
     EXEMPTIONS = await (await api("/api/exemptions")).json();
+    loaded();
     renderExemptionList();
   } catch (e) {
+    loaded();
     $("#exempts tbody").innerHTML = `<tr><td colspan="6">Error: ${esc(e.message)}</td></tr>`;
   }
 }
@@ -1791,6 +1865,7 @@ async function openExemption(code) {
 
 function renderExemption() {
   const e = currentExemption;
+  setTitle(e.found ? `Exemption ${e.code}` : e.input, "RoHS exemptions");
   $("#exemptCode").innerHTML = `${e.found ? `Exemption ${esc(e.code)}` : esc(e.input)} ${statusBadge(e.status)}`;
   $("#exemptSummary").textContent = e.found ? e.annex_label : "This code does not match any exemption in Annexes III and IV.";
   const datesList = (e.dates || []).map((d) => {
@@ -1852,6 +1927,7 @@ let authMode = "login";
 let authConfig = null;     // { email_confirmation, captcha_site_key } from the server
 let authConfigLoading = null;
 let confirmToken = "";     // token of the link from the sign-up confirmation e-mail
+let resetToken = "";       // token of the link from the password reset e-mail
 let captchaWidget = null;  // Cloudflare Turnstile widget, created on first use
 let turnstileLoading = null;
 
@@ -1884,7 +1960,7 @@ async function refreshUser() {
 
 function loadAuthConfig() {
   authConfigLoading ||= api("/api/auth/config").then((r) => r.json())
-    .then((c) => { authConfig = c; showCaptcha(); renderEditBox(); }).catch(() => { authConfigLoading = null; });
+    .then((c) => { authConfig = c; showCaptcha(); showForgot(); renderEditBox(); }).catch(() => { authConfigLoading = null; });
   return authConfigLoading;
 }
 
@@ -2059,7 +2135,7 @@ function openAuth(mode, hint = "") {
   $("#authHint").textContent = hint;
   $("#authHint").hidden = !hint;
   if (!dlgAuth.open) dlgAuth.showModal();
-  (mode === "confirm" ? authForm.elements.password : authForm.elements.email).focus();
+  (mode === "confirm" || mode === "reset" ? authForm.elements.password : authForm.elements.email).focus();
   loadAuthConfig();
 }
 
@@ -2068,26 +2144,50 @@ function showAuthError(msg) {
   $("#authError").hidden = !msg;
 }
 
+// Title and introduction of the modes reached from an e-mail or from "Forgot your password?"
+const AUTH_TEXTS = {
+  confirm: ["Confirm your e-mail address", "Enter the password you chose when creating the account to activate it."],
+  forgot: ["Forgotten password", "Enter the e-mail address of your account: a link to choose a new password will be sent to it."],
+  reset: ["Choose a new password", "Enter the new password of your account. You will be signed out everywhere else."],
+};
+
 function setAuthMode(mode) {
   authMode = mode;
   const signup = mode === "register", confirming = mode === "confirm";
+  const forgot = mode === "forgot", resetting = mode === "reset", fromLink = confirming || resetting;
   $$("#dlgAuth .authtab").forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
-  $("#dlgAuth .authtabs").hidden = confirming;
-  $("#authTitle").hidden = $("#authIntro").hidden = !confirming;
+  $("#dlgAuth .authtabs").hidden = fromLink;
+  const [title, intro] = AUTH_TEXTS[mode] || ["", ""];
+  $("#authTitle").textContent = title;
+  $("#authIntro").textContent = intro;
+  $("#authTitle").hidden = $("#authIntro").hidden = !title;
   $("#authFields").hidden = false;
   $("#authNameRow").hidden = !signup;
-  $("#authEmailRow").hidden = confirming;
-  authForm.elements.email.required = !confirming;
-  authForm.elements.password.autocomplete = signup ? "new-password" : "current-password";
-  $("#authPwHint").hidden = !signup;
+  $("#authEmailRow").hidden = fromLink;
+  authForm.elements.email.required = !fromLink;
+  $("#authPasswordRow").hidden = forgot;
+  authForm.elements.password.required = !forgot;
+  $("#authPasswordLabel").textContent = resetting ? "New password" : "Password";
+  authForm.elements.password.autocomplete = signup || resetting ? "new-password" : "current-password";
+  $("#authPwHint").hidden = !(signup || resetting);
+  showForgot();
   $("#authSubmit").hidden = false;
-  $("#authSubmit").textContent = signup ? "Create my account" : confirming ? "Confirm my account" : "Sign in";
+  $("#authSubmit").textContent = signup ? "Create my account" : confirming ? "Confirm my account"
+    : forgot ? "Send the link" : resetting ? "Save the new password" : "Sign in";
   $("#btnAuthCancel").textContent = "Cancel";
   $("#authInfo").hidden = true;
   showAuthError("");
   showCaptcha();
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
+// "Forgot your password?" under the sign-in form, when the server can e-mail a reset link
+function showForgot() {
+  $("#btnForgot").hidden = !(authMode === "login" && authConfig && authConfig.password_reset);
+}
+$("#btnForgot").addEventListener("click", () => {
+  setAuthMode("forgot");
+  authForm.elements.email.focus();
+});
 $("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
 // Sign-in asked by an edit access review: back to the review once signed in, or when the sign-in is given up
 // (the review then offers to sign in again)
@@ -2113,7 +2213,7 @@ function loadTurnstile() {
 
 async function showCaptcha() {
   const box = $("#authCaptcha"), key = authConfig && authConfig.captcha_site_key;
-  box.hidden = !(key && authMode === "register");
+  box.hidden = !(key && (authMode === "register" || authMode === "forgot"));
   if (box.hidden) return;
   try {
     await loadTurnstile();
@@ -2132,6 +2232,16 @@ function showSignupSent(data) {
   $("#authInfo").hidden = false;
 }
 
+function showResetSent(data) {
+  $("#authFields").hidden = true;
+  $("#authSubmit").hidden = true;
+  $("#btnAuthCancel").textContent = "Close";
+  // The same answer whether or not the address has an account
+  $("#authInfo").innerHTML = `If <strong>${esc(data.email)}</strong> is the address of an account, an e-mail was
+    sent to it (check the spam folder too). Open its link within ${data.minutes} minutes to choose a new password.`;
+  $("#authInfo").hidden = false;
+}
+
 authForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const password = authForm.elements.password.value;
@@ -2139,9 +2249,17 @@ authForm.addEventListener("submit", async (ev) => {
   if (authMode === "confirm") {
     url = "/api/auth/confirm";
     body = { token: confirmToken, password };
-  } else if (authMode === "register") {
-    url = "/api/auth/register";
-    body.name = authForm.elements.name.value;
+  } else if (authMode === "reset") {
+    url = "/api/auth/password-reset";
+    body = { token: resetToken, password };
+  } else if (authMode === "register" || authMode === "forgot") {
+    if (authMode === "register") {
+      url = "/api/auth/register";
+      body.name = authForm.elements.name.value;
+    } else {
+      url = "/api/auth/password-reset/request";
+      body = { email: body.email };
+    }
     if (authConfig && authConfig.captcha_site_key) {
       body.captcha = (captchaWidget !== null && window.turnstile && turnstile.getResponse(captchaWidget)) || "";
       if (!body.captcha) { showAuthError("Tick the “Verify you are human” box first."); return; }
@@ -2152,9 +2270,9 @@ authForm.addEventListener("submit", async (ev) => {
     const data = await (await api(url, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     })).json();
-    if (data && data.pending) { showSignupSent(data); return; }
+    if (data && data.pending) { (authMode === "forgot" ? showResetSent : showSignupSent)(data); return; }
     state.user = data;
-    confirmToken = "";
+    confirmToken = resetToken = "";
     dlgAuth.close(); // reopens the edit access review that asked for this sign-in, if any
     renderAccount();
     // A BOM that is already open is saved in the history as soon as the user signs in
@@ -2164,7 +2282,7 @@ authForm.addEventListener("submit", async (ev) => {
   } finally {
     $("#authSubmit").disabled = false;
     // A captcha token can only be used once
-    if (authMode === "register" && captchaWidget !== null && window.turnstile) turnstile.reset(captchaWidget);
+    if ((authMode === "register" || authMode === "forgot") && captchaWidget !== null && window.turnstile) turnstile.reset(captchaWidget);
   }
 });
 

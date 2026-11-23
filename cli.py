@@ -7,6 +7,7 @@ Examples:
   python cli.py analyze bom.xlsx -o report.xlsx    # + Excel report
   python cli.py analyze bom.csv --server http://srv:8000   # analyse through the remote server
   python cli.py approve someone@example.com        # let an account change the local database
+  python cli.py set-password someone@example.com   # new password for an account (asked twice)
 """
 
 from __future__ import annotations
@@ -77,6 +78,25 @@ def cmd_access(args):
     if not found:
         sys.exit(f"No account with the address {args.email}")
     print(f"{args.email}: edit access {'granted' if args.cmd == 'approve' else 'removed'}")
+
+
+def cmd_set_password(args):
+    """New password for an account, when the server sends no e-mail (no reset link)."""
+    import getpass
+
+    from app import auth
+
+    password = getpass.getpass("New password: ")
+    if getpass.getpass("Again: ") != password:
+        sys.exit("The two passwords differ")
+    with db.session() as conn:
+        try:
+            found = auth.set_password(conn, args.email, password)
+        except db.ValidationError as exc:
+            sys.exit(str(exc))
+    if not found:
+        sys.exit(f"No account with the address {args.email}")
+    print(f"{args.email}: password changed (signed out of every session)")
 
 
 def cmd_analyze(args):
@@ -158,6 +178,10 @@ def main():
         pc = sub.add_parser(name, help=text)
         pc.add_argument("email")
         pc.set_defaults(func=cmd_access)
+
+    ps = sub.add_parser("set-password", help="Set a new password for an account (asked twice)")
+    ps.add_argument("email")
+    ps.set_defaults(func=cmd_set_password)
 
     pa = sub.add_parser("analyze", help="Analyse a BOM")
     pa.add_argument("file")
