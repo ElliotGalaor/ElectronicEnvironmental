@@ -262,6 +262,7 @@ COLUMN_SYNONYMS: dict[str, list[str]] = {
     "manufacturer": [
         "manufacturer", "manufacturer name", "mfr", "mfr name", "mfg", "mfg name", "manufacturer 1", "fabricant",
         "constructeur", "marque", "vendor", "brand", "make", "nom fabricant",
+        "mf",  # EAGLE / Fusion attribute
     ],
     # Company part number (ERP / PLM), shown next to the manufacturer part number
     "internal_ref": [
@@ -272,10 +273,12 @@ COLUMN_SYNONYMS: dict[str, list[str]] = {
         "reference article", "numero article", "numero d article",
     ],
     "description": ["description", "designation", "desc", "libelle", "value description", "comment", "commentaire"],
-    "quantity": ["qty", "quantity", "quantite", "qte", "qt", "nb", "nombre", "quantity per pcb", "qty per board"],
+    "quantity": ["qty", "quantity", "quantite", "qte", "qt", "nb", "nombre", "quantity per pcb", "qty per board",
+                 "qnty"],  # KiCad's older BOM scripts
     "designator": [
         "designator", "designators", "refdes", "ref des", "reference designator", "reference designators",
         "repere", "reperes", "references", "repere topologique", "reperes topologiques", "position", "positions",
+        "refs",  # KiCad 8+ BOM export
     ],
     "value": ["value", "valeur", "val"],
     "dnp": ["dnp", "do not populate", "fitted", "populate", "monte", "non monte", "mounted", "assembly"],
@@ -288,6 +291,9 @@ COLUMN_SYNONYMS: dict[str, list[str]] = {
 }
 
 _AMBIGUOUS_REFERENCE = {"reference", "ref", "references"}
+# EAGLE / Fusion lists the designators under "Parts" (or "Part"), a word other tools use for part numbers or
+# names: read as designators only when the content looks like designators
+_DESIGNATOR_IF_CONTENT = {"parts", "part"}
 _DESIGNATOR_VALUE_RE = re.compile(r"^\s*[A-Z]{1,4}\d+[A-Z]?(\s*[,;/ -]\s*[A-Z]{1,4}\d+[A-Z]?)*\s*$", re.I)
 
 
@@ -497,7 +503,7 @@ def detect_header_row(rows: list[list[str]], max_scan: int = 25) -> int:
             roles = _match_role(cell)
             if roles:
                 score += max(s for _, s in roles)
-            elif norm_header(cell) in _AMBIGUOUS_REFERENCE:
+            elif norm_header(cell) in _AMBIGUOUS_REFERENCE | _DESIGNATOR_IF_CONTENT:
                 score += 2
         if score > best_score:
             best, best_score = i, score
@@ -516,11 +522,12 @@ def detect_columns(rows: list[list[str]], overrides: dict[str, str] | None = Non
     candidates: dict[str, list[tuple[int, int]]] = {}
     for idx, h in enumerate(headers):
         nh = norm_header(h)
-        if nh in _AMBIGUOUS_REFERENCE:
+        if nh in _AMBIGUOUS_REFERENCE | _DESIGNATOR_IF_CONTENT:
             # "Reference": designator (R1, C2) or manufacturer part number? Look at the content.
             values = [r[idx] for r in data if idx < len(r) and r[idx]]
             looks_designator = values and sum(bool(_DESIGNATOR_VALUE_RE.match(v)) for v in values) / len(values) > 0.6
-            candidates.setdefault("designator" if looks_designator else "mpn", []).append((2, idx))
+            if looks_designator or nh in _AMBIGUOUS_REFERENCE:
+                candidates.setdefault("designator" if looks_designator else "mpn", []).append((2, idx))
             continue
         for role, score in _match_role(h):
             candidates.setdefault(role, []).append((score, idx))

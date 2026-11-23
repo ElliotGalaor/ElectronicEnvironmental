@@ -2170,3 +2170,28 @@ def test_password_reset_link_expires_and_needs_e_mail(mailbox, monkeypatch, clea
         assert auth_mod.set_password(conn, email, "admin-set-password") is True
         assert auth_mod.set_password(conn, new_email(), "admin-set-password") is False
     assert client.post("/api/auth/login", json={"email": email, "password": "admin-set-password"}).status_code == 200
+
+
+@pytest.mark.parametrize("name, columns, lines, designators", [
+    # KiCad 8+ "Export BOM" (Refs, Qty, DNP and the Manufacturer / MPN fields of the symbols)
+    ("bom_kicad.csv", {"designator": "Refs", "quantity": "Qty", "manufacturer": "Manufacturer", "mpn": "MPN", "dnp": "DNP"},
+     11, "C1,C2,C5,C6"),
+    # Altium Designer ActiveBOM (first manufacturer of each item; the supplier columns are not part numbers)
+    ("bom_altium.csv", {"designator": "Designator", "quantity": "Quantity", "manufacturer": "Manufacturer 1",
+                        "mpn": "Manufacturer Part 1", "description": "Description"}, 10, "C1, C2, C7, C8"),
+    # EAGLE / Fusion bom.ulp, list of values ("Parts" holds the designators, MF / MPN are attributes)
+    ("bom_eagle.csv", {"designator": "Parts", "quantity": "Qty", "manufacturer": "MF", "mpn": "MPN"}, 8, "C1, C2, C3"),
+])
+def test_eda_tool_exports(name, columns, lines, designators):
+    rep = analyze_text((ROOT / "examples" / name).read_text(encoding="utf-8"), name)
+    assert {k: v for k, v in rep["mapping"]["columns"].items() if k in columns} == columns
+    assert rep["summary"]["lines"] == lines and rep["lines"][0]["designator"] == designators
+    populated = [l for l in rep["lines"] if not l["dnp"]]
+    assert all(l["match"] == "exact" for l in populated), [(l["bom_mpn"], l["match"]) for l in populated if l["match"] != "exact"]
+    if name == "bom_kicad.csv":  # the DNP field of KiCad
+        assert [l["designator"] for l in rep["lines"] if l["dnp"]] == ["R4"]
+
+
+def test_parts_column_is_a_designator_only_when_it_holds_designators():
+    rep = analyze_text("Parts;MPN;Manufacturer\nOp-amp board;LM358DR;Texas Instruments\nTimer;NE555P;Texas Instruments\n")
+    assert "designator" not in rep["mapping"]["columns"] and rep["lines"][0]["bom_mpn"] == "LM358DR"
