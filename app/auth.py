@@ -161,6 +161,65 @@ def signup_pending(conn: sqlite3.Connection, email: str, password: str) -> bool:
     return any(verify_password(password or "", r["password_hash"]) for r in rows)
 
 
+# ---------------------------------------------------------------- forgotten password
+#
+# A single-use link valid for an hour, e-mailed to the address of the account. Only the hash of its token is
+# stored, like the sessions. Choosing a new password signs the account out everywhere.
+
+RESET_MINUTES = 60
+RESET_MAX_PER_ACCOUNT = 3   # links valid at the same time, to limit the e-mails sent to one mailbox
+
+
+def create_password_reset(conn: sqlite3.Connection, email: str) -> str | None:
+    """Token of a reset link for the account of this address, or None: no account, or already several links
+    waiting. The visitor gets the same answer either way, so that the form does not reveal which addresses
+    have an account."""
+    now = _now()
+    conn.execute("DELETE FROM password_resets WHERE expires_at < ?", (now.isoformat(),))  # clean-up
+    row = conn.execute("SELECT id FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
+    if not row:
+        return None
+    waiting = conn.execute("SELECT COUNT(*) FROM password_resets WHERE user_id = ?", (row["id"],)).fetchone()[0]
+    if waiting >= RESET_MAX_PER_ACCOUNT:
+        return None
+    token = secrets.token_urlsafe(32)
+    conn.execute(
+        "INSERT INTO password_resets (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+        (_token_hash(token), row["id"], now.isoformat(), (now + timedelta(minutes=RESET_MINUTES)).isoformat()),
+    )
+    return token
+
+
+def _set_password_hash(conn: sqlite3.Connection, user_id: int, password: str) -> None:
+    if len(password or "") < MIN_PASSWORD:
+        raise db.ValidationError(f"The password must be at least {MIN_PASSWORD} characters long")
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), user_id))
+    conn.execute("DELETE FROM password_resets WHERE user_id = ?", (user_id,))  # every other link stops working
+    conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))  # signed out everywhere
+
+
+def reset_password(conn: sqlite3.Connection, token: str, password: str) -> dict:
+    """New password chosen with a reset link. Returns the account, to sign it in."""
+    row = conn.execute(
+        "SELECT u.* FROM password_resets r JOIN users u ON u.id = r.user_id WHERE r.token_hash = ? AND r.expires_at > ?",
+        (_token_hash(token or "x"), _now().isoformat()),
+    ).fetchone()
+    if not row:
+        raise AuthError("This link is invalid, has expired or was already used: ask for a new one")
+    _set_password_hash(conn, row["id"], password)
+    return _public(row)
+
+
+def set_password(conn: sqlite3.Connection, email: str, password: str) -> bool:
+    """New password set by the administrator (command line, for a server that sends no e-mail).
+    False when the address has no account."""
+    row = conn.execute("SELECT id FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
+    if not row:
+        return False
+    _set_password_hash(conn, row["id"], password)
+    return True
+
+
 def authenticate(conn: sqlite3.Connection, email: str, password: str) -> dict:
     row = conn.execute("SELECT * FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
     ok = verify_password(password or "", row["password_hash"] if row else _DUMMY_HASH)

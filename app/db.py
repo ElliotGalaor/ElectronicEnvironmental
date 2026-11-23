@@ -128,6 +128,15 @@ CREATE TABLE IF NOT EXISTS signup_requests (
 );
 CREATE INDEX IF NOT EXISTS idx_signup_requests_email ON signup_requests (email);
 
+-- Password reset links: single use, valid for an hour. Only the SHA-256 hash of the link's token is kept.
+CREATE TABLE IF NOT EXISTS password_resets (
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id);
+
 -- History of the BOMs analysed by each user (original file kept so it can be reopened)
 CREATE TABLE IF NOT EXISTS bom_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

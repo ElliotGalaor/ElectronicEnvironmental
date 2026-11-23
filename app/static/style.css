@@ -282,6 +282,7 @@ textarea { font: inherit; color: var(--text); background: var(--surface); border
 .historyhint { margin: 10px 2px 0; }
 .historyhint[hidden], .history[hidden] { display: none; }
 .linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+#btnForgot { justify-self: start; font-size: 12.5px; }
 .history { margin-top: 14px; }
 .historyhead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
 .historyhead h3 { margin: 0; font-size: 15px; }

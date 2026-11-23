@@ -197,6 +197,12 @@ function route() {
     history.replaceState(null, "", location.pathname + location.search + "#analysis");
     showTab("analysis");
     openAuth("confirm");
+  } else if (h.startsWith("reset/")) {
+    // Link from the password reset e-mail: the token is removed from the address bar at once
+    resetToken = h.slice("reset/".length);
+    history.replaceState(null, "", location.pathname + location.search + "#analysis");
+    showTab("analysis");
+    openAuth("reset");
   } else if (h.startsWith("review/")) {
     // Link from the administrator's e-mail: the token is removed from the address bar at once
     const reviewLink = h.slice("review/".length);
@@ -1921,6 +1927,7 @@ let authMode = "login";
 let authConfig = null;     // { email_confirmation, captcha_site_key } from the server
 let authConfigLoading = null;
 let confirmToken = "";     // token of the link from the sign-up confirmation e-mail
+let resetToken = "";       // token of the link from the password reset e-mail
 let captchaWidget = null;  // Cloudflare Turnstile widget, created on first use
 let turnstileLoading = null;
 
@@ -1953,7 +1960,7 @@ async function refreshUser() {
 
 function loadAuthConfig() {
   authConfigLoading ||= api("/api/auth/config").then((r) => r.json())
-    .then((c) => { authConfig = c; showCaptcha(); renderEditBox(); }).catch(() => { authConfigLoading = null; });
+    .then((c) => { authConfig = c; showCaptcha(); showForgot(); renderEditBox(); }).catch(() => { authConfigLoading = null; });
   return authConfigLoading;
 }
 
@@ -2128,7 +2135,7 @@ function openAuth(mode, hint = "") {
   $("#authHint").textContent = hint;
   $("#authHint").hidden = !hint;
   if (!dlgAuth.open) dlgAuth.showModal();
-  (mode === "confirm" ? authForm.elements.password : authForm.elements.email).focus();
+  (mode === "confirm" || mode === "reset" ? authForm.elements.password : authForm.elements.email).focus();
   loadAuthConfig();
 }
 
@@ -2137,26 +2144,50 @@ function showAuthError(msg) {
   $("#authError").hidden = !msg;
 }
 
+// Title and introduction of the modes reached from an e-mail or from "Forgot your password?"
+const AUTH_TEXTS = {
+  confirm: ["Confirm your e-mail address", "Enter the password you chose when creating the account to activate it."],
+  forgot: ["Forgotten password", "Enter the e-mail address of your account: a link to choose a new password will be sent to it."],
+  reset: ["Choose a new password", "Enter the new password of your account. You will be signed out everywhere else."],
+};
+
 function setAuthMode(mode) {
   authMode = mode;
   const signup = mode === "register", confirming = mode === "confirm";
+  const forgot = mode === "forgot", resetting = mode === "reset", fromLink = confirming || resetting;
   $$("#dlgAuth .authtab").forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
-  $("#dlgAuth .authtabs").hidden = confirming;
-  $("#authTitle").hidden = $("#authIntro").hidden = !confirming;
+  $("#dlgAuth .authtabs").hidden = fromLink;
+  const [title, intro] = AUTH_TEXTS[mode] || ["", ""];
+  $("#authTitle").textContent = title;
+  $("#authIntro").textContent = intro;
+  $("#authTitle").hidden = $("#authIntro").hidden = !title;
   $("#authFields").hidden = false;
   $("#authNameRow").hidden = !signup;
-  $("#authEmailRow").hidden = confirming;
-  authForm.elements.email.required = !confirming;
-  authForm.elements.password.autocomplete = signup ? "new-password" : "current-password";
-  $("#authPwHint").hidden = !signup;
+  $("#authEmailRow").hidden = fromLink;
+  authForm.elements.email.required = !fromLink;
+  $("#authPasswordRow").hidden = forgot;
+  authForm.elements.password.required = !forgot;
+  $("#authPasswordLabel").textContent = resetting ? "New password" : "Password";
+  authForm.elements.password.autocomplete = signup || resetting ? "new-password" : "current-password";
+  $("#authPwHint").hidden = !(signup || resetting);
+  showForgot();
   $("#authSubmit").hidden = false;
-  $("#authSubmit").textContent = signup ? "Create my account" : confirming ? "Confirm my account" : "Sign in";
+  $("#authSubmit").textContent = signup ? "Create my account" : confirming ? "Confirm my account"
+    : forgot ? "Send the link" : resetting ? "Save the new password" : "Sign in";
   $("#btnAuthCancel").textContent = "Cancel";
   $("#authInfo").hidden = true;
   showAuthError("");
   showCaptcha();
 }
 $$("#dlgAuth .authtab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
+// "Forgot your password?" under the sign-in form, when the server can e-mail a reset link
+function showForgot() {
+  $("#btnForgot").hidden = !(authMode === "login" && authConfig && authConfig.password_reset);
+}
+$("#btnForgot").addEventListener("click", () => {
+  setAuthMode("forgot");
+  authForm.elements.email.focus();
+});
 $("#btnAuthCancel").addEventListener("click", () => dlgAuth.close());
 // Sign-in asked by an edit access review: back to the review once signed in, or when the sign-in is given up
 // (the review then offers to sign in again)
@@ -2182,7 +2213,7 @@ function loadTurnstile() {
 
 async function showCaptcha() {
   const box = $("#authCaptcha"), key = authConfig && authConfig.captcha_site_key;
-  box.hidden = !(key && authMode === "register");
+  box.hidden = !(key && (authMode === "register" || authMode === "forgot"));
   if (box.hidden) return;
   try {
     await loadTurnstile();
@@ -2201,6 +2232,16 @@ function showSignupSent(data) {
   $("#authInfo").hidden = false;
 }
 
+function showResetSent(data) {
+  $("#authFields").hidden = true;
+  $("#authSubmit").hidden = true;
+  $("#btnAuthCancel").textContent = "Close";
+  // The same answer whether or not the address has an account
+  $("#authInfo").innerHTML = `If <strong>${esc(data.email)}</strong> is the address of an account, an e-mail was
+    sent to it (check the spam folder too). Open its link within ${data.minutes} minutes to choose a new password.`;
+  $("#authInfo").hidden = false;
+}
+
 authForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const password = authForm.elements.password.value;
@@ -2208,9 +2249,17 @@ authForm.addEventListener("submit", async (ev) => {
   if (authMode === "confirm") {
     url = "/api/auth/confirm";
     body = { token: confirmToken, password };
-  } else if (authMode === "register") {
-    url = "/api/auth/register";
-    body.name = authForm.elements.name.value;
+  } else if (authMode === "reset") {
+    url = "/api/auth/password-reset";
+    body = { token: resetToken, password };
+  } else if (authMode === "register" || authMode === "forgot") {
+    if (authMode === "register") {
+      url = "/api/auth/register";
+      body.name = authForm.elements.name.value;
+    } else {
+      url = "/api/auth/password-reset/request";
+      body = { email: body.email };
+    }
     if (authConfig && authConfig.captcha_site_key) {
       body.captcha = (captchaWidget !== null && window.turnstile && turnstile.getResponse(captchaWidget)) || "";
       if (!body.captcha) { showAuthError("Tick the “Verify you are human” box first."); return; }
@@ -2221,9 +2270,9 @@ authForm.addEventListener("submit", async (ev) => {
     const data = await (await api(url, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     })).json();
-    if (data && data.pending) { showSignupSent(data); return; }
+    if (data && data.pending) { (authMode === "forgot" ? showResetSent : showSignupSent)(data); return; }
     state.user = data;
-    confirmToken = "";
+    confirmToken = resetToken = "";
     dlgAuth.close(); // reopens the edit access review that asked for this sign-in, if any
     renderAccount();
     // A BOM that is already open is saved in the history as soon as the user signs in
@@ -2233,7 +2282,7 @@ authForm.addEventListener("submit", async (ev) => {
   } finally {
     $("#authSubmit").disabled = false;
     // A captcha token can only be used once
-    if (authMode === "register" && captchaWidget !== null && window.turnstile) turnstile.reset(captchaWidget);
+    if ((authMode === "register" || authMode === "forgot") && captchaWidget !== null && window.turnstile) turnstile.reset(captchaWidget);
   }
 });
 

@@ -2120,3 +2120,53 @@ def test_rohs_exemptions_expiring_within_a_year_are_flagged(monkeypatch):
     assert "RoHS exemption: 7(c)-I (check its expiry date)" in rep["lines"][0]["notes"]
     on("2027-08-01")
     assert any("expiry date passed" in n for n in analyze_text(bom)["lines"][0]["notes"])
+
+
+def test_forgotten_password_reset_by_e_mailed_link(mailbox):
+    email = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, email, "old-password")
+    old = TestClient(app)
+    assert old.post("/api/auth/login", json={"email": email, "password": "old-password"}).status_code == 200
+    assert client.get("/api/auth/config").json()["password_reset"] is True
+    # The same answer for an address with or without an account; only the account's owner gets a link
+    unknown = client.post("/api/auth/password-reset/request", json={"email": new_email()})
+    r = client.post("/api/auth/password-reset/request", json={"email": email.upper()})
+    assert r.status_code == unknown.status_code == 202
+    assert r.json()["minutes"] == unknown.json()["minutes"] == 60 and len(mailbox) == 1
+    assert mailbox[0]["to"] == email and "#reset/" in mailbox[0]["html"]
+    token = re.search(r"#reset/([\w-]+)", mailbox[0]["html"]).group(1)
+    with db.session() as conn:  # only the hash of the token is stored
+        assert conn.execute("SELECT COUNT(*) FROM password_resets WHERE token_hash = ?", (token,)).fetchone()[0] == 0
+    # New password: too short refused, then accepted; the user is signed in and signed out everywhere else
+    c = TestClient(app)
+    assert c.post("/api/auth/password-reset", json={"token": token, "password": "short"}).status_code == 422
+    r = c.post("/api/auth/password-reset", json={"token": token, "password": "new-password"})
+    assert r.status_code == 200 and r.json()["email"] == email and c.get("/api/auth/me").json()["email"] == email
+    assert old.get("/api/auth/me").status_code in (200, 401) and old.get("/api/auth/me").json() is None
+    assert client.post("/api/auth/login", json={"email": email, "password": "old-password"}).status_code == 401
+    assert TestClient(app).post("/api/auth/login", json={"email": email, "password": "new-password"}).status_code == 200
+    # The link works once
+    assert c.post("/api/auth/password-reset", json={"token": token, "password": "other-password"}).status_code == 400
+    # Several links waiting for one account: no more e-mails (same answer)
+    for _ in range(4):
+        assert client.post("/api/auth/password-reset/request", json={"email": email}).status_code == 202
+    assert len(mailbox) == 1 + auth_mod.RESET_MAX_PER_ACCOUNT
+
+
+def test_password_reset_link_expires_and_needs_e_mail(mailbox, monkeypatch, clean_signup_env):
+    email = new_email()
+    with db.session() as conn:
+        auth_mod.create_user(conn, email, "old-password")
+        token = auth_mod.create_password_reset(conn, email)
+        conn.execute("UPDATE password_resets SET expires_at = '2000-01-01T00:00:00+00:00'")
+    r = client.post("/api/auth/password-reset", json={"token": token, "password": "new-password"})
+    assert r.status_code == 400 and "expired" in r.json()["detail"]
+    # Without e-mail sending, the form says to ask the administrator (command line: cli.py set-password)
+    monkeypatch.delenv("RRC_MAIL_LOG", raising=False)
+    assert client.get("/api/auth/config").json()["password_reset"] is False
+    assert client.post("/api/auth/password-reset/request", json={"email": email}).status_code == 503
+    with db.session() as conn:
+        assert auth_mod.set_password(conn, email, "admin-set-password") is True
+        assert auth_mod.set_password(conn, new_email(), "admin-set-password") is False
+    assert client.post("/api/auth/login", json={"email": email, "password": "admin-set-password"}).status_code == 200
