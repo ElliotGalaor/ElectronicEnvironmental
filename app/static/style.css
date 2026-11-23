@@ -187,7 +187,7 @@ table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
   .cards-sm tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .cards-sm tr:last-child { border-bottom: 0; }
   .cards-sm td, .cards-sm td.notes, #lines td:nth-child(4), #comps td:nth-child(n) { display: block; order: 5; padding: 0; border: 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
-  .cards-sm td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+  .cards-sm td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font: 400 11.5px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--muted); }
   .cards-sm td:empty { display: none; }
   .cards-sm td[colspan] { grid-column: 1 / -1; }
   /* Results: part number, manufacturer and match, statuses, then the rest */
