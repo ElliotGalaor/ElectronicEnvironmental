@@ -2078,3 +2078,12 @@ def test_page_semantics_for_assistive_technologies():
     js = client.get("/static/app.js").text
     assert '<li><button type="button" data-k="${s.key}" aria-pressed="false"' in js  # legends: buttons in plain items
     assert 'role="button"' not in js and "setTitle(" in js  # page titles follow the page shown
+
+
+def test_results_and_database_tables_become_cards_on_a_phone():
+    page, css, js = (client.get(u).text for u in ("/", "/static/style.css", "/static/app.js"))
+    assert '<table class="grid cards-sm" id="lines">' in page and '<table class="grid cards-sm" id="comps">' in page
+    phone = css.split("@media (max-width: 640px) {\n  .cards-sm")[1]
+    assert ".cards-sm thead { display: none; }" in phone and "td[data-label]::before { content: attr(data-label)" in phone
+    assert "#lines td:nth-child(8), #lines td:nth-child(9), #lines td:nth-child(10) { order: 3; }" in phone  # statuses first
+    assert js.count("labelCells($(") == 2  # cells labelled with their column after each rendering

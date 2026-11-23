@@ -674,6 +674,7 @@ function renderLines() {
       <td>${comp ? eccnCell(comp.eccn) + (comp.country_of_origin ? `<div class="muted">${country(comp.country_of_origin)}</div>` : "") : ""}</td>
       <td class="notes">${notes}${sugg}${add}${altBtn}</td></tr>`;
   }).join("") || emptyLinesRow();
+  labelCells($("#lines"));
   $("#lines").classList.toggle("no-ref", !state.report.lines.some((x) => x.internal_ref));
   const total = state.report.lines.length;
   $("#lineCount").textContent = rows.length === total ? plural(total, "line") : `${rows.length} of ${total} lines shown`;
@@ -714,6 +715,15 @@ async function goToPage(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+// On a phone the results and database tables show each row as a card (style.css, .cards-sm): every cell is
+// labelled with the name of its column
+function labelCells(table) {
+  const names = [...table.tHead.rows[0].cells].map((th) => th.textContent.trim());
+  for (const tr of table.tBodies[0].rows) {
+    [...tr.cells].forEach((td, i) => { if (td.colSpan === 1 && names[i]) td.dataset.label = names[i]; });
+  }
+}
+
 /* A list whose data is slow to come (the free server can take about a minute to wake up) says so instead of
    showing an empty table: at once when it is empty, after a short delay when it already shows rows (a new search,
    another page), so that quick answers do not flicker. Returns the function that cancels the placeholder. */
@@ -745,6 +755,7 @@ async function loadComponents() {
       <td>${eccnCell(c.eccn)}</td><td>${country(c.country_of_origin)}</td>
       <td>${esc(c.last_checked)}</td><td><button class="btn small" data-edit="${c.id}">Edit</button> ${altButton(c.id, c.equivalents)}</td></tr>`).join("")
       || `<tr><td colspan="12" class="muted">No components.</td></tr>`;
+    labelCells($("#comps"));
   } catch (e) {
     $("#comps tbody").innerHTML = `<tr><td colspan="12">Error: ${esc(e.message)}</td></tr>`;
   } finally {
